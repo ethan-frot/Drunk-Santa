@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { SnowflakeManager } from '../flocon';
 
 export default function GameCanvas() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -15,6 +16,8 @@ export default function GameCanvas() {
           // Load character sprite
           this.load.image('character', '/assets/player.png');
           this.load.image('background', '/assets/background.png');
+          // Load snowflake sprite
+          this.load.image('snowflake', '/snowflake.png');
         }
         create() { this.scene.start('Game'); }
       }
@@ -22,8 +25,14 @@ export default function GameCanvas() {
       class GameScene extends Phaser.Scene {
         private character: any;
         private cursors: any;
+        private snowflakeManager: SnowflakeManager;
+        private score: number = 0;
+        private scoreText: any;
 
-        constructor() { super('Game'); }
+        constructor() { 
+          super('Game'); 
+          this.snowflakeManager = new SnowflakeManager(this);
+        }
         
         create() {
           // Add background image
@@ -54,6 +63,17 @@ export default function GameCanvas() {
 
           // Set up keyboard controls
           this.cursors = this.input.keyboard?.createCursorKeys();
+
+          // Create score text
+          this.scoreText = this.add.text(16, 16, 'Score: 0', {
+            fontSize: '32px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+          }).setScrollFactor(0);
+
+          // Start snowflake manager
+          this.snowflakeManager.start();
         }
 
         private getBottomY() {
@@ -88,7 +108,69 @@ export default function GameCanvas() {
           } else {
             this.character.setVelocityX(0);
           }
+
+          // Check collisions between character and snowflakes
+          this.checkSnowflakeCollisions();
+
+          // Clean up snowflakes that are off screen
+          this.snowflakeManager.cleanupSnowflakes();
         }
+
+
+        private checkSnowflakeCollisions() {
+          this.snowflakeManager.getSnowflakes().forEach((snowflake, index) => {
+            if (snowflake && snowflake.active) {
+              // Calculate catch hitbox at the top of the character sprite
+              const catchY = this.character.y - (this.character.displayHeight - 40);
+              
+              // Check if snowflake is close enough to the character's catch zone to be "caught"
+              const distance = Phaser.Math.Distance.Between(
+                this.character.x-50, catchY,
+                snowflake.x, snowflake.y
+              );
+              
+              // If snowflake is close enough, catch it
+              if (distance < 30) {
+                this.catchSnowflake(snowflake, index);
+              }
+            }
+          });
+        }
+
+        private catchSnowflake(snowflake: Phaser.GameObjects.Sprite, index: number) {
+          // Add score
+          this.score += 10;
+          this.scoreText.setText(`Score: ${this.score}`);
+          
+          // Create catch effect
+          this.createCatchEffect(snowflake.x, snowflake.y);
+          
+          // Destroy the snowflake
+          snowflake.destroy();
+        }
+
+        private createCatchEffect(x: number, y: number) {
+          // Create a temporary particle effect
+          const effect = this.add.text(x, y, '+10', {
+            fontSize: '24px',
+            color: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 2
+          });
+          
+          // Animate the effect
+          this.tweens.add({
+            targets: effect,
+            y: y - 50,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+              effect.destroy();
+            }
+          });
+        }
+
       }
 
       gameRef.current = new Phaser.Game({
@@ -106,6 +188,11 @@ export default function GameCanvas() {
 
     return () => {
       if (gameRef.current) {
+        // Clean up snowflake manager before destroying the game
+        const gameScene = gameRef.current.scene.getScene('Game');
+        if (gameScene && gameScene.snowflakeManager) {
+          gameScene.snowflakeManager.cleanup();
+        }
         gameRef.current.destroy(true);
         gameRef.current = null;
       }
