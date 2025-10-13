@@ -19,10 +19,9 @@ model Player {
 
 model Score {
   id        String   @id @default(cuid())
-  updatedAt DateTime @updatedAt
-  published Boolean  @default(false)
-  title     String   @db.VarChar(255)
+  value     Int
   player    Player   @relation(fields: [playerId], references: [id])
   playerId  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
