@@ -14,6 +14,7 @@ export default function GameCanvas() {
         preload() {
           // Load character sprite
           this.load.image('character', '/assets/player.png');
+          this.load.image('background', '/assets/background.png');
         }
         create() { this.scene.start('Game'); }
       }
@@ -25,9 +26,16 @@ export default function GameCanvas() {
         constructor() { super('Game'); }
         
         create() {
+          // Add background image
+          const bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
+          this.scale.on('resize', (gameSize: any) => {
+            bg.setDisplaySize(gameSize.width, gameSize.height);
+          });
+          bg.setDisplaySize(this.scale.width, this.scale.height);
+
           // Create character sprite and place it at bottom center
           this.character = this.physics.add.sprite(0, 0, 'character');
-          this.character.setScale(0.5);
+          this.character.setScale(0.7);
           this.character.setOrigin(0.5, 1);
           this.character.setCollideWorldBounds(true);
 
@@ -86,7 +94,6 @@ export default function GameCanvas() {
       gameRef.current = new Phaser.Game({
         type: Phaser.AUTO,
         parent: hostRef.current!,
-        backgroundColor: '#0a0d39',
         scale: {
           mode: Phaser.Scale.RESIZE,
           autoCenter: Phaser.Scale.CENTER_BOTH
