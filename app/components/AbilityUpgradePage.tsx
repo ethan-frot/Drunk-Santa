@@ -81,10 +81,10 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
         <h1 style={{ 
           fontSize: '48px', 
           margin: '0 0 10px 0',
-          background: 'linear-gradient(45deg, #ffd700, #ffed4e)',
+          background: 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          textShadow: '0 0 20px rgba(255, 215, 0, 0.5)'
+          textShadow: '0 0 20px rgba(0, 229, 255, 0.5)'
         }}>
           🎁 Ability Upgrades
         </h1>
@@ -176,7 +176,7 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
                     border: 'none',
                     cursor: canUpgrade ? 'pointer' : 'not-allowed',
                     background: canUpgrade 
-                      ? 'linear-gradient(45deg, #ffd700, #ffed4e)' 
+                      ? 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))'
                       : 'rgba(100, 100, 100, 0.5)',
                     color: canUpgrade ? '#1a1a2e' : '#666',
                     transition: 'all 0.3s ease',
@@ -209,7 +209,7 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
                   fontSize: '16px',
                   fontWeight: 'bold',
                   borderRadius: '8px',
-                  background: 'linear-gradient(45deg, #ffd700, #ffed4e)',
+                  background: 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))',
                   color: '#1a1a2e',
                   textAlign: 'center'
                 }}>
