@@ -5,6 +5,8 @@ import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
+import { AntiBoostManager } from '../utils/antiboost';
+
 
 export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarned: number, totalScore: number, finalScore: number) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -32,6 +34,36 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.load.image('cadeau', '/assets/gifts.png');
           // Load vodka sprite
           this.load.image('vodka', '/assets/vodka.png');
+          // Load anti-boost sprite
+          this.load.image('antiboost', '/assets/anti-boost-slowly.png');
+          // Load ice overlay as spritesheet (single strip animation 32x32 frames)
+          this.load.spritesheet('ice', '/assets/Ice.png', {
+            frameWidth: 32,
+            frameHeight: 32,
+            margin: 0,
+            spacing: 0
+          });
+          // Load throw animation sheet (character throwing snowball)
+          this.load.spritesheet('throw', '/assets/throw_sheet.png', {
+            frameWidth: 32,
+            frameHeight: 32,
+            margin: 0,
+            spacing: 0
+          });
+          // Load monster walk spritesheet (Monster5Walk.png). Sheet is 4x2 frames.
+          this.load.spritesheet('monster5', '/assets/Monster5Walk.png', {
+            frameWidth: 80, // adjust to avoid cropping (w/ 4 columns on 320px width)
+            frameHeight: 100, // adjust to full frame height (2 rows on 200px height)
+            margin: 0,
+            spacing: 0
+          });
+          // Load second monster (Monster4Walk.png) - 2x2 frames (80x100 each)
+          this.load.spritesheet('monster4', '/assets/Monster4Walk.png', {
+            frameWidth: 80,
+            frameHeight: 100,
+            margin: 0,
+            spacing: 0
+          });
 
           // Dash icon assets (use user's images)
           this.load.image('dash_full', '/assets/dash_full.png');
@@ -54,12 +86,30 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         private snowflakeManager: SnowflakeManager;
         private giftManager: GiftManager;
         private vodkaManager: VodkaManager;
+        private antiBoostManager: AntiBoostManager;
+        private iceOverlay: any = null;
+        private slime: any = null; // monster A instance (monster5)
+        private slimeTargetOffset: number = 24; // stop this many px before character center
+        private slimeSpeed: number = 70;
+        private slimeHitsTaken: number = 0;
+
+        private snowballs: Phaser.GameObjects.Sprite[] = [];
+        private nextThrowTime: number = 0;
+        private throwCooldownMs: number = 400;
+        private throwSprite: any = null;
+
+        // Monster B (monster4)
+        private monsterB: any = null;
+        private monsterBHitsTaken: number = 0;
+        private monsterBSpawnsLeft: number = 0;
+  
         private score: number = 0;
         private scoreText: any;
         private bgMusic: any;
         private timerText: any;
         private timeLeft: number = 120;
         private gameActive: boolean = true;
+        private isStunned: boolean = false;
         private hasEnded: boolean = false;
         private isDashing: boolean = false;
         private dashCooldown: number = 0; // remaining ms
@@ -80,6 +130,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.giftManager = new GiftManager(this);
           this.abilityManager = AbilityManager.getInstance();
           this.vodkaManager = new VodkaManager(this);
+          this.antiBoostManager = new AntiBoostManager(this);
+
         }
         
         create() {
@@ -117,6 +169,42 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
               frames: [{ key: 'character', frame: 0 }],
               frameRate: 1,
               repeat: -1
+            });
+          }
+          // Ice animation built from spritesheet frames
+          if (!this.anims.exists('ice_anim')) {
+            this.anims.create({
+              key: 'ice_anim',
+              frames: this.anims.generateFrameNumbers('ice', { start: 0, end: 11 }),
+              frameRate: 12,
+              repeat: -1
+            });
+          }
+          // Monster walk animation
+          if (!this.anims.exists('monster_walk')) {
+            this.anims.create({
+              key: 'monster_walk',
+              frames: this.anims.generateFrameNumbers('monster5', { start: 0, end: 7 }),
+              frameRate: 10,
+              repeat: -1
+            });
+          }
+          // Monster4 walk animation (4 frames)
+          if (!this.anims.exists('monster4_anim')) {
+            this.anims.create({
+              key: 'monster4_anim',
+              frames: this.anims.generateFrameNumbers('monster4', { start: 0, end: 3 }),
+              frameRate: 10,
+              repeat: -1
+            });
+          }
+          // Throw animation (separate spritesheet like run/idle)
+          if (!this.anims.exists('throw_anim')) {
+            this.anims.create({
+              key: 'throw_anim',
+              frames: this.anims.generateFrameNumbers('throw', { start: 0, end: 5 }),
+              frameRate: 14,
+              repeat: 0
             });
           }
 
@@ -196,6 +284,15 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.giftManager.start();
           // Start vodka manager
           this.vodkaManager.start();
+          // Start anti-boost manager
+          this.antiBoostManager.start();
+          // Spawn monster A once after short delay
+          this.time.delayedCall(1500, () => this.spawnMonsterA());
+
+          // Mouse click to throw snowball (only if slime exists)
+          this.input.on('pointerdown', () => {
+            this.tryThrowSnowball();
+          });
           // Create Dash Cooldown HUD
           this.createDashHud();
           // Create timer text
@@ -389,8 +486,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           // Update dash HUD progression every frame
           this.updateDashHud();
 
-          // Handle dash mechanic
-          if (this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
+           // Handle dash mechanic (disabled while stunned)
+           if (!this.isStunned && this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
             if (this.cursors?.left.isDown) {
               this.performDash(-1); // Dash left
             } else if (this.cursors?.right.isDown) {
@@ -398,8 +495,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
             }
           }
 
-          // Handle normal horizontal movement (only if not dashing)
-          if (!this.isDashing) {
+           // Handle normal horizontal movement (only if not dashing or stunned)
+           if (!this.isDashing && !this.isStunned) {
             // Use base speed scaled by current multiplier
             const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
 
@@ -440,6 +537,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.checkGiftCollisions();
           // Check collisions between character and vodka
           this.checkVodkaCollisions();
+          // Check collisions between character and anti-boost
+          this.checkAntiBoostCollisions();
 
           // Clean up snowflakes that are off screen
           this.snowflakeManager.cleanupSnowflakes();
@@ -448,6 +547,258 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.giftManager.cleanupGifts();
           // Clean up vodka bottles that are off screen
           this.vodkaManager.cleanupBottles();
+          // Clean up anti-boost jars that are off screen
+          this.antiBoostManager.cleanupJars();
+
+          // Keep ice overlay attached to character while stunned
+          if (this.iceOverlay && this.iceOverlay.active) {
+            this.iceOverlay.setPosition(this.character.x, this.character.y);
+          }
+
+          // Safety: ensure character is visible if no throw is playing
+          if (!this.throwSprite && this.character && this.character.alpha === 0) {
+            this.character.setAlpha(1);
+          }
+
+          // Update monsters towards the character
+          this.updateMonsterA();
+          this.updateMonsterB();
+
+          // Update snowballs and collisions
+          this.updateSnowballs();
+        }
+
+        private spawnMonsterA() {
+          // Decide spawn side
+          const fromLeft = Math.random() < 0.5;
+          const y = this.getBottomY();
+          const x = fromLeft ? -40 : this.scale.width + 40;
+          if (this.slime) {
+            this.slime.destroy();
+          }
+          this.slime = this.physics.add.sprite(x, y, 'monster5');
+          this.slime.setOrigin(0.5, 1);
+          this.slime.setScale(1.1);
+          this.slime.play('monster_walk');
+          this.slime.setDepth(4);
+          // No bobbing/shadow effect
+          this.slimeHitsTaken = 0;
+        }
+
+        private updateMonsterA() {
+          if (!this.slime || !this.slime.active) return;
+          // Keep on the ground
+          this.slime.y = this.getBottomY();
+
+          // Compute target x: stop a bit in front of character
+          const targetX = this.character.x + (this.character.flipX ? 1 : -1) * this.slimeTargetOffset;
+          const distance = Math.abs(targetX - this.slime.x);
+
+          if (distance <= 6) {
+            // Stop near the character
+            this.slime.setVelocityX(0);
+            return;
+          }
+
+          const dir = targetX > this.slime.x ? 1 : -1;
+          this.slime.setVelocityX(dir * this.slimeSpeed);
+          // If the base spritesheet faces left by default, flip when moving right
+          this.slime.setFlipX(dir > 0);
+
+          // Despawn if it walks off far beyond
+          if (this.slime.x < -120 || this.slime.x > this.scale.width + 120) {
+            this.slime.destroy();
+            // Monster A spawns only once — no respawn
+          }
+        }
+
+        private spawnMonsterB() {
+          const fromLeft = Math.random() < 0.5;
+          const y = this.getBottomY();
+          const x = fromLeft ? -40 : this.scale.width + 40;
+          if (this.monsterB) {
+            this.monsterB.destroy();
+          }
+          this.monsterB = this.physics.add.sprite(x, y, 'monster4');
+          this.monsterB.setOrigin(0.5, 1);
+          this.monsterB.setScale(1.0);
+          this.monsterB.play('monster4_anim');
+          this.monsterB.setDepth(6);
+          this.monsterB.setAlpha(1);
+          this.monsterBHitsTaken = 0;
+        }
+
+        private updateMonsterB() {
+          if (!this.monsterB || !this.monsterB.active) return;
+          this.monsterB.y = this.getBottomY();
+          const targetX = this.character.x + (this.character.flipX ? 1 : -1) * this.slimeTargetOffset;
+          const distance = Math.abs(targetX - this.monsterB.x);
+          if (distance <= 6) {
+            this.monsterB.setVelocityX(0);
+            return;
+          }
+          const dir = targetX > this.monsterB.x ? 1 : -1;
+          this.monsterB.setVelocityX(dir * this.slimeSpeed);
+          this.monsterB.setFlipX(dir > 0);
+          if (this.monsterB.x < -120 || this.monsterB.x > this.scale.width + 120) {
+            this.monsterB.destroy();
+          }
+        }
+
+        private tryThrowSnowball() {
+          const hasA = this.slime && this.slime.active;
+          const hasB = this.monsterB && this.monsterB.active;
+          if (!hasA && !hasB) return;
+          if (this.isStunned) return;
+          if (this.time.now < this.nextThrowTime) return;
+          this.nextThrowTime = this.time.now + this.throwCooldownMs;
+
+          // Play throw animation once, then restore run/idle
+          const wasRunning = this.character.anims?.currentAnim?.key === 'run';
+          // Face the target before throwing
+          const target = hasA ? this.slime : this.monsterB;
+          const faceRight = target.x > this.character.x;
+          this.character.setFlipX(!faceRight);
+          // Create a temporary throw sprite over the character
+          if (this.throwSprite) { this.throwSprite.destroy(); this.throwSprite = null; this.character.setAlpha(1); }
+          this.throwSprite = this.add.sprite(this.character.x, this.character.y, 'throw');
+          this.throwSprite.setOrigin(0.5, 1);
+          this.throwSprite.setScale(3.5);
+          this.throwSprite.setFlipX(this.character.flipX);
+          this.throwSprite.setDepth((this.character.depth || 0) + 1);
+          // Hide main character during the throw for clean visuals
+          const prevAlpha = this.character.alpha;
+          this.character.setAlpha(0);
+          this.throwSprite.play('throw_anim');
+          this.throwSprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+            this.throwSprite?.destroy();
+            this.throwSprite = null;
+            this.character.setAlpha(prevAlpha);
+            if (wasRunning) {
+              this.character.play('run');
+            } else {
+              this.character.play('idle');
+            }
+          });
+          // Fallback in case the completion event is lost
+          this.time.delayedCall(600, () => {
+            if (!this.throwSprite && this.character.alpha === 0) {
+              this.character.setAlpha(prevAlpha);
+            }
+          });
+
+          // Spawn a snowball and launch toward slime
+          const startX = this.character.x + (this.character.flipX ? -10 : 10);
+          const startY = this.character.y - this.character.displayHeight * 0.65;
+          const snowball = this.add.circle(startX, startY, 7, 0xffffff) as any;
+          (snowball as any).setDepth?.(5);
+          this.physics.add.existing(snowball);
+          const body = (snowball as any).body as Phaser.Physics.Arcade.Body;
+          body.setAllowGravity(false);
+
+          // velocity towards current slime position
+          const dx = (target.x) - startX;
+          const dy = (target.y - target.displayHeight * 0.5) - startY;
+          const len = Math.max(1, Math.hypot(dx, dy));
+          const speed = 480;
+          body.setVelocity((dx / len) * speed, (dy / len) * speed);
+
+          this.snowballs.push(snowball as any);
+        }
+
+        private updateSnowballs() {
+          if (this.snowballs.length === 0) return;
+          this.snowballs.forEach((ball, index) => {
+            if (!ball || !ball.active) return;
+            // Remove off-screen
+            if (ball.x < -50 || ball.x > this.scale.width + 50 || ball.y < -50 || ball.y > this.scale.height + 50) {
+              ball.destroy();
+              this.snowballs.splice(index, 1);
+              return;
+            }
+
+            // Collision with monster A
+            if (this.slime && this.slime.active) {
+              const hitDist = 28; // fairly generous hitbox
+              const d = Phaser.Math.Distance.Between(ball.x, ball.y, this.slime.x, this.slime.y - this.slime.displayHeight * 0.5);
+              if (d < hitDist) {
+                ball.destroy();
+                this.snowballs.splice(index, 1);
+                this.onSnowballHitMonsterA();
+                return;
+              }
+            }
+            // Collision with monster B
+            if (this.monsterB && this.monsterB.active) {
+              const hitDistB = 28;
+              const dB = Phaser.Math.Distance.Between(ball.x, ball.y, this.monsterB.x, this.monsterB.y - this.monsterB.displayHeight * 0.5);
+              if (dB < hitDistB) {
+                ball.destroy();
+                this.snowballs.splice(index, 1);
+                this.onSnowballHitMonsterB();
+              }
+            }
+          });
+        }
+
+        private onSnowballHitMonsterA() {
+          if (!this.slime || !this.slime.active) return;
+          this.slimeHitsTaken += 1;
+          // small hit flash
+          try {
+            this.slime.setTint(0xaaffff);
+            this.time.delayedCall(100, () => this.slime?.clearTint?.());
+          } catch {}
+
+          if (this.slimeHitsTaken >= 3) {
+            // Death animation: quick scale down then destroy
+            this.tweens.add({
+              targets: this.slime,
+              scaleX: 0,
+              scaleY: 0,
+              duration: 200,
+              ease: 'Back.easeIn',
+              onComplete: () => {
+                this.slime?.destroy();
+                // Start schedule for monster B spawns: 2 times with 30s pause
+                this.monsterBSpawnsLeft = 2;
+                this.time.delayedCall(30000, () => this.trySpawnMonsterBSequence());
+              }
+            });
+          }
+        }
+
+        private trySpawnMonsterBSequence() {
+          if (this.monsterBSpawnsLeft <= 0) return;
+          this.spawnMonsterB();
+          this.monsterBSpawnsLeft -= 1;
+          if (this.monsterBSpawnsLeft > 0) {
+            this.time.delayedCall(30000, () => this.trySpawnMonsterBSequence());
+          }
+        }
+
+        private onSnowballHitMonsterB() {
+          if (!this.monsterB || !this.monsterB.active) return;
+          this.monsterBHitsTaken += 1;
+          try {
+            this.monsterB.setTint(0xaaffff);
+            this.time.delayedCall(100, () => this.monsterB?.clearTint?.());
+          } catch {}
+
+          if (this.monsterBHitsTaken >= 3) {
+            this.tweens.add({
+              targets: this.monsterB,
+              scaleX: 0,
+              scaleY: 0,
+              duration: 200,
+              ease: 'Back.easeIn',
+              onComplete: () => {
+                this.monsterB?.destroy();
+                this.monsterB = null;
+                this.monsterBHitsTaken = 0;
+              }
+            });
+          }
         }
 
         private checkGiftCollisions() {
@@ -572,6 +923,81 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           });
         }
 
+        private checkAntiBoostCollisions() {
+          this.antiBoostManager.getJars().forEach((jar, index) => {
+            if (jar && jar.active) {
+              const topPortion = 0.3;
+              const horizontalOffsetFactor = 0.4;
+              const radiusFactor = 0.45;
+
+              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
+              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
+              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
+
+              const distance = Phaser.Math.Distance.Between(
+                this.character.x - offsetX, catchY,
+                jar.x, jar.y
+              );
+
+              if (distance < catchRadius) {
+                this.catchAntiBoost(jar, index);
+              }
+            }
+          });
+        }
+
+        private catchAntiBoost(jar: Phaser.GameObjects.Sprite, index: number) {
+          // Apply 4-second stun: stop movement and ignore input/dash
+          const stunDurationMs = 4000;
+          this.isStunned = true;
+          this.isDashing = false;
+          this.character.setVelocityX(0);
+          if (this.character?.anims) {
+            this.character.play('idle');
+          }
+
+          // Remove any speed boost while stunned
+          this.speedMultiplier = 1;
+          this.boostEndTime = 0;
+
+          // Create or refresh ice overlay on character
+          if (this.iceOverlay) {
+            this.iceOverlay.destroy();
+          }
+          this.iceOverlay = this.add.sprite(this.character.x, this.character.y, 'ice');
+          this.iceOverlay.setOrigin(0.5, 1);
+          // Match character scale
+          this.iceOverlay.setScale(3.5);
+          this.iceOverlay.setDepth((this.character.depth || 0) + 1);
+          // Play looping ice animation frames
+          this.iceOverlay.play('ice_anim');
+
+          // Tint the character blue for the stun duration
+          try { (this.character as any).setTint?.(0x66ccff); } catch {}
+
+          // Destroy the jar
+          jar.destroy();
+
+          // End stun after duration
+          this.time.delayedCall(stunDurationMs, () => {
+            this.isStunned = false;
+            // Clear tint and remove ice overlay
+            try { (this.character as any).clearTint?.(); } catch {}
+            if (this.iceOverlay) {
+              this.tweens.add({
+                targets: this.iceOverlay,
+                alpha: 0,
+                duration: 250,
+                onComplete: () => {
+                  this.iceOverlay?.destroy();
+                  this.iceOverlay = null;
+                }
+              });
+            }
+          });
+        }
+
+       
         private catchVodka(bottle: Phaser.GameObjects.Sprite, index: number) {
           // Speed boost for a short duration with ghost trail
           const boostDurationMs = 5000;
@@ -649,6 +1075,16 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.game.registry.set('onGameEnd', null);
           // stop boost
           this.speedMultiplier = 1;
+          this.isStunned = false;
+          // stop managers
+          if (this.antiBoostManager) {
+            this.antiBoostManager.cleanup();
+          }
+          try { (this.character as any).clearTint?.(); } catch {}
+          if (this.iceOverlay) {
+            this.iceOverlay.destroy();
+            this.iceOverlay = null;
+          }
         }
       }
 
