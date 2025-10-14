@@ -39,6 +39,9 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         private timerText: any;
         private timeLeft: number = 10;
         private gameActive: boolean = true;
+        private isDashing: boolean = false;
+        private dashCooldown: number = 0;
+        private spaceKey: any;
 
         constructor() { 
           super('Game'); 
@@ -86,6 +89,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
 
           // Set up keyboard controls
           this.cursors = this.input.keyboard?.createCursorKeys();
+          this.spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
           // Create score text
           this.scoreText = this.add.text(16, 16, 'Score: 0', {
@@ -153,19 +157,98 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           this.character.setPosition(this.scale.width / 2, this.getBottomY());
         }
 
+        private performDash(direction: number) {
+          this.isDashing = true;
+          this.dashCooldown = 2000; // 2 second cooldown
+          
+          // Calculate dash distance (quarter of map width)
+          const dashDistance = this.scale.width * 0.25;
+          const targetX = this.character.x + (dashDistance * direction);
+          
+          // Clamp target position within bounds
+          const halfWidth = (this.character.displayWidth || 0) / 2;
+          const minX = halfWidth;
+          const maxX = this.scale.width - halfWidth;
+          const clampedTargetX = Phaser.Math.Clamp(targetX, minX, maxX);
+          
+          // Set high velocity for dash
+          const dashSpeed = 1200; // Increased speed for wider dash
+          this.character.setVelocityX(dashSpeed * direction);
+          
+          // Create afterimage trail
+          this.createAfterimageTrail();
+          
+          // Stop dash after a short duration
+          this.time.delayedCall(300, () => {
+            this.isDashing = false;
+            this.character.setVelocityX(0);
+          });
+        }
+
+        private createAfterimageTrail() {
+          const afterimageCount = 5; // Number of afterimages
+          const afterimageDelay = 50; // Delay between each afterimage
+          
+          for (let i = 0; i < afterimageCount; i++) {
+            this.time.delayedCall(i * afterimageDelay, () => {
+              // Create afterimage sprite at current character position
+              const afterimage = this.add.sprite(
+                this.character.x, 
+                this.character.y, 
+                'character'
+              );
+              
+              // Set afterimage properties
+              afterimage.setScale(0.7);
+              afterimage.setOrigin(0.5, 1);
+              afterimage.setAlpha(0.3 - (i * 0.05)); // Fade out progressively
+              afterimage.setTint(0x00ffff); // Cyan tint for afterimage
+              
+              // Animate the afterimage
+              this.tweens.add({
+                targets: afterimage,
+                alpha: 0,
+                scaleX: 0.5,
+                scaleY: 0.5,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => {
+                  afterimage.destroy();
+                }
+              });
+            });
+          }
+        }
+
         update() {
           if (!this.gameActive) return;
 
           // Keep the character on the bottom each frame, but allow X to move
           this.keepCharacterAtBottom();
 
-          // Handle horizontal movement
+          // Update dash cooldown
+          if (this.dashCooldown > 0) {
+            this.dashCooldown -= 16; // Assuming 60fps, ~16ms per frame
+          }
+
+          // Handle dash mechanic
+          if (this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
+            if (this.cursors?.left.isDown) {
+              this.performDash(-1); // Dash left
+            } else if (this.cursors?.right.isDown) {
+              this.performDash(1); // Dash right
+            }
+          }
+
+          // Handle normal horizontal movement (only if not dashing)
+          if (!this.isDashing) {
           if (this.cursors?.left.isDown) {
             this.character.setVelocityX(-200);
           } else if (this.cursors?.right.isDown) {
             this.character.setVelocityX(200);
           } else {
             this.character.setVelocityX(0);
+          }
           }
 
           // Check collisions between character and snowflakes
