@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function DisplayScorePage() {
@@ -8,6 +8,7 @@ export default function DisplayScorePage() {
   const searchParams = useSearchParams();
   const [pseudo, setPseudo] = useState('');
   const [score, setScore] = useState(0);
+  const postedRef = useRef(false);
 
   useEffect(() => {
     const playerPseudo = localStorage.getItem('playerPseudo') || 'Joueur';
@@ -18,6 +19,53 @@ export default function DisplayScorePage() {
     const finalScore = urlScore ? parseInt(urlScore) : parseInt(localStorage.getItem('gameScore') || '0');
     setScore(finalScore);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (postedRef.current) return;
+    if (!pseudo || !Number.isFinite(score)) return;
+
+    // ensure first paint before posting
+    const schedule = (cb: () => void) => {
+      // @ts-ignore requestIdleCallback exists in modern browsers
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        // @ts-ignore
+        window.requestIdleCallback(cb, { timeout: 1000 });
+      } else {
+        setTimeout(cb, 300);
+      }
+    };
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    postedRef.current = true;
+    schedule(() => {
+      if (signal.aborted) return;
+      fetch('/api/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: pseudo, score }),
+        signal
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            // eslint-disable-next-line no-console
+            console.warn('Failed to save score', data?.error || res.statusText);
+          } else {
+            // eslint-disable-next-line no-console
+            console.log('Score saved');
+          }
+        })
+        .catch((err) => {
+          if (signal.aborted) return;
+          // eslint-disable-next-line no-console
+          console.warn('Error saving score', err);
+        });
+    });
+
+    return () => controller.abort();
+  }, [pseudo, score]);
 
   return (
     <main style={{ 

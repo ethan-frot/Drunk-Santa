@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
 
-export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
+export default function GameCanvas({ onGameEnd }: { onGameEnd?: (finalScore: number) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
@@ -305,7 +305,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           // call callback (if passed through game.registry)
           const onGameEnd = this.game.registry.get('onGameEnd');
           if (onGameEnd) {
-            onGameEnd();
+            onGameEnd(this.score);
           }
         }
       }

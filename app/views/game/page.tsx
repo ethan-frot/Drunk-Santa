@@ -8,10 +8,9 @@ export default function DisplayGamePage() {
     
     return (
       <main style={{ minHeight: '100vh', height: '100vh', background: '#040218' }}>
-        <GameCanvas onGameEnd={() => {
-          // save score in localStorage (0 for now, then add score system)
-          localStorage.setItem('gameScore', '0');
-          router.push('/views/score?score=0');
+        <GameCanvas onGameEnd={(finalScore) => {
+          localStorage.setItem('gameScore', String(finalScore));
+          router.push(`/views/score?score=${encodeURIComponent(finalScore)}`);
         }} />
       </main>
     );
