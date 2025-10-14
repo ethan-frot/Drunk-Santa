@@ -35,6 +35,13 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.load.image('vodka', '/assets/vodka.png');
           // Load anti-boost sprite
           this.load.image('antiboost', '/assets/anti-boost-slowly.png');
+          // Load ice overlay as spritesheet (single strip animation 32x32 frames)
+          this.load.spritesheet('ice', '/assets/Ice.png', {
+            frameWidth: 32,
+            frameHeight: 32,
+            margin: 0,
+            spacing: 0
+          });
 
           //music
           this.load.audio('music', '/assets/background-music.mp3');
@@ -49,6 +56,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         private giftManager: GiftManager;
         private vodkaManager: VodkaManager;
         private antiBoostManager: AntiBoostManager;
+        private iceOverlay: any = null;
   
         private score: number = 0;
         private scoreText: any;
@@ -109,6 +117,15 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
               key: 'idle',
               frames: [{ key: 'character', frame: 0 }],
               frameRate: 1,
+              repeat: -1
+            });
+          }
+          // Ice animation built from spritesheet frames
+          if (!this.anims.exists('ice_anim')) {
+            this.anims.create({
+              key: 'ice_anim',
+              frames: this.anims.generateFrameNumbers('ice', { start: 0, end: 11 }),
+              frameRate: 12,
               repeat: -1
             });
           }
@@ -395,6 +412,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.vodkaManager.cleanupBottles();
           // Clean up anti-boost jars that are off screen
           this.antiBoostManager.cleanupJars();
+
+          // Keep ice overlay attached to character while stunned
+          if (this.iceOverlay && this.iceOverlay.active) {
+            this.iceOverlay.setPosition(this.character.x, this.character.y);
+          }
         }
 
         private checkGiftCollisions() {
@@ -556,13 +578,20 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.speedMultiplier = 1;
           this.boostEndTime = 0;
 
-          // Visual feedback (brief red tint)
-          try {
-            (this.character as any).setTint?.(0x79b6ee);
-            this.time.delayedCall(250, () => {
-              (this.character as any).clearTint?.();
-            });
-          } catch {}
+          // Create or refresh ice overlay on character
+          if (this.iceOverlay) {
+            this.iceOverlay.destroy();
+          }
+          this.iceOverlay = this.add.sprite(this.character.x, this.character.y, 'ice');
+          this.iceOverlay.setOrigin(0.5, 1);
+          // Match character scale
+          this.iceOverlay.setScale(3.5);
+          this.iceOverlay.setDepth((this.character.depth || 0) + 1);
+          // Play looping ice animation frames
+          this.iceOverlay.play('ice_anim');
+
+          // Tint the character blue for the stun duration
+          try { (this.character as any).setTint?.(0x66ccff); } catch {}
 
           // Destroy the jar
           jar.destroy();
@@ -570,6 +599,19 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           // End stun after duration
           this.time.delayedCall(stunDurationMs, () => {
             this.isStunned = false;
+            // Clear tint and remove ice overlay
+            try { (this.character as any).clearTint?.(); } catch {}
+            if (this.iceOverlay) {
+              this.tweens.add({
+                targets: this.iceOverlay,
+                alpha: 0,
+                duration: 250,
+                onComplete: () => {
+                  this.iceOverlay?.destroy();
+                  this.iceOverlay = null;
+                }
+              });
+            }
           });
         }
 
@@ -647,6 +689,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           // stop managers
           if (this.antiBoostManager) {
             this.antiBoostManager.cleanup();
+          }
+          try { (this.character as any).clearTint?.(); } catch {}
+          if (this.iceOverlay) {
+            this.iceOverlay.destroy();
+            this.iceOverlay = null;
           }
         }
       }
