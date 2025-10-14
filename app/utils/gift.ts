@@ -1,4 +1,4 @@
-import * as Phaser from 'phaser';
+import Phaser from 'phaser';
 
 export class GiftManager {
   private scene: Phaser.Scene;
@@ -6,9 +6,18 @@ export class GiftManager {
   private fallSpeed: number = 80; // Slightly slower than snowflakes
   private spawnTimer: any;
   private spawnDelay: number = 8000; // Spawn every 8 seconds initially
+  private giftSize: number = 0.15; // Base size, will be upgraded
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+  }
+
+  public setGiftSize(size: number) {
+    this.giftSize = size;
+  }
+
+  public getGiftSize(): number {
+    return this.giftSize;
   }
 
   public start() {
@@ -57,9 +66,8 @@ export class GiftManager {
     // Create gift sprite
     const gift = this.scene.add.sprite(x, y, 'cadeau');
     
-    // Set appropriate size for gifts
-    const scale = 0.15;
-    gift.setScale(scale);
+    // Use current gift size (upgradeable)
+    gift.setScale(this.giftSize);
     
     // Random rotation
     const rotation = Phaser.Math.Between(0, 360) * Math.PI / 180;

@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
+import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
 
-export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
+export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
+  const [abilityManager] = useState(() => AbilityManager.getInstance());
 
   useEffect(() => {
     import('phaser').then((Phaser) => {
@@ -48,6 +50,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         private timerText: any;
         private timeLeft: number = 120;
         private gameActive: boolean = true;
+        private isDashing: boolean = false;
+        private dashCooldown: number = 0;
+        private spaceKey: any;
+        private snowflakesEarned: number = 0;
+        private abilityManager: any;
         private baseMoveSpeed: number = 200;
         private speedMultiplier: number = 1;
         private boostEndTime: number = 0;
@@ -56,6 +63,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           super('Game'); 
           this.snowflakeManager = new SnowflakeManager(this);
           this.giftManager = new GiftManager(this);
+          this.abilityManager = AbilityManager.getInstance();
           this.vodkaManager = new VodkaManager(this);
         }
         
@@ -121,8 +129,38 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
             this.keepCharacterAtBottom();
           });
 
+          // Ensure keyboard input is enabled and capture keys
+          if (this.input.keyboard) {
+            this.input.keyboard.enabled = true;
+            this.input.keyboard.addCapture([
+              Phaser.Input.Keyboard.KeyCodes.LEFT,
+              Phaser.Input.Keyboard.KeyCodes.RIGHT,
+              Phaser.Input.Keyboard.KeyCodes.SPACE
+            ]);
+          }
           // Set up keyboard controls
           this.cursors = this.input.keyboard?.createCursorKeys();
+
+          // Ensure canvas keeps focus for reliable keyboard input
+          const canvas: any = this.game.canvas as any;
+          if (canvas) {
+            canvas.setAttribute('tabindex', '0');
+            try { canvas.focus(); } catch {}
+
+            const focusCanvas = () => { try { canvas.focus(); } catch {} };
+            // Refocus on any pointer interaction inside the game
+            this.input.on('pointerdown', focusCanvas);
+            // Refocus when tab becomes visible again
+            const onVisibility = () => { if (!document.hidden) focusCanvas(); };
+            document.addEventListener('visibilitychange', onVisibility);
+
+            // Clean up listeners on scene shutdown
+            this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+              this.input.off('pointerdown', focusCanvas);
+              document.removeEventListener('visibilitychange', onVisibility);
+            });
+          }
+          this.spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
           // Create score text
           this.scoreText = this.add.text(16, 16, 'Score: 0', {
@@ -132,6 +170,9 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
             strokeThickness: 4
           }).setScrollFactor(0);
 
+          // Apply ability upgrades
+          this.applyAbilityUpgrades();
+          
           // Start snowflake manager
           this.snowflakeManager.start();
           
@@ -192,12 +233,112 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           this.character.setPosition(this.scale.width / 2, this.getBottomY());
         }
 
+        private applyAbilityUpgrades() {
+          // Apply snowflake value upgrade
+          const snowflakeValue = this.abilityManager.getCurrentValue('snowflake_value');
+          this.snowflakeManager.setSnowflakeValue(snowflakeValue);
+          
+          // Apply gift size upgrade
+          const giftSize = this.abilityManager.getCurrentValue('gift_size');
+          this.giftManager.setGiftSize(giftSize);
+          
+          // Apply dash cooldown upgrade
+          const dashCooldown = this.abilityManager.getCurrentValue('dash_cooldown');
+          this.dashCooldown = dashCooldown;
+        }
+
+        private performDash(direction: number) {
+          this.isDashing = true;
+          this.dashCooldown = this.abilityManager.getCurrentValue('dash_cooldown');
+          
+          // Calculate dash distance (quarter of map width)
+          const dashDistance = this.scale.width * 0.25;
+          const targetX = this.character.x + (dashDistance * direction);
+          
+          // Clamp target position within bounds
+          const halfWidth = (this.character.displayWidth || 0) / 2;
+          const minX = halfWidth;
+          const maxX = this.scale.width - halfWidth;
+          const clampedTargetX = Phaser.Math.Clamp(targetX, minX, maxX);
+          
+          // Set high velocity for dash
+          const dashSpeed = 1200; // Increased speed for wider dash
+          this.character.setVelocityX(dashSpeed * direction);
+          
+          // Create afterimage trail
+          this.createAfterimageTrail();
+          
+          // Stop dash after a short duration
+          this.time.delayedCall(300, () => {
+            this.isDashing = false;
+            this.character.setVelocityX(0);
+          });
+        }
+
+        private createAfterimageTrail() {
+          const afterimageCount = 5; // Number of afterimages
+          const afterimageDelay = 50; // Delay between each afterimage
+          
+          for (let i = 0; i < afterimageCount; i++) {
+            this.time.delayedCall(i * afterimageDelay, () => {
+              // Create afterimage sprite at current character position
+              const afterimage = this.add.sprite(
+                this.character.x, 
+                this.character.y, 
+                'character'
+              );
+              
+              // Set afterimage properties
+              afterimage.setScale(0.7);
+              afterimage.setOrigin(0.5, 1);
+              afterimage.setAlpha(0.3 - (i * 0.05)); // Fade out progressively
+              afterimage.setTint(0x00ffff); // Cyan tint for afterimage
+              
+              // Animate the afterimage
+              this.tweens.add({
+                targets: afterimage,
+                alpha: 0,
+                scaleX: 0.5,
+                scaleY: 0.5,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => {
+                  afterimage.destroy();
+                }
+              });
+            });
+          }
+        }
+
         update() {
           if (!this.gameActive) return;
 
           // Keep the character on the bottom each frame, but allow X to move
           this.keepCharacterAtBottom();
 
+          // Update dash cooldown
+          if (this.dashCooldown > 0) {
+            this.dashCooldown -= 16; // Assuming 60fps, ~16ms per frame
+          }
+
+          // Handle dash mechanic
+          if (this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
+            if (this.cursors?.left.isDown) {
+              this.performDash(-1); // Dash left
+            } else if (this.cursors?.right.isDown) {
+              this.performDash(1); // Dash right
+            }
+          }
+
+          // Handle normal horizontal movement (only if not dashing)
+          if (!this.isDashing) {
+            const movementSpeed = this.abilityManager.getCurrentValue('movement_speed');
+            if (this.cursors?.left.isDown) {
+              this.character.setVelocityX(-movementSpeed);
+            } else if (this.cursors?.right.isDown) {
+              this.character.setVelocityX(movementSpeed);
+            } else {
+              this.character.setVelocityX(0);
           // Handle horizontal movement and animations
           const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
           if (this.cursors?.left.isDown) {
@@ -299,12 +440,16 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         }
 
         private catchSnowflake(snowflake: Phaser.GameObjects.Sprite, index: number) {
+          // Get snowflake value from manager
+          const snowflakeValue = this.snowflakeManager.getSnowflakeValue();
+          
           // Add score
-          this.score += 10;
+          this.score += snowflakeValue;
+          this.snowflakesEarned += 1; // Track for ability system
           this.scoreText.setText(`Score: ${this.score}`);
           
-          // Create catch effect
-          this.createCatchEffect(snowflake.x, snowflake.y);
+          // Create catch effect with dynamic value
+          this.createCatchEffect(snowflake.x, snowflake.y, snowflakeValue);
           
           // Destroy the snowflake
           snowflake.destroy();
@@ -322,6 +467,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           gift.destroy();
         }
 
+        private createCatchEffect(x: number, y: number, value: number = 10) {
         private checkVodkaCollisions() {
           this.vodkaManager.getBottles().forEach((bottle, index) => {
             if (bottle && bottle.active) {
@@ -367,7 +513,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
 
         private createCatchEffect(x: number, y: number) {
           // Create a temporary particle effect
-          const effect = this.add.text(x, y, '+10', {
+          const effect = this.add.text(x, y, `+${value}`, {
             fontSize: '24px',
             color: '#00ff00',
             stroke: '#000000',
@@ -427,6 +573,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           if (this.bgMusic) {
             this.bgMusic.stop();
           }
+
+          // Call onGameEnd with snowflakes earned and total score
+          const onGameEndCallback = this.game.registry.get('onGameEnd');
+          if (onGameEndCallback) {
+            onGameEndCallback(this.snowflakesEarned, this.score);
           
           // stop boost
           this.speedMultiplier = 1;
@@ -455,6 +606,16 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         physics: { default: 'arcade', arcade: { debug: false } },
         scene: [PreloadScene, GameScene]
       });
+      // Ensure the Phaser canvas is focusable and focused for keyboard input
+      setTimeout(() => {
+        const canvas: any = (gameRef.current as any)?.canvas;
+        if (canvas) {
+          canvas.setAttribute('tabindex', '0');
+          try { canvas.focus(); } catch {}
+        }
+      }, 0);
+      
+      // Pass onGameEnd callback to the game
       if (onGameEnd) {
         gameRef.current.registry.set('onGameEnd', onGameEnd);
       }
@@ -471,6 +632,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         if (gameScene && gameScene.giftManager) {
           gameScene.giftManager.cleanup();
         }
+        // Blur canvas to release keyboard focus before destroy
+        try { (gameRef.current as any)?.canvas?.blur?.(); } catch {}
         gameRef.current.destroy(true);
         gameRef.current = null;
       }
@@ -478,7 +641,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
   }, [onGameEnd]);
 
   return (
-    <div ref={hostRef} style={{ position: 'fixed', inset: 0 }}>
+    <div ref={hostRef} tabIndex={0} style={{ position: 'fixed', inset: 0 }}>
       {!ready && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, opacity: 0.8, color: '#e7e9ff' }}>
           Loading…
