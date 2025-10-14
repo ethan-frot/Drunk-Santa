@@ -20,7 +20,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           // Load snowflake sprite
           this.load.image('snowflake', '/snowflake.png');
           // Load gift sprite
-          this.load.image('cadeau', '/spriteCadeaux.png');
+          this.load.image('cadeau', '/gifts.png');
 
           //music
           this.load.audio('music', '/assets/background-music.mp3');
