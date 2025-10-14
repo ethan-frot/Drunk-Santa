@@ -33,8 +33,17 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           // Load vodka sprite
           this.load.image('vodka', '/assets/vodka.png');
 
+          // Dash icon assets (use user's images)
+          this.load.image('dash_full', '/assets/dash_full.png');
+          this.load.image('dash_empty', '/assets/dash_empty.png');
+          this.load.image('dash1', '/assets/dash1.png');
+          this.load.image('dash2', '/assets/dash2.png');
+          this.load.image('dash3', '/assets/dash3.png');
+
           //music
           this.load.audio('music', '/assets/background-music.mp3');
+          // dash sound effect
+          this.load.audio('dash_sfx', '/assets/Quick Fart Sound Effect.mp3');
         }
         create() { this.scene.start('Game'); }
       }
@@ -53,14 +62,18 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         private gameActive: boolean = true;
         private hasEnded: boolean = false;
         private isDashing: boolean = false;
-        private dashCooldown: number = 0;
+        private dashCooldown: number = 0; // remaining ms
+        private dashCooldownTotal: number = 0; // total ms for current cooldown
         private spaceKey: any;
         private snowflakesEarned: number = 0;
         private abilityManager: any;
         private baseMoveSpeed: number = 200;
         private speedMultiplier: number = 1;
         private boostEndTime: number = 0;
-
+        // Dash HUD elements (image-based)
+        private dashHudContainer: any;
+        private dashImage: any;
+        private dashHudSize: number = 96;
         constructor() { 
           super('Game'); 
           this.snowflakeManager = new SnowflakeManager(this);
@@ -183,6 +196,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.giftManager.start();
           // Start vodka manager
           this.vodkaManager.start();
+          // Create Dash Cooldown HUD
+          this.createDashHud();
           // Create timer text
           this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
             fontSize: '48px',
@@ -212,6 +227,9 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.scale.on('resize', (gameSize: any) => {
             if (this.timerText) {
               this.timerText.setPosition(gameSize.width / 2, 50);
+            }
+            if (this.dashHudContainer) {
+              this.dashHudContainer.setPosition(gameSize.width - (this.dashHudSize / 2 + 20), 20 + this.dashHudSize / 2);
             }
           });
         }
@@ -252,7 +270,10 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
 
         private performDash(direction: number) {
           this.isDashing = true;
-          this.dashCooldown = this.abilityManager.getCurrentValue('dash_cooldown');
+          this.dashCooldownTotal = this.abilityManager.getCurrentValue('dash_cooldown');
+          this.dashCooldown = this.dashCooldownTotal;
+          // play dash sound effect starting 260ms into the clip and louder
+          try { this.sound.play('dash_sfx', { volume: 1, seek: 0.26 }); } catch {}
           
           // Calculate dash distance (quarter of map width)
           const dashDistance = this.scale.width * 0.25;
@@ -276,6 +297,10 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
             this.isDashing = false;
             this.character.setVelocityX(0);
           });
+          // Reflect cooldown start immediately on HUD
+          this.updateDashHud();
+          // Ensure the icon is visible during cooldown animation
+          if (this.dashImage) this.dashImage.setVisible(true);
         }
 
         private createAfterimageTrail() {
@@ -313,6 +338,44 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           }
         }
 
+        private createDashHud() {
+          const size = this.dashHudSize; // 96
+          const hudX = this.scale.width - (size / 2 + 20);
+          const hudY = 20 + size / 2; // top-right
+          
+          this.dashHudContainer = this.add.container(hudX, hudY).setScrollFactor(0);
+          // Ensure HUD is always on top of everything
+          this.dashHudContainer.setDepth(10000);
+          
+          // Single image that we swap based on stage
+          this.dashImage = this.add.image(0, 0, 'dash_full');
+          this.dashImage.setDisplaySize(size, size);
+          this.dashImage.setDepth(10001);
+          this.dashHudContainer.add(this.dashImage);
+
+          // Initial state
+          // Start hidden until first dash triggers animation
+          if (this.dashImage) this.dashImage.setVisible(false);
+        }
+
+        private updateDashHud() {
+          if (!this.dashHudContainer) return;
+          const remaining = Math.max(0, this.dashCooldown);
+          if (remaining <= 0) {
+            // Cooldown finished: hide icon until next dash
+            if (this.dashImage) this.dashImage.setVisible(false);
+            return;
+          }
+          // Ensure icon is visible while animating cooldown
+          if (this.dashImage && !this.dashImage.visible) this.dashImage.setVisible(true);
+          const ratio = Phaser.Math.Clamp(remaining / this.dashCooldownTotal, 0, 1);
+          // Determine stage from ratio: 0 (empty) .. 4 (full)
+          const stage = 4 - Math.ceil(ratio * 4);
+          const key = stage <= 0 ? 'dash_empty' : stage === 1 ? 'dash1' : stage === 2 ? 'dash2' : stage === 3 ? 'dash3' : 'dash_full';
+          if (this.dashImage) this.dashImage.setTexture(key);
+          // No pulse animation during cooldown
+        }
+
         update() {
           if (!this.gameActive) return;
 
@@ -323,6 +386,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           if (this.dashCooldown > 0) {
             this.dashCooldown -= 16; // Assuming 60fps, ~16ms per frame
           }
+          // Update dash HUD progression every frame
+          this.updateDashHud();
 
           // Handle dash mechanic
           if (this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
