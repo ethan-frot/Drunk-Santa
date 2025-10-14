@@ -332,31 +332,26 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
 
           // Handle normal horizontal movement (only if not dashing)
           if (!this.isDashing) {
-            const movementSpeed = this.abilityManager.getCurrentValue('movement_speed');
+            // Use base speed scaled by current multiplier
+            const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
+
             if (this.cursors?.left.isDown) {
-              this.character.setVelocityX(-movementSpeed);
+              this.character.setVelocityX(-moveSpeed);
+              this.character.setFlipX(true);
+              if (this.character.anims?.currentAnim?.key !== 'run') {
+                this.character.play('run');
+              }
             } else if (this.cursors?.right.isDown) {
-              this.character.setVelocityX(movementSpeed);
+              this.character.setVelocityX(moveSpeed);
+              this.character.setFlipX(false);
+              if (this.character.anims?.currentAnim?.key !== 'run') {
+                this.character.play('run');
+              }
             } else {
               this.character.setVelocityX(0);
-          // Handle horizontal movement and animations
-          const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
-          if (this.cursors?.left.isDown) {
-            this.character.setVelocityX(-moveSpeed);
-            this.character.setFlipX(true);
-            if (this.character.anims?.currentAnim?.key !== 'run') {
-              this.character.play('run');
-            }
-          } else if (this.cursors?.right.isDown) {
-            this.character.setVelocityX(moveSpeed);
-            this.character.setFlipX(false);
-            if (this.character.anims?.currentAnim?.key !== 'run') {
-              this.character.play('run');
-            }
-          } else {
-            this.character.setVelocityX(0);
-            if (this.character.anims?.currentAnim?.key !== 'idle') {
-              this.character.play('idle');
+              if (this.character.anims?.currentAnim?.key !== 'idle') {
+                this.character.play('idle');
+              }
             }
           }
 
@@ -468,6 +463,24 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         }
 
         private createCatchEffect(x: number, y: number, value: number = 10) {
+          // Create a temporary particle effect showing earned value
+          const effect = this.add.text(x, y, `+${value}` , {
+            fontSize: '24px',
+            color: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 2
+          });
+
+          this.tweens.add({
+            targets: effect,
+            y: y - 50,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => effect.destroy()
+          });
+        }
+
         private checkVodkaCollisions() {
           this.vodkaManager.getBottles().forEach((bottle, index) => {
             if (bottle && bottle.active) {
@@ -510,28 +523,6 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         }
 
         // no ghost trail function
-
-        private createCatchEffect(x: number, y: number) {
-          // Create a temporary particle effect
-          const effect = this.add.text(x, y, `+${value}`, {
-            fontSize: '24px',
-            color: '#00ff00',
-            stroke: '#000000',
-            strokeThickness: 2
-          });
-          
-          // Animate the effect
-          this.tweens.add({
-            targets: effect,
-            y: y - 50,
-            alpha: 0,
-            duration: 1000,
-            ease: 'Power2',
-            onComplete: () => {
-              effect.destroy();
-            }
-          });
-        }
 
         private createBonusCatchEffect(x: number, y: number) {
           // Create a special bonus effect for gifts
@@ -578,15 +569,10 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           const onGameEndCallback = this.game.registry.get('onGameEnd');
           if (onGameEndCallback) {
             onGameEndCallback(this.snowflakesEarned, this.score);
-          
+          }
+
           // stop boost
           this.speedMultiplier = 1;
-          
-          // call callback (if passed through game.registry)
-          const onGameEnd = this.game.registry.get('onGameEnd');
-          if (onGameEnd) {
-            onGameEnd();
-          }
         }
       }
 
