@@ -16,20 +16,31 @@ export async function POST(req: Request) {
 
     const trimmedName = name.trim();
 
-    const player = await prisma.player.upsert({
+    const incomingScore = Math.trunc(score);
+
+    const existing = await prisma.player.findUnique({
       where: { name: trimmedName },
-      update: {},
-      create: { name: trimmedName },
+      select: { id: true, bestScore: true },
     });
 
-    const created = await prisma.score.create({
-      data: {
-        value: Math.trunc(score),
-        playerId: player.id,
-      },
-    });
+    if (!existing) {
+      const created = await prisma.player.create({
+        data: { name: trimmedName, bestScore: incomingScore },
+        select: { id: true, bestScore: true },
+      });
+      return NextResponse.json({ ok: true, playerId: created.id, bestScore: created.bestScore });
+    }
 
-    return NextResponse.json({ ok: true, playerId: player.id, scoreId: created.id });
+    if (incomingScore > existing.bestScore) {
+      const updated = await prisma.player.update({
+        where: { id: existing.id },
+        data: { bestScore: incomingScore },
+        select: { id: true, bestScore: true },
+      });
+      return NextResponse.json({ ok: true, playerId: updated.id, bestScore: updated.bestScore });
+    }
+
+    return NextResponse.json({ ok: true, playerId: existing.id, bestScore: existing.bestScore });
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

@@ -11,17 +11,8 @@ generator client {
 model Player {
   id        String   @id @default(cuid())
   name      String   @unique
-  scores    Score[]
+  bestScore Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
-}
-
-model Score {
-  id        String   @id @default(cuid())
-  value     Int
-  player    Player   @relation(fields: [playerId], references: [id])
-  playerId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
