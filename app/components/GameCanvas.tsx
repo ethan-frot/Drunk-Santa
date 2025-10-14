@@ -5,6 +5,8 @@ import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
+import { AntiBoostManager } from '../utils/antiboost';
+
 
 export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -31,6 +33,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.load.image('cadeau', '/assets/gifts.png');
           // Load vodka sprite
           this.load.image('vodka', '/assets/vodka.png');
+          // Load anti-boost sprite
+          this.load.image('antiboost', '/assets/anti-boost-slowly.png');
 
           //music
           this.load.audio('music', '/assets/background-music.mp3');
@@ -44,12 +48,15 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         private snowflakeManager: SnowflakeManager;
         private giftManager: GiftManager;
         private vodkaManager: VodkaManager;
+        private antiBoostManager: AntiBoostManager;
+  
         private score: number = 0;
         private scoreText: any;
         private bgMusic: any;
         private timerText: any;
         private timeLeft: number = 120;
         private gameActive: boolean = true;
+        private isStunned: boolean = false;
         private isDashing: boolean = false;
         private dashCooldown: number = 0;
         private spaceKey: any;
@@ -65,6 +72,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.giftManager = new GiftManager(this);
           this.abilityManager = AbilityManager.getInstance();
           this.vodkaManager = new VodkaManager(this);
+          this.antiBoostManager = new AntiBoostManager(this);
+
         }
         
         create() {
@@ -180,6 +189,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.giftManager.start();
           // Start vodka manager
           this.vodkaManager.start();
+          // Start anti-boost manager
+          this.antiBoostManager.start();
           // Create timer text
           this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
             fontSize: '48px',
@@ -321,8 +332,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
             this.dashCooldown -= 16; // Assuming 60fps, ~16ms per frame
           }
 
-          // Handle dash mechanic
-          if (this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
+           // Handle dash mechanic (disabled while stunned)
+           if (!this.isStunned && this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
             if (this.cursors?.left.isDown) {
               this.performDash(-1); // Dash left
             } else if (this.cursors?.right.isDown) {
@@ -330,8 +341,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
             }
           }
 
-          // Handle normal horizontal movement (only if not dashing)
-          if (!this.isDashing) {
+           // Handle normal horizontal movement (only if not dashing or stunned)
+           if (!this.isDashing && !this.isStunned) {
             // Use base speed scaled by current multiplier
             const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
 
@@ -372,6 +383,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.checkGiftCollisions();
           // Check collisions between character and vodka
           this.checkVodkaCollisions();
+          // Check collisions between character and anti-boost
+          this.checkAntiBoostCollisions();
 
           // Clean up snowflakes that are off screen
           this.snowflakeManager.cleanupSnowflakes();
@@ -380,6 +393,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.giftManager.cleanupGifts();
           // Clean up vodka bottles that are off screen
           this.vodkaManager.cleanupBottles();
+          // Clean up anti-boost jars that are off screen
+          this.antiBoostManager.cleanupJars();
         }
 
         private checkGiftCollisions() {
@@ -504,6 +519,61 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           });
         }
 
+        private checkAntiBoostCollisions() {
+          this.antiBoostManager.getJars().forEach((jar, index) => {
+            if (jar && jar.active) {
+              const topPortion = 0.3;
+              const horizontalOffsetFactor = 0.4;
+              const radiusFactor = 0.45;
+
+              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
+              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
+              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
+
+              const distance = Phaser.Math.Distance.Between(
+                this.character.x - offsetX, catchY,
+                jar.x, jar.y
+              );
+
+              if (distance < catchRadius) {
+                this.catchAntiBoost(jar, index);
+              }
+            }
+          });
+        }
+
+        private catchAntiBoost(jar: Phaser.GameObjects.Sprite, index: number) {
+          // Apply 4-second stun: stop movement and ignore input/dash
+          const stunDurationMs = 4000;
+          this.isStunned = true;
+          this.isDashing = false;
+          this.character.setVelocityX(0);
+          if (this.character?.anims) {
+            this.character.play('idle');
+          }
+
+          // Remove any speed boost while stunned
+          this.speedMultiplier = 1;
+          this.boostEndTime = 0;
+
+          // Visual feedback (brief red tint)
+          try {
+            (this.character as any).setTint?.(0x79b6ee);
+            this.time.delayedCall(250, () => {
+              (this.character as any).clearTint?.();
+            });
+          } catch {}
+
+          // Destroy the jar
+          jar.destroy();
+
+          // End stun after duration
+          this.time.delayedCall(stunDurationMs, () => {
+            this.isStunned = false;
+          });
+        }
+
+       
         private catchVodka(bottle: Phaser.GameObjects.Sprite, index: number) {
           // Speed boost for a short duration with ghost trail
           const boostDurationMs = 5000;
@@ -573,6 +643,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
 
           // stop boost
           this.speedMultiplier = 1;
+          this.isStunned = false;
+          // stop managers
+          if (this.antiBoostManager) {
+            this.antiBoostManager.cleanup();
+          }
         }
       }
 
