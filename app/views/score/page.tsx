@@ -91,35 +91,8 @@ export default function DisplayScorePage() {
 
       <div style={{
         display: 'flex',
-        gap: '1.5rem',
-        flexWrap: 'wrap',
         justifyContent: 'center'
       }}>
-        <button
-          onClick={() => router.push('/views/game')}
-          style={{
-            padding: '1rem 2.5rem',
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            color: '#040218',
-            background: '#e7e9ff',
-            border: 'none',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            e.currentTarget.style.background = '#fff';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.background = '#e7e9ff';
-          }}
-        >
-          Rejouer
-        </button>
-
         <button
           onClick={() => router.push('/')}
           style={{
