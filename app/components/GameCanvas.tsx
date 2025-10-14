@@ -42,6 +42,20 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
             margin: 0,
             spacing: 0
           });
+          // Load throw animation sheet (character throwing snowball)
+          this.load.spritesheet('throw', '/assets/throw_sheet.png', {
+            frameWidth: 32,
+            frameHeight: 32,
+            margin: 0,
+            spacing: 0
+          });
+          // Load slime spritesheet (32x32)
+          this.load.spritesheet('slime', '/assets/slime-spritesheet.png', {
+            frameWidth: 32,
+            frameHeight: 32,
+            margin: 0,
+            spacing: 0
+          });
 
           //music
           this.load.audio('music', '/assets/background-music.mp3');
@@ -57,6 +71,15 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         private vodkaManager: VodkaManager;
         private antiBoostManager: AntiBoostManager;
         private iceOverlay: any = null;
+        private slime: any = null;
+        private slimeTargetOffset: number = 24; // stop this many px before character center
+        private slimeSpeed: number = 70;
+        private slimeHitsTaken: number = 0;
+
+        private snowballs: Phaser.GameObjects.Sprite[] = [];
+        private nextThrowTime: number = 0;
+        private throwCooldownMs: number = 400;
+        private throwSprite: any = null;
   
         private score: number = 0;
         private scoreText: any;
@@ -127,6 +150,24 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
               frames: this.anims.generateFrameNumbers('ice', { start: 0, end: 11 }),
               frameRate: 12,
               repeat: -1
+            });
+          }
+          // Slime crawl animation (use first row or all frames sequentially)
+          if (!this.anims.exists('slime_crawl')) {
+            this.anims.create({
+              key: 'slime_crawl',
+              frames: this.anims.generateFrameNumbers('slime', { start: 0, end: 11 }),
+              frameRate: 10,
+              repeat: -1
+            });
+          }
+          // Throw animation (separate spritesheet like run/idle)
+          if (!this.anims.exists('throw_anim')) {
+            this.anims.create({
+              key: 'throw_anim',
+              frames: this.anims.generateFrameNumbers('throw', { start: 0, end: 5 }),
+              frameRate: 14,
+              repeat: 0
             });
           }
 
@@ -208,6 +249,13 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           this.vodkaManager.start();
           // Start anti-boost manager
           this.antiBoostManager.start();
+          // Spawn first slime after short delay
+          this.time.delayedCall(1500, () => this.spawnSlime());
+
+          // Mouse click to throw snowball (only if slime exists)
+          this.input.on('pointerdown', () => {
+            this.tryThrowSnowball();
+          });
           // Create timer text
           this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
             fontSize: '48px',
@@ -416,6 +464,157 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           // Keep ice overlay attached to character while stunned
           if (this.iceOverlay && this.iceOverlay.active) {
             this.iceOverlay.setPosition(this.character.x, this.character.y);
+          }
+
+          // Update slime crawling towards the character
+          this.updateSlime();
+
+          // Update snowballs and collisions
+          this.updateSnowballs();
+        }
+
+        private spawnSlime() {
+          // Decide spawn side
+          const fromLeft = Math.random() < 0.5;
+          const y = this.getBottomY();
+          const x = fromLeft ? -40 : this.scale.width + 40;
+          if (this.slime) {
+            this.slime.destroy();
+          }
+          this.slime = this.physics.add.sprite(x, y, 'slime');
+          this.slime.setOrigin(0.5, 1);
+          this.slime.setScale(3.2);
+          this.slime.play('slime_crawl');
+          this.slime.setDepth(4);
+          // No bobbing/shadow effect
+          this.slimeHitsTaken = 0;
+        }
+
+        private updateSlime() {
+          if (!this.slime || !this.slime.active) return;
+          // Keep on the ground
+          this.slime.y = this.getBottomY();
+
+          // Compute target x: stop a bit in front of character
+          const targetX = this.character.x + (this.character.flipX ? 1 : -1) * this.slimeTargetOffset;
+          const distance = Math.abs(targetX - this.slime.x);
+
+          if (distance <= 6) {
+            // Stop near the character
+            this.slime.setVelocityX(0);
+            return;
+          }
+
+          const dir = targetX > this.slime.x ? 1 : -1;
+          this.slime.setVelocityX(dir * this.slimeSpeed);
+          // If the base spritesheet faces left by default, flip when moving right
+          this.slime.setFlipX(dir > 0);
+
+          // Despawn if it walks off far beyond
+          if (this.slime.x < -120 || this.slime.x > this.scale.width + 120) {
+            this.slime.destroy();
+            this.time.delayedCall(3000, () => this.spawnSlime());
+          }
+        }
+
+        private tryThrowSnowball() {
+          if (!this.slime || !this.slime.active) return;
+          if (this.isStunned) return;
+          if (this.time.now < this.nextThrowTime) return;
+          this.nextThrowTime = this.time.now + this.throwCooldownMs;
+
+          // Play throw animation once, then restore run/idle
+          const wasRunning = this.character.anims?.currentAnim?.key === 'run';
+          // Face the target before throwing
+          const faceRight = this.slime.x > this.character.x;
+          this.character.setFlipX(!faceRight);
+          // Create a temporary throw sprite over the character
+          if (this.throwSprite) { this.throwSprite.destroy(); this.throwSprite = null; }
+          this.throwSprite = this.add.sprite(this.character.x, this.character.y, 'throw');
+          this.throwSprite.setOrigin(0.5, 1);
+          this.throwSprite.setScale(3.5);
+          this.throwSprite.setFlipX(this.character.flipX);
+          this.throwSprite.setDepth((this.character.depth || 0) + 1);
+          // Hide main character during the throw for clean visuals
+          const prevAlpha = this.character.alpha;
+          this.character.setAlpha(0);
+          this.throwSprite.play('throw_anim');
+          this.throwSprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+            this.throwSprite?.destroy();
+            this.throwSprite = null;
+            this.character.setAlpha(prevAlpha);
+            if (wasRunning) {
+              this.character.play('run');
+            } else {
+              this.character.play('idle');
+            }
+          });
+
+          // Spawn a snowball and launch toward slime
+          const startX = this.character.x + (this.character.flipX ? -10 : 10);
+          const startY = this.character.y - this.character.displayHeight * 0.65;
+          const snowball = this.add.circle(startX, startY, 7, 0xffffff) as any;
+          (snowball as any).setDepth?.(5);
+          this.physics.add.existing(snowball);
+          const body = (snowball as any).body as Phaser.Physics.Arcade.Body;
+          body.setAllowGravity(false);
+
+          // velocity towards current slime position
+          const dx = (this.slime.x) - startX;
+          const dy = (this.slime.y - this.slime.displayHeight * 0.5) - startY;
+          const len = Math.max(1, Math.hypot(dx, dy));
+          const speed = 480;
+          body.setVelocity((dx / len) * speed, (dy / len) * speed);
+
+          this.snowballs.push(snowball as any);
+        }
+
+        private updateSnowballs() {
+          if (this.snowballs.length === 0) return;
+          this.snowballs.forEach((ball, index) => {
+            if (!ball || !ball.active) return;
+            // Remove off-screen
+            if (ball.x < -50 || ball.x > this.scale.width + 50 || ball.y < -50 || ball.y > this.scale.height + 50) {
+              ball.destroy();
+              this.snowballs.splice(index, 1);
+              return;
+            }
+
+            // Collision with slime
+            if (this.slime && this.slime.active) {
+              const hitDist = 28; // fairly generous hitbox
+              const d = Phaser.Math.Distance.Between(ball.x, ball.y, this.slime.x, this.slime.y - this.slime.displayHeight * 0.5);
+              if (d < hitDist) {
+                ball.destroy();
+                this.snowballs.splice(index, 1);
+                this.onSnowballHitSlime();
+              }
+            }
+          });
+        }
+
+        private onSnowballHitSlime() {
+          if (!this.slime || !this.slime.active) return;
+          this.slimeHitsTaken += 1;
+          // small hit flash
+          try {
+            this.slime.setTint(0xaaffff);
+            this.time.delayedCall(100, () => this.slime?.clearTint?.());
+          } catch {}
+
+          if (this.slimeHitsTaken >= 3) {
+            // Death animation: quick scale down then destroy
+            this.tweens.add({
+              targets: this.slime,
+              scaleX: 0,
+              scaleY: 0,
+              duration: 200,
+              ease: 'Back.easeIn',
+              onComplete: () => {
+                this.slime?.destroy();
+                this.time.delayedCall(3000, () => this.spawnSlime());
+              }
+            });
           }
         }
 
