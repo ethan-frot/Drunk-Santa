@@ -142,7 +142,13 @@ export default function DisplayScorePage() {
         justifyContent: 'center'
       }}>
         <button
-          onClick={() => router.push('/')}
+          onClick={() => {
+            try {
+              localStorage.removeItem('playerPseudo');
+              localStorage.removeItem('gameScore');
+            } catch {}
+            router.push('/');
+          }}
           style={{
             padding: '1rem 2.5rem',
             fontSize: '1.2rem',
