@@ -151,8 +151,6 @@ export default function DisplayScorePage() {
             // eslint-disable-next-line no-console
             console.warn('Failed to save score', data?.error || res.statusText);
           } else {
-            // eslint-disable-next-line no-console
-            console.log('Score saved');
             // refresh leaderboard so the user sees their new rank immediately
             loadLeaderboard(pseudo);
           }
