@@ -44,7 +44,10 @@ export default function DisplayGamePage() {
     
     return (
       <main style={{ minHeight: '100vh', height: '100vh', background: '#040218' }}>
-        <GameCanvas key={runId} onGameEnd={handleGameEnd} />
+        <GameCanvas onGameEnd={(finalScore) => {
+          localStorage.setItem('gameScore', String(finalScore));
+          router.push('/views/score');
+        }} />
       </main>
     );
 }

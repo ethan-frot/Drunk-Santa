@@ -6,13 +6,42 @@ import { useRouter } from 'next/navigation';
 export default function GetNamePage() {
   const router = useRouter();
   const [pseudo, setPseudo] = useState('');
+  const [showWarning, setShowWarning] = useState(false);
+  const [matchedExistingName, setMatchedExistingName] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pseudo.trim()) {
-      localStorage.setItem('playerPseudo', pseudo.trim());
-      router.push('/views/game');
+    const entered = pseudo.trim();
+    if (!entered) return;
+
+    try {
+      const res = await fetch('/api/players', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch players');
+      const names: string[] = await res.json();
+      const lower = entered.toLowerCase();
+      const match = names.find((n) => n.toLowerCase() === lower) || null;
+      if (match) {
+        setMatchedExistingName(match);
+        setShowWarning(true);
+        return;
+      }
+    } catch {
+      // On error, continue with entered name rather than blocking play
     }
+
+    localStorage.setItem('playerPseudo', entered);
+    router.push('/views/game');
+  };
+
+  const confirmUseExisting = () => {
+    const nameToUse = matchedExistingName || pseudo.trim();
+    localStorage.setItem('playerPseudo', nameToUse);
+    setShowWarning(false);
+    router.push('/views/game');
+  };
+
+  const cancelUseExisting = () => {
+    setShowWarning(false);
   };
 
   return (
@@ -94,6 +123,72 @@ export default function GetNamePage() {
           Commencer
         </button>
       </form>
+
+      {showWarning && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: '#1a1a3a',
+            border: '2px solid rgba(231, 233, 255, 0.2)',
+            borderRadius: '16px',
+            padding: '2rem',
+            maxWidth: '480px',
+            width: '92%',
+            color: '#e7e9ff',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
+          }}>
+            <h2 style={{
+              margin: 0,
+              marginBottom: '0.75rem',
+              fontSize: '1.6rem',
+              fontWeight: 'bold',
+              color: '#ffd166'
+            }}>
+              Attention
+            </h2>
+            <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
+              Le pseudo "{pseudo.trim()}" correspond déjà à un joueur existant ({matchedExistingName}).
+              Voulez-vous jouer en utilisant cette session existante ?
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={cancelUseExisting}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  background: 'transparent',
+                  color: '#e7e9ff',
+                  border: '2px solid rgba(231, 233, 255, 0.4)',
+                  borderRadius: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                Modifier le pseudo
+              </button>
+              <button
+                onClick={confirmUseExisting}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  background: '#e7e9ff',
+                  color: '#040218',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Continuer avec ce compte
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
