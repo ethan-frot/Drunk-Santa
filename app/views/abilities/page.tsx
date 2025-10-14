@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AbilityManager, AbilityUpgrade } from '../utils/abilities';
+import { AbilityManager, AbilityUpgrade } from '../../utils/abilities';
 
 interface AbilityUpgradePageProps {
   onContinue: () => void;

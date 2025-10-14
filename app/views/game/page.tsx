@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GameCanvas from '../../components/GameCanvas';
-import AbilityUpgradePage from '../../components/AbilityUpgradePage';
+import AbilityUpgradePage from '../abilities/page';
 
 export default function DisplayGamePage() {
     const router = useRouter();
