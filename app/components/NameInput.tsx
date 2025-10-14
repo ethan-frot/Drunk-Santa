@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function PseudoPage() {
+export default function NameInput() {
   const router = useRouter();
   const [pseudo, setPseudo] = useState('');
 
