@@ -1,9 +1,18 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import GameCanvas from '../components/GameCanvas';
 
-export default function Home() {
-  return (
-    <main style={{ minHeight: '100vh', height: '100vh', background: '#040218' }}>
-      <GameCanvas />
-    </main>
-  );
+export default function GamePage() {
+    const router = useRouter();
+    
+    return (
+      <main style={{ minHeight: '100vh', height: '100vh', background: '#040218' }}>
+        <GameCanvas onGameEnd={() => {
+          // save score in localStorage (0 for now, then add score system)
+          localStorage.setItem('gameScore', '0');
+          router.push('/score?score=0');
+        }} />
+      </main>
+    );
 }

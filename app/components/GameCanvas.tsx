@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { SnowflakeManager } from '../flocon';
 import { GiftManager } from '../cadeau';
 
-export default function GameCanvas() {
+export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
@@ -21,6 +21,9 @@ export default function GameCanvas() {
           this.load.image('snowflake', '/snowflake.png');
           // Load gift sprite
           this.load.image('cadeau', '/spriteCadeaux.png');
+
+          //music
+          this.load.audio('music', '/assets/background-music.mp3');
         }
         create() { this.scene.start('Game'); }
       }
@@ -32,6 +35,10 @@ export default function GameCanvas() {
         private giftManager: GiftManager;
         private score: number = 0;
         private scoreText: any;
+        private bgMusic: any;
+        private timerText: any;
+        private timeLeft: number = 10;
+        private gameActive: boolean = true;
 
         constructor() { 
           super('Game'); 
@@ -40,6 +47,10 @@ export default function GameCanvas() {
         }
         
         create() {
+          // Reset game state
+          this.timeLeft = 10;
+          this.gameActive = true;
+
           // Add background image
           const bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
           this.scale.on('resize', (gameSize: any) => {
@@ -55,7 +66,14 @@ export default function GameCanvas() {
 
           // Keep the world bounds in sync with the canvas size
           this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
-
+          
+          // Music background - stop previous music if exists
+          if (this.bgMusic) {
+            this.bgMusic.stop();
+          }
+          this.bgMusic = this.sound.add('music', { loop: true, volume: 0.5 });
+          this.bgMusic.play();
+          
           // Initial placement centered at bottom
           this.positionCharacterAtBottomCenter();
 
@@ -82,6 +100,37 @@ export default function GameCanvas() {
           
           // Start gift manager
           this.giftManager.start();
+          // Create timer text
+          this.timerText = this.add.text(this.scale.width / 2, 50, '10', {
+            fontSize: '48px',
+            fontFamily: 'Arial',
+            color: '#e7e9ff',
+            fontStyle: 'bold'
+          }).setOrigin(0.5);
+
+          // Timer event - countdown every second
+          this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+              if (this.gameActive) {
+                this.timeLeft -= 1;
+                this.timerText.setText(this.timeLeft.toString());
+                
+                if (this.timeLeft <= 0) {
+                  this.gameActive = false;
+                  this.gameOver();
+                }
+              }
+            },
+            loop: true
+          });
+
+          // Update timer position on resize
+          this.scale.on('resize', (gameSize: any) => {
+            if (this.timerText) {
+              this.timerText.setPosition(gameSize.width / 2, 50);
+            }
+          });
         }
 
         private getBottomY() {
@@ -105,6 +154,8 @@ export default function GameCanvas() {
         }
 
         update() {
+          if (!this.gameActive) return;
+
           // Keep the character on the bottom each frame, but allow X to move
           this.keepCharacterAtBottom();
 
@@ -240,6 +291,23 @@ export default function GameCanvas() {
           });
         }
 
+        gameOver() {
+          //personage stop
+          if (this.character) {
+            this.character.setVelocityX(0);
+          }
+
+          // music stop
+          if (this.bgMusic) {
+            this.bgMusic.stop();
+          }
+          
+          // call callback (if passed through game.registry)
+          const onGameEnd = this.game.registry.get('onGameEnd');
+          if (onGameEnd) {
+            onGameEnd();
+          }
+        }
       }
 
       gameRef.current = new Phaser.Game({
@@ -247,11 +315,20 @@ export default function GameCanvas() {
         parent: hostRef.current!,
         scale: {
           mode: Phaser.Scale.RESIZE,
-          autoCenter: Phaser.Scale.CENTER_BOTH
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          width: Math.max(window.innerWidth, 320),
+          height: Math.max(window.innerHeight, 240),
+          min: {
+            width: 320,
+            height: 240
+          }
         },
         physics: { default: 'arcade', arcade: { debug: false } },
         scene: [PreloadScene, GameScene]
       });
+      if (onGameEnd) {
+        gameRef.current.registry.set('onGameEnd', onGameEnd);
+      }
       setReady(true);
     });
 
@@ -269,7 +346,7 @@ export default function GameCanvas() {
         gameRef.current = null;
       }
     };
-  }, []);
+  }, [onGameEnd]);
 
   return (
     <div ref={hostRef} style={{ position: 'fixed', inset: 0 }}>
