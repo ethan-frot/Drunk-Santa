@@ -27,7 +27,7 @@ export default function Home() {
       </h1>
       
       <button
-        onClick={() => router.push('/pseudo')}
+        onClick={() => router.push('/views/name')}
         style={{
           padding: '1.2rem 3rem',
           fontSize: '1.5rem',
