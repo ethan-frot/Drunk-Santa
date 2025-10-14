@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { SnowflakeManager } from '../flocon';
+import { GiftManager } from '../cadeau';
 
 export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -15,6 +17,10 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           // Load character sprite
           this.load.image('character', '/assets/player.png');
           this.load.image('background', '/assets/background.png');
+          // Load snowflake sprite
+          this.load.image('snowflake', '/snowflake.png');
+          // Load gift sprite
+          this.load.image('cadeau', '/spriteCadeaux.png');
 
           //music
           this.load.audio('music', '/assets/background-music.mp3');
@@ -25,12 +31,20 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
       class GameScene extends Phaser.Scene {
         private character: any;
         private cursors: any;
+        private snowflakeManager: SnowflakeManager;
+        private giftManager: GiftManager;
+        private score: number = 0;
+        private scoreText: any;
         private bgMusic: any;
         private timerText: any;
         private timeLeft: number = 10;
         private gameActive: boolean = true;
 
-        constructor() { super('Game'); }
+        constructor() { 
+          super('Game'); 
+          this.snowflakeManager = new SnowflakeManager(this);
+          this.giftManager = new GiftManager(this);
+        }
         
         create() {
           // Reset game state
@@ -73,6 +87,19 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           // Set up keyboard controls
           this.cursors = this.input.keyboard?.createCursorKeys();
 
+          // Create score text
+          this.scoreText = this.add.text(16, 16, 'Score: 0', {
+            fontSize: '32px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+          }).setScrollFactor(0);
+
+          // Start snowflake manager
+          this.snowflakeManager.start();
+          
+          // Start gift manager
+          this.giftManager.start();
           // Create timer text
           this.timerText = this.add.text(this.scale.width / 2, 50, '10', {
             fontSize: '48px',
@@ -140,7 +167,130 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           } else {
             this.character.setVelocityX(0);
           }
+
+          // Check collisions between character and snowflakes
+          this.checkSnowflakeCollisions();
+
+          // Check collisions between character and gifts
+          this.checkGiftCollisions();
+
+          // Clean up snowflakes that are off screen
+          this.snowflakeManager.cleanupSnowflakes();
+
+          // Clean up gifts that are off screen
+          this.giftManager.cleanupGifts();
         }
+
+        private checkGiftCollisions() {
+          this.giftManager.getGifts().forEach((gift, index) => {
+            if (gift && gift.active) {
+              // Calculate catch hitbox at the top of the character sprite
+              const catchY = this.character.y - (this.character.displayHeight - 40);
+              
+              // Check if gift is close enough to the character's catch zone to be "caught"
+              const distance = Phaser.Math.Distance.Between(
+                this.character.x-50, catchY,
+                gift.x, gift.y
+              );
+              
+              // If gift is close enough, catch it
+              if (distance < 30) {
+                this.catchGift(gift, index);
+              }
+            }
+          });
+        }
+
+        private checkSnowflakeCollisions() {
+          this.snowflakeManager.getSnowflakes().forEach((snowflake, index) => {
+            if (snowflake && snowflake.active) {
+              // Calculate catch hitbox at the top of the character sprite
+              const catchY = this.character.y - (this.character.displayHeight - 40);
+              
+              // Check if snowflake is close enough to the character's catch zone to be "caught"
+              const distance = Phaser.Math.Distance.Between(
+                this.character.x-50, catchY,
+                snowflake.x, snowflake.y
+              );
+              
+              // If snowflake is close enough, catch it
+              if (distance < 30) {
+                this.catchSnowflake(snowflake, index);
+              }
+            }
+          });
+        }
+
+        private catchSnowflake(snowflake: Phaser.GameObjects.Sprite, index: number) {
+          // Add score
+          this.score += 10;
+          this.scoreText.setText(`Score: ${this.score}`);
+          
+          // Create catch effect
+          this.createCatchEffect(snowflake.x, snowflake.y);
+          
+          // Destroy the snowflake
+          snowflake.destroy();
+        }
+
+        private catchGift(gift: Phaser.GameObjects.Sprite, index: number) {
+          // Add bonus score for gifts
+          this.score += 50;
+          this.scoreText.setText(`Score: ${this.score}`);
+          
+          // Create bonus catch effect
+          this.createBonusCatchEffect(gift.x, gift.y);
+          
+          // Destroy the gift
+          gift.destroy();
+        }
+
+        private createCatchEffect(x: number, y: number) {
+          // Create a temporary particle effect
+          const effect = this.add.text(x, y, '+10', {
+            fontSize: '24px',
+            color: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 2
+          });
+          
+          // Animate the effect
+          this.tweens.add({
+            targets: effect,
+            y: y - 50,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+              effect.destroy();
+            }
+          });
+        }
+
+        private createBonusCatchEffect(x: number, y: number) {
+          // Create a special bonus effect for gifts
+          const effect = this.add.text(x, y, '+50 BONUS!', {
+            fontSize: '28px',
+            color: '#ffd700',
+            stroke: '#000000',
+            strokeThickness: 3
+          });
+          
+          // Animate the effect with more dramatic movement
+          this.tweens.add({
+            targets: effect,
+            y: y - 80,
+            alpha: 0,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => {
+              effect.destroy();
+            }
+          });
+        }
+
         gameOver() {
           //personage stop
           if (this.character) {
@@ -184,6 +334,14 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
 
     return () => {
       if (gameRef.current) {
+        // Clean up managers before destroying the game
+        const gameScene = gameRef.current.scene.getScene('Game');
+        if (gameScene && gameScene.snowflakeManager) {
+          gameScene.snowflakeManager.cleanup();
+        }
+        if (gameScene && gameScene.giftManager) {
+          gameScene.giftManager.cleanup();
+        }
         gameRef.current.destroy(true);
         gameRef.current = null;
       }
