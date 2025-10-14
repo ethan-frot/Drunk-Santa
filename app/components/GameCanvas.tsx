@@ -16,7 +16,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         preload() {
           // Load character sprite
           this.load.image('character', '/assets/player.png');
-          this.load.image('background', '/assets/background.png');
+          this.load.image('background', '/assets/background-image.png');
           // Load snowflake sprite
           this.load.image('snowflake', '/snowflake.png');
           // Load gift sprite
