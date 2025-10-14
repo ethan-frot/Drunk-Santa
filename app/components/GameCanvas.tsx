@@ -8,7 +8,7 @@ import { VodkaManager } from '../utils/vodka';
 import { AntiBoostManager } from '../utils/antiboost';
 
 
-export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarned: number, totalScore: number, finalScore: number) => void }) {
+export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
@@ -1115,10 +1115,10 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
       
       // Pass onGameEnd callback to the game
       if (onGameEnd) {
-        gameRef.current.registry.set('onGameEnd', (finalScore: number) => {
+        gameRef.current.registry.set('onGameEnd', (snowflakesEarned: number, totalScore: number) => {
           if (reportedRef.current) return;
           reportedRef.current = true;
-          onGameEnd(finalScore);
+          onGameEnd(snowflakesEarned, totalScore);
         });
       }
       setReady(true);
