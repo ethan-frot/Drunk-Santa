@@ -6,10 +6,11 @@ import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
 
-export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void }) {
+export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarned: number, totalScore: number, finalScore: number) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
+  const reportedRef = useRef(false);
   const [abilityManager] = useState(() => AbilityManager.getInstance());
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         private timerText: any;
         private timeLeft: number = 120;
         private gameActive: boolean = true;
+        private hasEnded: boolean = false;
         private isDashing: boolean = false;
         private dashCooldown: number = 0;
         private spaceKey: any;
@@ -71,6 +73,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           // Reset game state
           this.timeLeft = 120;
           this.gameActive = true;
+          this.hasEnded = false;
 
           // Add background image
           const bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
@@ -549,6 +552,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         }
 
         gameOver() {
+          if (this.hasEnded) return;
+          this.hasEnded = true;
           //personage stop
           if (this.character) {
             this.character.setVelocityX(0);
@@ -564,13 +569,19 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           if (this.bgMusic) {
             this.bgMusic.stop();
           }
-
-          // Call onGameEnd with snowflakes earned and total score
-          const onGameEndCallback = this.game.registry.get('onGameEnd');
-          if (onGameEndCallback) {
-            onGameEndCallback(this.snowflakesEarned, this.score);
+          
+          // call callback (if passed through game.registry)
+          // call onGameEnd with snowflakes earned and total score
+          const onGameEnd = this.game.registry.get('onGameEnd');
+          if (onGameEnd) {
+            onGameEnd(this.snowflakesEarned, this.score);
           }
-
+          // stop timers to avoid any further callbacks
+          this.time.removeAllEvents();
+          if (this.snowflakeManager) this.snowflakeManager.stop();
+          if (this.giftManager) this.giftManager.stop();
+          // clear registry callback
+          this.game.registry.set('onGameEnd', null);
           // stop boost
           this.speedMultiplier = 1;
         }
@@ -603,7 +614,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
       
       // Pass onGameEnd callback to the game
       if (onGameEnd) {
-        gameRef.current.registry.set('onGameEnd', onGameEnd);
+        gameRef.current.registry.set('onGameEnd', (finalScore: number) => {
+          if (reportedRef.current) return;
+          reportedRef.current = true;
+          onGameEnd(finalScore);
+        });
       }
       setReady(true);
     });
