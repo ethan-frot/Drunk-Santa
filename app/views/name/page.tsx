@@ -3,16 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function NameInput() {
+export default function GetNamePage() {
   const router = useRouter();
   const [pseudo, setPseudo] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (pseudo.trim()) {
-     
       localStorage.setItem('playerPseudo', pseudo.trim());
-      router.push('/game');
+      router.push('/views/game');
     }
   };
 
@@ -98,4 +97,5 @@ export default function NameInput() {
     </main>
   );
 }
+
 

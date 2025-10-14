@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function Score() {
+export default function DisplayScorePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pseudo, setPseudo] = useState('');
@@ -96,7 +96,7 @@ export default function Score() {
         justifyContent: 'center'
       }}>
         <button
-          onClick={() => router.push('/game')}
+          onClick={() => router.push('/views/game')}
           style={{
             padding: '1rem 2.5rem',
             fontSize: '1.2rem',
@@ -148,4 +148,5 @@ export default function Score() {
     </main>
   );
 }
+
 
