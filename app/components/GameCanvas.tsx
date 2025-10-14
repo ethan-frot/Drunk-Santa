@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
+import { VodkaManager } from '../utils/vodka';
 
 export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -14,13 +15,20 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
       class PreloadScene extends Phaser.Scene {
         constructor() { super('Preload'); }
         preload() {
-          // Load character sprite
-          this.load.image('character', '/assets/player.png');
+          // Load character sprite sheet (6 frames, 32x32)
+          this.load.spritesheet('character', '/assets/run_player.png', {
+            frameWidth: 32,
+            frameHeight: 32,
+            margin: 0,
+            spacing: 0
+          });
           this.load.image('background', '/assets/background-image.png');
           // Load snowflake sprite
           this.load.image('snowflake', '/assets/snowflake.png');
           // Load gift sprite
           this.load.image('cadeau', '/assets/gifts.png');
+          // Load vodka sprite
+          this.load.image('vodka', '/assets/vodka.png');
 
           //music
           this.load.audio('music', '/assets/background-music.mp3');
@@ -33,22 +41,27 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         private cursors: any;
         private snowflakeManager: SnowflakeManager;
         private giftManager: GiftManager;
+        private vodkaManager: VodkaManager;
         private score: number = 0;
         private scoreText: any;
         private bgMusic: any;
         private timerText: any;
-        private timeLeft: number = 10;
+        private timeLeft: number = 120;
         private gameActive: boolean = true;
+        private baseMoveSpeed: number = 200;
+        private speedMultiplier: number = 1;
+        private boostEndTime: number = 0;
 
         constructor() { 
           super('Game'); 
           this.snowflakeManager = new SnowflakeManager(this);
           this.giftManager = new GiftManager(this);
+          this.vodkaManager = new VodkaManager(this);
         }
         
         create() {
           // Reset game state
-          this.timeLeft = 10;
+          this.timeLeft = 120;
           this.gameActive = true;
 
           // Add background image
@@ -60,9 +73,33 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
 
           // Create character sprite and place it at bottom center
           this.character = this.physics.add.sprite(0, 0, 'character');
-          this.character.setScale(0.7);
+          // Scale ~x5 total (0.7 * 5 = 3.5)
+          this.character.setScale(3.5);
           this.character.setOrigin(0.5, 1);
           this.character.setCollideWorldBounds(true);
+
+          // Create animations
+          if (!this.anims.exists('run')) {
+            this.anims.create({
+              key: 'run',
+              frames: this.anims.generateFrameNumbers('character', { start: 0, end: 5 }),
+              frameRate: 10,
+              repeat: -1
+            });
+          }
+          if (!this.anims.exists('idle')) {
+            this.anims.create({
+              key: 'idle',
+              frames: [{ key: 'character', frame: 0 }],
+              frameRate: 1,
+              repeat: -1
+            });
+          }
+
+          // Start in idle
+          this.character.play('idle');
+
+          // no ghost animation
 
           // Keep the world bounds in sync with the canvas size
           this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
@@ -100,8 +137,10 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           
           // Start gift manager
           this.giftManager.start();
+          // Start vodka manager
+          this.vodkaManager.start();
           // Create timer text
-          this.timerText = this.add.text(this.scale.width / 2, 50, '10', {
+          this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
             fontSize: '48px',
             fontFamily: 'Arial',
             color: '#e7e9ff',
@@ -159,13 +198,35 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           // Keep the character on the bottom each frame, but allow X to move
           this.keepCharacterAtBottom();
 
-          // Handle horizontal movement
+          // Handle horizontal movement and animations
+          const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
           if (this.cursors?.left.isDown) {
-            this.character.setVelocityX(-200);
+            this.character.setVelocityX(-moveSpeed);
+            this.character.setFlipX(true);
+            if (this.character.anims?.currentAnim?.key !== 'run') {
+              this.character.play('run');
+            }
           } else if (this.cursors?.right.isDown) {
-            this.character.setVelocityX(200);
+            this.character.setVelocityX(moveSpeed);
+            this.character.setFlipX(false);
+            if (this.character.anims?.currentAnim?.key !== 'run') {
+              this.character.play('run');
+            }
           } else {
             this.character.setVelocityX(0);
+            if (this.character.anims?.currentAnim?.key !== 'idle') {
+              this.character.play('idle');
+            }
+          }
+
+          // no trail logic (removed)
+
+          // Handle boost expiration
+          if (this.speedMultiplier > 1 && this.time.now > this.boostEndTime) {
+            this.speedMultiplier = 1;
+            if (this.character?.anims) {
+              this.character.anims.timeScale = 1;
+            }
           }
 
           // Check collisions between character and snowflakes
@@ -173,28 +234,38 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
 
           // Check collisions between character and gifts
           this.checkGiftCollisions();
+          // Check collisions between character and vodka
+          this.checkVodkaCollisions();
 
           // Clean up snowflakes that are off screen
           this.snowflakeManager.cleanupSnowflakes();
 
           // Clean up gifts that are off screen
           this.giftManager.cleanupGifts();
+          // Clean up vodka bottles that are off screen
+          this.vodkaManager.cleanupBottles();
         }
 
         private checkGiftCollisions() {
           this.giftManager.getGifts().forEach((gift, index) => {
             if (gift && gift.active) {
               // Calculate catch hitbox at the top of the character sprite
-              const catchY = this.character.y - (this.character.displayHeight - 40);
+              const topPortion = 0.3; // top 30% of character counts as catch zone
+              const horizontalOffsetFactor = 0.4; // offset left from center by 40% width (hand area)
+              const radiusFactor = 0.45; // catch radius is 45% of character size
+
+              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
+              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
+              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
               
               // Check if gift is close enough to the character's catch zone to be "caught"
               const distance = Phaser.Math.Distance.Between(
-                this.character.x-50, catchY,
+                this.character.x - offsetX, catchY,
                 gift.x, gift.y
               );
               
               // If gift is close enough, catch it
-              if (distance < 30) {
+              if (distance < catchRadius) {
                 this.catchGift(gift, index);
               }
             }
@@ -205,16 +276,22 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           this.snowflakeManager.getSnowflakes().forEach((snowflake, index) => {
             if (snowflake && snowflake.active) {
               // Calculate catch hitbox at the top of the character sprite
-              const catchY = this.character.y - (this.character.displayHeight - 40);
+              const topPortion = 0.3; // top 30% of character counts as catch zone
+              const horizontalOffsetFactor = 0.4; // offset left from center by 40% width (hand area)
+              const radiusFactor = 0.45; // catch radius is 45% of character size
+
+              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
+              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
+              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
               
               // Check if snowflake is close enough to the character's catch zone to be "caught"
               const distance = Phaser.Math.Distance.Between(
-                this.character.x-50, catchY,
+                this.character.x - offsetX, catchY,
                 snowflake.x, snowflake.y
               );
               
               // If snowflake is close enough, catch it
-              if (distance < 30) {
+              if (distance < catchRadius) {
                 this.catchSnowflake(snowflake, index);
               }
             }
@@ -244,6 +321,49 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           // Destroy the gift
           gift.destroy();
         }
+
+        private checkVodkaCollisions() {
+          this.vodkaManager.getBottles().forEach((bottle, index) => {
+            if (bottle && bottle.active) {
+              const topPortion = 0.3;
+              const horizontalOffsetFactor = 0.4;
+              const radiusFactor = 0.45;
+
+              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
+              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
+              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
+
+              const distance = Phaser.Math.Distance.Between(
+                this.character.x - offsetX, catchY,
+                bottle.x, bottle.y
+              );
+
+              if (distance < catchRadius) {
+                this.catchVodka(bottle, index);
+              }
+            }
+          });
+        }
+
+        private catchVodka(bottle: Phaser.GameObjects.Sprite, index: number) {
+          // Speed boost for a short duration with ghost trail
+          const boostDurationMs = 5000;
+          this.speedMultiplier = 2;
+          this.boostEndTime = this.time.now + boostDurationMs;
+
+          // Speed up run animation while boosted
+          if (this.character?.anims) {
+            this.character.anims.timeScale = 1.8;
+          }
+          // no overlay usage
+
+          // Optional: small score for collecting
+          this.score += 5;
+          this.scoreText.setText(`Score: ${this.score}`);
+          bottle.destroy();
+        }
+
+        // no ghost trail function
 
         private createCatchEffect(x: number, y: number) {
           // Create a temporary particle effect
@@ -295,12 +415,21 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           //personage stop
           if (this.character) {
             this.character.setVelocityX(0);
+            // Set idle pose on game over
+            if (this.character.anims) {
+              this.character.play('idle');
+            } else {
+              this.character.setFrame?.(0);
+            }
           }
 
           // music stop
           if (this.bgMusic) {
             this.bgMusic.stop();
           }
+          
+          // stop boost
+          this.speedMultiplier = 1;
           
           // call callback (if passed through game.registry)
           const onGameEnd = this.game.registry.get('onGameEnd');
