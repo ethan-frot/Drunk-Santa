@@ -49,10 +49,10 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
             margin: 0,
             spacing: 0
           });
-          // Load slime spritesheet (32x32)
-          this.load.spritesheet('slime', '/assets/slime-spritesheet.png', {
-            frameWidth: 32,
-            frameHeight: 32,
+          // Load monster walk spritesheet (Monster5Walk.png). Sheet is 4x2 frames.
+          this.load.spritesheet('monster5', '/assets/Monster5Walk.png', {
+            frameWidth: 80, // adjust to avoid cropping (w/ 4 columns on 320px width)
+            frameHeight: 100, // adjust to full frame height (2 rows on 200px height)
             margin: 0,
             spacing: 0
           });
@@ -71,7 +71,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         private vodkaManager: VodkaManager;
         private antiBoostManager: AntiBoostManager;
         private iceOverlay: any = null;
-        private slime: any = null;
+        private slime: any = null; // reused as monster instance
         private slimeTargetOffset: number = 24; // stop this many px before character center
         private slimeSpeed: number = 70;
         private slimeHitsTaken: number = 0;
@@ -152,11 +152,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
               repeat: -1
             });
           }
-          // Slime crawl animation (use first row or all frames sequentially)
-          if (!this.anims.exists('slime_crawl')) {
+          // Monster walk animation
+          if (!this.anims.exists('monster_walk')) {
             this.anims.create({
-              key: 'slime_crawl',
-              frames: this.anims.generateFrameNumbers('slime', { start: 0, end: 11 }),
+              key: 'monster_walk',
+              frames: this.anims.generateFrameNumbers('monster5', { start: 0, end: 7 }),
               frameRate: 10,
               repeat: -1
             });
@@ -466,6 +466,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
             this.iceOverlay.setPosition(this.character.x, this.character.y);
           }
 
+          // Safety: ensure character is visible if no throw is playing
+          if (!this.throwSprite && this.character && this.character.alpha === 0) {
+            this.character.setAlpha(1);
+          }
+
           // Update slime crawling towards the character
           this.updateSlime();
 
@@ -481,10 +486,10 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           if (this.slime) {
             this.slime.destroy();
           }
-          this.slime = this.physics.add.sprite(x, y, 'slime');
+          this.slime = this.physics.add.sprite(x, y, 'monster5');
           this.slime.setOrigin(0.5, 1);
-          this.slime.setScale(3.2);
-          this.slime.play('slime_crawl');
+          this.slime.setScale(1.1);
+          this.slime.play('monster_walk');
           this.slime.setDepth(4);
           // No bobbing/shadow effect
           this.slimeHitsTaken = 0;
@@ -529,7 +534,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           const faceRight = this.slime.x > this.character.x;
           this.character.setFlipX(!faceRight);
           // Create a temporary throw sprite over the character
-          if (this.throwSprite) { this.throwSprite.destroy(); this.throwSprite = null; }
+          if (this.throwSprite) { this.throwSprite.destroy(); this.throwSprite = null; this.character.setAlpha(1); }
           this.throwSprite = this.add.sprite(this.character.x, this.character.y, 'throw');
           this.throwSprite.setOrigin(0.5, 1);
           this.throwSprite.setScale(3.5);
@@ -547,6 +552,12 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
               this.character.play('run');
             } else {
               this.character.play('idle');
+            }
+          });
+          // Fallback in case the completion event is lost
+          this.time.delayedCall(600, () => {
+            if (!this.throwSprite && this.character.alpha === 0) {
+              this.character.setAlpha(prevAlpha);
             }
           });
 
