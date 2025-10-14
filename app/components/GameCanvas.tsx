@@ -14,8 +14,13 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
       class PreloadScene extends Phaser.Scene {
         constructor() { super('Preload'); }
         preload() {
-          // Load character sprite
-          this.load.image('character', '/assets/player.png');
+          // Load character sprite sheet (6 frames, 32x32)
+          this.load.spritesheet('character', '/assets/run_player.png', {
+            frameWidth: 32,
+            frameHeight: 32,
+            margin: 0,
+            spacing: 0
+          });
           this.load.image('background', '/assets/background-image.png');
           // Load snowflake sprite
           this.load.image('snowflake', '/assets/snowflake.png');
@@ -37,7 +42,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         private scoreText: any;
         private bgMusic: any;
         private timerText: any;
-        private timeLeft: number = 10;
+        private timeLeft: number = 120;
         private gameActive: boolean = true;
 
         constructor() { 
@@ -48,7 +53,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
         
         create() {
           // Reset game state
-          this.timeLeft = 10;
+          this.timeLeft = 120;
           this.gameActive = true;
 
           // Add background image
@@ -60,9 +65,31 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
 
           // Create character sprite and place it at bottom center
           this.character = this.physics.add.sprite(0, 0, 'character');
-          this.character.setScale(0.7);
+          // Scale ~x5 total (0.7 * 5 = 3.5)
+          this.character.setScale(3.5);
           this.character.setOrigin(0.5, 1);
           this.character.setCollideWorldBounds(true);
+
+          // Create animations
+          if (!this.anims.exists('run')) {
+            this.anims.create({
+              key: 'run',
+              frames: this.anims.generateFrameNumbers('character', { start: 0, end: 5 }),
+              frameRate: 10,
+              repeat: -1
+            });
+          }
+          if (!this.anims.exists('idle')) {
+            this.anims.create({
+              key: 'idle',
+              frames: [{ key: 'character', frame: 0 }],
+              frameRate: 1,
+              repeat: -1
+            });
+          }
+
+          // Start in idle
+          this.character.play('idle');
 
           // Keep the world bounds in sync with the canvas size
           this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
@@ -101,7 +128,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           // Start gift manager
           this.giftManager.start();
           // Create timer text
-          this.timerText = this.add.text(this.scale.width / 2, 50, '10', {
+          this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
             fontSize: '48px',
             fontFamily: 'Arial',
             color: '#e7e9ff',
@@ -159,13 +186,24 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           // Keep the character on the bottom each frame, but allow X to move
           this.keepCharacterAtBottom();
 
-          // Handle horizontal movement
+          // Handle horizontal movement and animations
           if (this.cursors?.left.isDown) {
             this.character.setVelocityX(-200);
+            this.character.setFlipX(true);
+            if (this.character.anims?.currentAnim?.key !== 'run') {
+              this.character.play('run');
+            }
           } else if (this.cursors?.right.isDown) {
             this.character.setVelocityX(200);
+            this.character.setFlipX(false);
+            if (this.character.anims?.currentAnim?.key !== 'run') {
+              this.character.play('run');
+            }
           } else {
             this.character.setVelocityX(0);
+            if (this.character.anims?.currentAnim?.key !== 'idle') {
+              this.character.play('idle');
+            }
           }
 
           // Check collisions between character and snowflakes
@@ -185,16 +223,22 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           this.giftManager.getGifts().forEach((gift, index) => {
             if (gift && gift.active) {
               // Calculate catch hitbox at the top of the character sprite
-              const catchY = this.character.y - (this.character.displayHeight - 40);
+              const topPortion = 0.3; // top 30% of character counts as catch zone
+              const horizontalOffsetFactor = 0.4; // offset left from center by 40% width (hand area)
+              const radiusFactor = 0.45; // catch radius is 45% of character size
+
+              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
+              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
+              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
               
               // Check if gift is close enough to the character's catch zone to be "caught"
               const distance = Phaser.Math.Distance.Between(
-                this.character.x-50, catchY,
+                this.character.x - offsetX, catchY,
                 gift.x, gift.y
               );
               
               // If gift is close enough, catch it
-              if (distance < 30) {
+              if (distance < catchRadius) {
                 this.catchGift(gift, index);
               }
             }
@@ -205,16 +249,22 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           this.snowflakeManager.getSnowflakes().forEach((snowflake, index) => {
             if (snowflake && snowflake.active) {
               // Calculate catch hitbox at the top of the character sprite
-              const catchY = this.character.y - (this.character.displayHeight - 40);
+              const topPortion = 0.3; // top 30% of character counts as catch zone
+              const horizontalOffsetFactor = 0.4; // offset left from center by 40% width (hand area)
+              const radiusFactor = 0.45; // catch radius is 45% of character size
+
+              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
+              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
+              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
               
               // Check if snowflake is close enough to the character's catch zone to be "caught"
               const distance = Phaser.Math.Distance.Between(
-                this.character.x-50, catchY,
+                this.character.x - offsetX, catchY,
                 snowflake.x, snowflake.y
               );
               
               // If snowflake is close enough, catch it
-              if (distance < 30) {
+              if (distance < catchRadius) {
                 this.catchSnowflake(snowflake, index);
               }
             }
@@ -295,6 +345,12 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
           //personage stop
           if (this.character) {
             this.character.setVelocityX(0);
+            // Set idle pose on game over
+            if (this.character.anims) {
+              this.character.play('idle');
+            } else {
+              this.character.setFrame?.(0);
+            }
           }
 
           // music stop
