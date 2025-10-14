@@ -108,7 +108,7 @@ export class SnowflakeManager {
     body.setVelocityX(driftSpeed);
     
     // Add rotation animation
-    const rotationSpeed = Phaser.Math.FloatBetween(-80, 80);
+    const rotationSpeed = Phaser.Math.FloatBetween(-160, 160);
     this.scene.tweens.add({
       targets: snowflake,
       rotation: snowflake.rotation + (rotationSpeed * Math.PI / 180),
