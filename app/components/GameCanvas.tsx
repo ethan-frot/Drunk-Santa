@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { SnowflakeManager } from '../flocon';
-import { GiftManager } from '../cadeau';
+import { SnowflakeManager } from '../utils/snowflake';
+import { GiftManager } from '../utils/gift';
 
 export default function GameCanvas({ onGameEnd }: { onGameEnd?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
