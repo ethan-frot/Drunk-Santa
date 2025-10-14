@@ -8,6 +8,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (finalScore: num
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
+  const reportedRef = useRef(false);
 
   useEffect(() => {
     import('phaser').then((Phaser) => {
@@ -39,6 +40,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (finalScore: num
         private timerText: any;
         private timeLeft: number = 10;
         private gameActive: boolean = true;
+        private hasEnded: boolean = false;
 
         constructor() { 
           super('Game'); 
@@ -50,6 +52,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (finalScore: num
           // Reset game state
           this.timeLeft = 10;
           this.gameActive = true;
+          this.hasEnded = false;
 
           // Add background image
           const bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
@@ -292,6 +295,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (finalScore: num
         }
 
         gameOver() {
+          if (this.hasEnded) return;
+          this.hasEnded = true;
           //personage stop
           if (this.character) {
             this.character.setVelocityX(0);
@@ -307,6 +312,12 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (finalScore: num
           if (onGameEnd) {
             onGameEnd(this.score);
           }
+          // stop timers to avoid any further callbacks
+          this.time.removeAllEvents();
+          if (this.snowflakeManager) this.snowflakeManager.stop();
+          if (this.giftManager) this.giftManager.stop();
+          // clear registry callback
+          this.game.registry.set('onGameEnd', null);
         }
       }
 
@@ -327,7 +338,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (finalScore: num
         scene: [PreloadScene, GameScene]
       });
       if (onGameEnd) {
-        gameRef.current.registry.set('onGameEnd', onGameEnd);
+        gameRef.current.registry.set('onGameEnd', (finalScore: number) => {
+          if (reportedRef.current) return;
+          reportedRef.current = true;
+          onGameEnd(finalScore);
+        });
       }
       setReady(true);
     });
