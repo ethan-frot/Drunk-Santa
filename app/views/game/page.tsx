@@ -17,7 +17,7 @@ export default function DisplayGamePage() {
         localStorage.setItem('gameScore', totalScore.toString());
         localStorage.setItem('snowflakesEarned', snowflakesEarned.toString());
         setGameResults({ snowflakesEarned, totalScore });
-        // Open choice modal
+        // Open choice modal (game will be paused automatically)
         setShowEndModal(true);
     };
 
@@ -36,6 +36,7 @@ export default function DisplayGamePage() {
     const handleUpgradesContinueToGame = () => {
         // After upgrades, return to the game
         setShowAbilityPage(false);
+        // Start a fresh game
         setRunId((id) => id + 1);
     };
     
@@ -51,7 +52,7 @@ export default function DisplayGamePage() {
     
     return (
       <main style={{ minHeight: '100vh', height: '100vh', background: '#040218' }}>
-        <GameCanvas key={runId} onGameEnd={handleGameEnd} />
+        <GameCanvas key={runId} onGameEnd={handleGameEnd} isPaused={showEndModal} />
 
         {showEndModal && gameResults && (
           <div style={{

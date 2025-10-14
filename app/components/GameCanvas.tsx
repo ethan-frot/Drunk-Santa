@@ -8,15 +8,50 @@ import { VodkaManager } from '../utils/vodka';
 import { AntiBoostManager } from '../utils/antiboost';
 
 
-export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void }) {
+export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void; isPaused?: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
+  const creatingRef = useRef(false);
   const [ready, setReady] = useState(false);
   const reportedRef = useRef(false);
   const [abilityManager] = useState(() => AbilityManager.getInstance());
+  const onGameEndRef = useRef(onGameEnd);
+  
+  // Keep the ref updated
+  onGameEndRef.current = onGameEnd;
 
   useEffect(() => {
+    // Global focus helper and listeners to restore keyboard after overlays
+    const focusCanvas = () => {
+      const canvas: any = (gameRef.current as any)?.canvas;
+      if (canvas) {
+        canvas.setAttribute('tabindex', '0');
+        try {
+          canvas.focus({ preventScroll: true } as any);
+        } catch (e) {
+          // Canvas focus error - silently continue
+        }
+      }
+    };
+    const onWindowFocus = () => focusCanvas();
+    const onVisibilityChange = () => { if (!document.hidden) focusCanvas(); };
+    window.addEventListener('focus', onWindowFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    if (gameRef.current || creatingRef.current) {
+      return () => {};
+    }
+    creatingRef.current = true;
+    // Create a unique effect token to avoid React Strict Mode double-create
+    const w: any = typeof window !== 'undefined' ? window : {};
+    const effectToken = Symbol('game_effect');
+    w.__CATCH_EFFECT_TOKEN__ = effectToken;
     import('phaser').then((Phaser) => {
+      // If a newer effect ran, abort this creation
+      if (w.__CATCH_EFFECT_TOKEN__ !== effectToken) {
+        creatingRef.current = false;
+        return;
+      }
       class PreloadScene extends Phaser.Scene {
         constructor() { super('Preload'); }
         preload() {
@@ -107,6 +142,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         private scoreText: any;
         private bgMusic: any;
         private timerText: any;
+        private timerEvent: any;
         private timeLeft: number = 120;
         private gameActive: boolean = true;
         private isStunned: boolean = false;
@@ -136,6 +172,7 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         
         create() {
           // Reset game state
+
           this.timeLeft = 120;
           this.gameActive = true;
           this.hasEnded = false;
@@ -184,7 +221,8 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           if (!this.anims.exists('monster_walk')) {
             this.anims.create({
               key: 'monster_walk',
-              frames: this.anims.generateFrameNumbers('monster5', { start: 0, end: 7 }),
+              // Limit frames to avoid out-of-range on some sprite sheets
+              frames: this.anims.generateFrameNumbers('monster5', { start: 0, end: 3 }),
               frameRate: 10,
               repeat: -1
             });
@@ -236,31 +274,44 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           // Ensure keyboard input is enabled and capture keys
           if (this.input.keyboard) {
             this.input.keyboard.enabled = true;
+            try { this.input.keyboard.removeAllKeys(true); } catch {}
             this.input.keyboard.addCapture([
               Phaser.Input.Keyboard.KeyCodes.LEFT,
               Phaser.Input.Keyboard.KeyCodes.RIGHT,
               Phaser.Input.Keyboard.KeyCodes.SPACE
             ]);
+            try {
+              const onKeyDown = (ev: KeyboardEvent) => { /* keydown event */ };
+              const onKeyUp = (ev: KeyboardEvent) => { /* keyup event */ };
+              (this.input.keyboard as any).on('keydown', onKeyDown);
+              (this.input.keyboard as any).on('keyup', onKeyUp);
+              this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+                try {
+                  (this.input.keyboard as any).off('keydown', onKeyDown);
+                  (this.input.keyboard as any).off('keyup', onKeyUp);
+                } catch {}
+              });
+            } catch {}
           }
-          // Set up keyboard controls
+          // Set up keyboard controls (fresh bindings each scene create)
           this.cursors = this.input.keyboard?.createCursorKeys();
 
           // Ensure canvas keeps focus for reliable keyboard input
           const canvas: any = this.game.canvas as any;
           if (canvas) {
             canvas.setAttribute('tabindex', '0');
-            try { canvas.focus(); } catch {}
+            try { canvas.focus({ preventScroll: true } as any); } catch {}
 
-            const focusCanvas = () => { try { canvas.focus(); } catch {} };
+            const focusCanvas = () => { try { canvas.focus({ preventScroll: true } as any); } catch {} };
             // Refocus on any pointer interaction inside the game
-            this.input.on('pointerdown', focusCanvas);
+            this.input.on('pointerdown', () => { focusCanvas(); });
             // Refocus when tab becomes visible again
             const onVisibility = () => { if (!document.hidden) focusCanvas(); };
             document.addEventListener('visibilitychange', onVisibility);
 
             // Clean up listeners on scene shutdown
             this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-              this.input.off('pointerdown', focusCanvas);
+              try { this.input.off('pointerdown', focusCanvas); } catch {}
               document.removeEventListener('visibilitychange', onVisibility);
             });
           }
@@ -304,10 +355,11 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
           }).setOrigin(0.5);
 
           // Timer event - countdown every second
-          this.time.addEvent({
+          this.timerEvent = this.time.addEvent({
             delay: 1000,
             callback: () => {
-              if (this.gameActive) {
+              const isPaused = this.game.registry.get('isPaused') || false;
+              if (this.gameActive && !isPaused) {
                 this.timeLeft -= 1;
                 this.timerText.setText(this.timeLeft.toString());
                 
@@ -475,6 +527,30 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
 
         update() {
           if (!this.gameActive) return;
+          
+          // Get pause state from registry
+          const isPaused = this.game.registry.get('isPaused') || false;
+          
+          // Pause game if parent component requests it
+          if (isPaused) {
+            // Pause timer
+            if (this.timerEvent) {
+              this.timerEvent.paused = true;
+            }
+            // Keep character still when paused
+            if (this.character) {
+              this.character.setVelocityX(0);
+              if (this.character.anims?.currentAnim?.key !== 'idle') {
+                this.character.play('idle');
+              }
+            }
+            return;
+          } else {
+            // Resume timer when not paused
+            if (this.timerEvent) {
+              this.timerEvent.paused = false;
+            }
+          }
 
           // Keep the character on the bottom each frame, but allow X to move
           this.keepCharacterAtBottom();
@@ -1104,28 +1180,31 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         physics: { default: 'arcade', arcade: { debug: false } },
         scene: [PreloadScene, GameScene]
       });
-      // Ensure the Phaser canvas is focusable and focused for keyboard input
-      setTimeout(() => {
-        const canvas: any = (gameRef.current as any)?.canvas;
-        if (canvas) {
-          canvas.setAttribute('tabindex', '0');
-          try { canvas.focus(); } catch {}
-        }
-      }, 0);
+      // Keep a global handle to avoid cross-destroy between effects
+      w.__CATCH_GAME_INSTANCE__ = gameRef.current;
+      // Ensure the Phaser canvas is focusable and focused soon after mount
+      setTimeout(focusCanvas, 0);
       
       // Pass onGameEnd callback to the game
-      if (onGameEnd) {
+      if (onGameEndRef.current) {
         gameRef.current.registry.set('onGameEnd', (snowflakesEarned: number, totalScore: number) => {
           if (reportedRef.current) return;
           reportedRef.current = true;
-          onGameEnd(snowflakesEarned, totalScore);
+          onGameEndRef.current?.(snowflakesEarned, totalScore);
         });
       }
+      
+      // Pass isPaused state to the game
+      gameRef.current.registry.set('isPaused', isPaused);
       setReady(true);
+      creatingRef.current = false;
     });
 
     return () => {
-      if (gameRef.current) {
+      creatingRef.current = false;
+      const w: any = typeof window !== 'undefined' ? window : {};
+      // Only destroy if this component still owns the instance
+      if (gameRef.current && w.__CATCH_GAME_INSTANCE__ === gameRef.current) {
         // Clean up managers before destroying the game
         const gameScene = gameRef.current.scene.getScene('Game');
         if (gameScene && gameScene.snowflakeManager) {
@@ -1139,11 +1218,23 @@ export default function GameCanvas({ onGameEnd }: { onGameEnd?: (snowflakesEarne
         gameRef.current.destroy(true);
         gameRef.current = null;
       }
+      // cleanup focus listeners
+      try {
+        window.removeEventListener('focus', onWindowFocus);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      } catch {}
     };
-  }, [onGameEnd]);
+  }, []); // Remove isPaused from dependencies to prevent game recreation
+
+  // Separate effect to update pause state without recreating the game
+  useEffect(() => {
+    if (gameRef.current) {
+      gameRef.current.registry.set('isPaused', isPaused);
+    }
+  }, [isPaused]);
 
   return (
-    <div ref={hostRef} tabIndex={0} style={{ position: 'fixed', inset: 0 }}>
+    <div ref={hostRef} style={{ position: 'fixed', inset: 0 }}>
       {!ready && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, opacity: 0.8, color: '#e7e9ff' }}>
           Loading…
