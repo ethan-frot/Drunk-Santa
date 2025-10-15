@@ -56,44 +56,44 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         constructor() { super('Preload'); }
         preload() {
           // Load character sprite sheet (6 frames, 32x32)
-          this.load.spritesheet('character', '/assets/run_player.png', {
+          this.load.spritesheet('character', '/assets/characters/santa-walk.png', {
             frameWidth: 32,
             frameHeight: 32,
             margin: 0,
             spacing: 0
           });
-          this.load.image('background', '/assets/background-image.png');
+          this.load.image('background', '/assets/ui/game/game-background.png');
           // Load snowflake sprite
-          this.load.image('snowflake', '/assets/snowflake.png');
+          this.load.image('snowflake', '/assets/items/snowflake.png');
           // Load gift sprite
-          this.load.image('cadeau', '/assets/gifts.png');
+          this.load.image('cadeau', '/assets/items/gift.png');
           // Load vodka sprite
-          this.load.image('vodka', '/assets/vodka.png');
+          this.load.image('vodka', '/assets/items/vodka.png');
           // Load anti-boost sprite
-          this.load.image('antiboost', '/assets/anti-boost-slowly.png');
+          this.load.image('antiboost', '/assets/items/freeze-bottle.png');
           // Load ice overlay as spritesheet (single strip animation 32x32 frames)
-          this.load.spritesheet('ice', '/assets/Ice.png', {
+          this.load.spritesheet('ice', '/assets/abilities/freezing.png', {
             frameWidth: 32,
             frameHeight: 32,
             margin: 0,
             spacing: 0
           });
           // Load throw animation sheet (character throwing snowball)
-          this.load.spritesheet('throw', '/assets/throw_sheet.png', {
+          this.load.spritesheet('throw', '/assets/characters/santa-throw.png', {
             frameWidth: 32,
             frameHeight: 32,
             margin: 0,
             spacing: 0
           });
-          // Load monster walk spritesheet (Monster5Walk.png). Sheet is 4x2 frames.
-          this.load.spritesheet('monster5', '/assets/Monster5Walk.png', {
+          // Load monster walk spritesheet (demon-walk.png). Sheet is 4x2 frames.
+          this.load.spritesheet('monster5', '/assets/characters/demon-walk.png', {
             frameWidth: 80, // adjust to avoid cropping (w/ 4 columns on 320px width)
             frameHeight: 100, // adjust to full frame height (2 rows on 200px height)
             margin: 0,
             spacing: 0
           });
-          // Load second monster (Monster4Walk.png) - 2x2 frames (80x100 each)
-          this.load.spritesheet('monster4', '/assets/Monster4Walk.png', {
+          // Load second monster (skeleton-walk.png) - 2x2 frames (80x100 each)
+          this.load.spritesheet('monster4', '/assets/characters/skeleton-walk.png', {
             frameWidth: 80,
             frameHeight: 100,
             margin: 0,
@@ -101,16 +101,16 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           });
 
           // Dash icon assets (use user's images)
-          this.load.image('dash_full', '/assets/dash_full.png');
-          this.load.image('dash_empty', '/assets/dash_empty.png');
-          this.load.image('dash1', '/assets/dash1.png');
-          this.load.image('dash2', '/assets/dash2.png');
-          this.load.image('dash3', '/assets/dash3.png');
+          this.load.image('dash_full', '/assets/abilities/dash/dash-full.png');
+          this.load.image('dash_empty', '/assets/abilities/dash/dash-empty.png');
+          this.load.image('dash1', '/assets/abilities/dash/dash1.png');
+          this.load.image('dash2', '/assets/abilities/dash/dash2.png');
+          this.load.image('dash3', '/assets/abilities/dash/dash3.png');
 
           //music
-          this.load.audio('music', '/assets/background-music.mp3');
+          this.load.audio('music', '/sounds/game-music.mp3');
           // dash sound effect
-          this.load.audio('dash_sfx', '/assets/Quick Fart Sound Effect.mp3');
+          this.load.audio('dash_sfx', '/sounds/dash-sound.mp3');
         }
         create() { this.scene.start('Game'); }
       }
