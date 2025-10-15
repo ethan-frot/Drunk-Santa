@@ -67,7 +67,10 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+      backgroundImage: "url('/assets/ui/background-menu.gif')",
+      backgroundSize: 'cover',
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'center',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -81,10 +84,10 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
         <h1 style={{ 
           fontSize: '48px', 
           margin: '0 0 10px 0',
-          background: 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))',
+          background: 'white',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          textShadow: '0 0 20px rgba(0, 229, 255, 0.5)'
+ 
         }}>
           🎁 Ability Upgrades
         </h1>
@@ -169,52 +172,81 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
                   disabled={!canUpgrade}
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    fontSize: '16px',
+                    height: '88px',
+                    backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundColor: 'transparent',
+                    color: '#ffffff',
+                    fontSize: '18px',
                     fontWeight: 'bold',
-                    borderRadius: '8px',
+                    fontFamily: 'November, sans-serif',
                     border: 'none',
                     cursor: canUpgrade ? 'pointer' : 'not-allowed',
-                    background: canUpgrade 
-                      ? 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))'
-                      : 'rgba(100, 100, 100, 0.5)',
-                    color: canUpgrade ? '#1a1a2e' : '#666',
-                    transition: 'all 0.3s ease',
-                    transform: canUpgrade ? 'scale(1)' : 'scale(0.95)'
+                    transition: 'transform 0.12s ease, opacity 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: canUpgrade ? 1 : 0.55,
+                    filter: canUpgrade ? 'none' : 'grayscale(20%)',
+                    transform: canUpgrade ? 'scale(1)' : 'scale(0.98)'
                   }}
                   onMouseEnter={(e) => {
                     if (canUpgrade) {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.4)';
+                      e.currentTarget.style.transform = 'scale(1.03)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (canUpgrade) {
                       e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = 'none';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    if (canUpgrade) {
+                      e.currentTarget.style.transform = 'scale(0.98)';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    if (canUpgrade) {
+                      e.currentTarget.style.transform = 'scale(1.03)';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
                     }
                   }}
                 >
-                  {canUpgrade 
-                    ? `Upgrade - ${ability.cost[ability.currentStage]} Snowflakes`
-                    : `Need ${ability.cost[ability.currentStage] - totalSnowflakes} more`
-                  }
+                  <span style={{ position: 'relative', top: '-4px' }}>
+                    {canUpgrade 
+                      ? `Upgrade — ${ability.cost[ability.currentStage]} Snowflakes`
+                      : `Need ${ability.cost[ability.currentStage] - totalSnowflakes} more`}
+                  </span>
                 </button>
               )}
 
               {isMaxed && (
-                <div style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))',
-                  color: '#1a1a2e',
-                  textAlign: 'center'
-                }}>
-                  ✨ MAXED OUT ✨
-                </div>
+                <button
+                  disabled
+                  style={{
+                    width: '100%',
+                    height: '88px',
+                    backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundColor: 'transparent',
+                    color: '#ffffff',
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    fontFamily: 'November, sans-serif',
+                    border: 'none',
+                    cursor: 'not-allowed',
+                    opacity: 0.75,
+                    filter: 'grayscale(15%)'
+                  }}
+                >
+                  <span style={{ position: 'relative', top: '-4px' }}>✨ MAXED OUT ✨</span>
+                </button>
               )}
             </div>
           );
@@ -225,27 +257,43 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
       <button
         onClick={onContinue}
         style={{
-          padding: '15px 40px',
-          fontSize: '20px',
+          width: '960px',
+          height: '210px',
+          backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundColor: 'transparent',
+          color: '#ffffff',
+          fontSize: '30px',
           fontWeight: 'bold',
-          borderRadius: '10px',
+          fontFamily: 'November, sans-serif',
           border: 'none',
           cursor: 'pointer',
-          background: 'linear-gradient(45deg, #00ff88, #00cc6a)',
-          color: '#1a1a2e',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 4px 15px rgba(0, 255, 136, 0.3)'
+          transition: 'transform 0.12s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: '8px'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.05)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 255, 136, 0.5)';
+          e.currentTarget.style.transform = 'scale(1.03)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 255, 136, 0.3)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'scale(0.98)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'scale(1.03)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
         }}
       >
-        Continue Playing 🎮
+        <span style={{ position: 'relative', top: '-12px' }}>Continue
+        </span>
       </button>
     </div>
   );
