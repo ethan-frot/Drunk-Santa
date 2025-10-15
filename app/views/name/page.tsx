@@ -59,6 +59,7 @@ export default function GetNamePage() {
       <h1 style={{ 
         fontSize: '3rem', 
         fontWeight: 'bold', 
+        fontFamily: 'November, sans-serif',
         color: '#e7e9ff',
         margin: 0,
         textAlign: 'center'
@@ -83,6 +84,7 @@ export default function GetNamePage() {
             width: '100%',
             padding: '1rem 1.5rem',
             fontSize: '1.2rem',
+            fontFamily: 'November, sans-serif',
             color: '#040218',
             background: '#e7e9ff',
             border: 'none',
@@ -101,6 +103,7 @@ export default function GetNamePage() {
             padding: '1rem 3rem',
             fontSize: '1.3rem',
             fontWeight: 'bold',
+            fontFamily: 'November, sans-serif',
             color: '#040218',
             background: pseudo.trim() ? '#e7e9ff' : '#666',
             border: 'none',

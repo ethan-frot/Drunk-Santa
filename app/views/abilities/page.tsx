@@ -73,7 +73,7 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
       alignItems: 'center',
       justifyContent: 'center',
       color: '#e7e9ff',
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'November, sans-serif',
       padding: '20px'
     }}>
       {/* Header */}

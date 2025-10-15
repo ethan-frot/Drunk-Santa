@@ -19,6 +19,7 @@ export default function Home() {
       <h1 style={{ 
         fontSize: '4rem', 
         fontWeight: 'bold', 
+        fontFamily: 'November, sans-serif',
         color: '#e7e9ff',
         margin: 0,
         textAlign: 'center'
@@ -32,6 +33,7 @@ export default function Home() {
           padding: '1.2rem 3rem',
           fontSize: '1.5rem',
           fontWeight: 'bold',
+          fontFamily: 'November, sans-serif',
           color: '#040218',
           background: '#e7e9ff',
           border: 'none',

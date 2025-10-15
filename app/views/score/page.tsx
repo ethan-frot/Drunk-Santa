@@ -193,6 +193,7 @@ export default function DisplayScorePage() {
         <h1 style={{ 
           fontSize: '3.5rem', 
           fontWeight: 'bold', 
+          fontFamily: 'November, sans-serif',
           color: '#e7e9ff',
           margin: 0,
           textAlign: 'center'
@@ -212,6 +213,7 @@ export default function DisplayScorePage() {
         }}>
           <div style={{
           fontSize: '1.3rem',
+          fontFamily: 'November, sans-serif',
           color: '#e7e9ff',
           opacity: 0.8
           }}>
@@ -220,6 +222,7 @@ export default function DisplayScorePage() {
           <div style={{
           fontSize: '2rem',
           fontWeight: 'bold',
+          fontFamily: 'November, sans-serif',
           color: '#e7e9ff'
           }}>
             {pseudo}
@@ -234,6 +237,7 @@ export default function DisplayScorePage() {
 
           <div style={{
           fontSize: '1.3rem',
+          fontFamily: 'November, sans-serif',
           color: '#e7e9ff',
           opacity: 0.8
           }}>
@@ -242,6 +246,7 @@ export default function DisplayScorePage() {
           <div style={{
           fontSize: '4rem',
           fontWeight: 'bold',
+          fontFamily: 'November, sans-serif',
           color: '#e7e9ff'
           }}>
             {score}
