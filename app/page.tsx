@@ -1,57 +1,270 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 export default function Home() {
   const router = useRouter();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const sprintRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    let player: Player | null = null;
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      if (player) {
+        player.y = (canvas?.height || window.innerHeight) - 120; // keep low on screen
+      }
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Load player sprite
+    const playerSprite = new Image();
+    playerSprite.src = '/assets/run_player.png';
+    
+    // Player class
+    class Player {
+      x: number;
+      y: number;
+      frame: number;
+      frameSpeed: number;
+      frameCount: number;
+      speed: number;
+      startTime: number;
+      sprintEndAt: number | null;
+
+      constructor() {
+        this.x = -50; // Start off-screen left
+        this.y = (canvas?.height || window.innerHeight) - 120; // Low on screen below button
+        this.frame = 0;
+        this.frameSpeed = 0.2;
+        this.frameCount = 0;
+        this.speed = 3;
+        this.startTime = Date.now();
+        this.sprintEndAt = null;
+      }
+
+      update() {
+        const currentTime = Date.now();
+        const elapsed = currentTime - this.startTime;
+
+        // Sprint logic
+        if (this.sprintEndAt && currentTime < this.sprintEndAt) {
+          this.speed = 6;
+          this.frameSpeed = 0.35;
+        } else {
+          this.speed = 3;
+          this.frameSpeed = 0.2;
+          this.sprintEndAt = null;
+        }
+
+        // Update animation frame
+        this.frameCount += this.frameSpeed;
+        this.frame = Math.floor(this.frameCount) % 6; // 6 frames in the sprite
+        // Move right across screen at fixed low Y
+        this.x += this.speed;
+        if (this.x > (canvas?.width || window.innerWidth) + 50) {
+          // loop from left again
+          this.x = -50;
+          this.y = (canvas?.height || window.innerHeight) - 120;
+        }
+      }
+
+      draw() {
+        if (!ctx || !playerSprite.complete) return;
+        
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.scale(3, 3); // scale up 3x
+
+        // Draw player frame from sprite
+        const frameWidth = 32; // frame width in pixels
+        const frameHeight = 32; // frame height in pixels
+        const sourceX = this.frame * frameWidth;
+        const sourceY = 0; // Only one row in the sprite
+        
+        ctx.drawImage(
+          playerSprite,
+          sourceX, sourceY, frameWidth, frameHeight,
+          -frameWidth/2, -frameHeight/2, frameWidth, frameHeight
+        );
+
+        ctx.restore();
+      }
+
+      startSprint(durationMs: number) {
+        this.sprintEndAt = Date.now() + durationMs;
+      }
+    }
+
+    // Create player
+    player = new Player();
+    // expose sprint trigger to component
+    sprintRef.current = () => player?.startSprint(700);
+
+    // Animation loop
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      player.update();
+      player.draw();
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    // Start animation when sprite is loaded
+    playerSprite.onload = () => {
+      animate();
+    };
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      sprintRef.current = () => {};
+    };
+  }, []);
 
   return (
     <main style={{ 
       minHeight: '100vh', 
       height: '100vh', 
-      background: '#040218',
+      backgroundImage: "url('/assets/scoreboard-background.gif')",
+      backgroundSize: 'cover',
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'center',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '2rem'
+      gap: '2rem',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <h1 style={{ 
-        fontSize: '4rem', 
-        fontWeight: 'bold', 
-        fontFamily: 'November, sans-serif',
-        color: '#e7e9ff',
-        margin: 0,
-        textAlign: 'center'
-      }}>
-        Catch Game
-      </h1>
-      
-      <button
-        onClick={() => router.push('/views/name')}
+      {/* Animated player canvas */}
+      <canvas
+        ref={canvasRef}
         style={{
-          padding: '1.2rem 3rem',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 1
+        }}
+      />
+      
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        <h1 style={{ 
+          fontSize: '4rem', 
+          fontWeight: 'bold', 
           fontFamily: 'November, sans-serif',
-          color: '#040218',
-          background: '#e7e9ff',
-          border: 'none',
-          borderRadius: '12px',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.05)';
-          e.currentTarget.style.background = '#fff';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.background = '#e7e9ff';
-        }}
-      >
-        Commencer le jeu
-      </button>
+          color: '#e7e9ff',
+          margin: 0,
+          textAlign: 'center',
+          textShadow: '0 0 20px rgba(231, 233, 255, 0.3)'
+        }}>
+          Catch Game
+        </h1>
+        
+        <button
+          onClick={() => { sprintRef.current?.(); setTimeout(() => router.push('/views/name'), 650); }}
+          style={{
+            width: '600px',
+            height: '160px',
+            backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            backgroundColor: 'transparent',
+            color: '#ffffff',
+            fontSize: '1.3rem',
+            fontWeight: 'bold',
+            fontFamily: 'November, sans-serif',
+            textTransform: 'uppercase',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'transform 0.12s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'scale(0.98)';
+            sprintRef.current?.();
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+          }}
+        >
+          <span style={{ position: 'relative', top: '-8px' }}>Commencer le jeu</span>
+        </button>
+
+        {/* Secondary white button below the red one */}
+        <button
+          style={{
+            width: '380px',
+            height: '110px',
+            marginTop: '24px',
+            marginLeft: '100px',
+            backgroundImage: "url('/assets/ui/buttons/button-blank-up.png')",
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            backgroundColor: 'transparent',
+            color: '#1b0f10',
+            fontSize: '1.2rem',
+            fontWeight: 'bold',
+            fontFamily: 'November, sans-serif',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'transform 0.12s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textTransform: 'uppercase',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'scale(0.98)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-down.png')";
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
+          }}
+        >
+          <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
+        </button>
+      </div>
     </main>
   );
 }
