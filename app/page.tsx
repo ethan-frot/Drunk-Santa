@@ -1,13 +1,45 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function Home() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const sprintRef = useRef<() => void>(() => {});
+  const [showNameOverlay, setShowNameOverlay] = useState(false);
+  const [pseudo, setPseudo] = useState('');
+  const [showWarning, setShowWarning] = useState(false);
+  const [matchedExistingName, setMatchedExistingName] = useState<string | null>(null);
+
+  const submitName = async () => {
+    const entered = (pseudo || '').trim();
+    if (!entered) return;
+    try {
+      const res = await fetch('/api/players', { cache: 'no-store' });
+      if (res.ok) {
+        const names: string[] = await res.json();
+        const lower = entered.toLowerCase();
+        const match = names.find((n) => n.toLowerCase() === lower) || null;
+        if (match) {
+          setMatchedExistingName(match);
+          setShowWarning(true);
+          return;
+        }
+      }
+    } catch {}
+    localStorage.setItem('playerPseudo', entered);
+    router.push('/views/game');
+  };
+
+  const confirmUseExisting = () => {
+    const nameToUse = matchedExistingName || pseudo.trim();
+    if (!nameToUse) return;
+    localStorage.setItem('playerPseudo', nameToUse);
+    setShowWarning(false);
+    router.push('/views/game');
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -177,9 +209,13 @@ export default function Home() {
       />
       
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 2 }}>
+      <div style={{ position: 'relative', zIndex: 2, paddingTop: '200px' }}>
         <div
           style={{
+            position: 'fixed',
+            top: '40px',
+            left: '50%',
+            transform: 'translateX(-50%)',
             width: '640px',
             height: '160px',
             backgroundImage: "url('/assets/ui/main-menu/title-background.png')",
@@ -190,6 +226,8 @@ export default function Home() {
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 8px',
+            zIndex: 2,
+            pointerEvents: 'none',
           }}
         >
           <h1
@@ -205,140 +243,246 @@ export default function Home() {
           </h1>
         </div>
 
+        {/* Spacer shown when the input overlay is open to avoid overlap */}
+        {showNameOverlay && (
+          <div style={{ height: '140px' }} />
+        )}
+
         <div style={{
               margin: '0 0 0 20px',
             }}>
-        <button
-          onClick={() => { sprintRef.current?.(); setTimeout(() => router.push('/views/name'), 650); }}
-          style={{
-            width: '600px',
-            height: '160px',
-            backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundColor: 'transparent',
-            color: '#ffffff',
-            fontSize: '1.3rem',
-            fontWeight: 'bold',
-            fontFamily: 'November, sans-serif',
-            textTransform: 'uppercase',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'transform 0.12s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
-          }}
-          onMouseDown={(e) => {
-            e.currentTarget.style.transform = 'scale(0.98)';
-            sprintRef.current?.();
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
-          }}
-          onMouseUp={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
-          }}
-        >
-          <span style={{ position: 'relative', top: '-8px' }}>Commencer le jeu</span>
-        </button>
+        {!showNameOverlay ? (
+          <button
+            onClick={() => { 
+              sprintRef.current?.(); 
+              setTimeout(() => setShowNameOverlay(true), 150);
+            }}
+            style={{
+              width: '600px',
+              height: '160px',
+              backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundColor: 'transparent',
+              color: '#1b0f10',
+              fontSize: '1.3rem',
+              fontWeight: 'bold',
+              fontFamily: 'November, sans-serif',
+              textTransform: 'uppercase',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'transform 0.12s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')"; }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')"; }}
+          >
+            <span style={{ position: 'relative', top: '-8px' }}>Commencer</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => { 
+              sprintRef.current?.(); 
+              setTimeout(() => submitName(), 150);
+            }}
+            style={{
+              width: '440px',
+              height: '130px',
+              backgroundImage: "url('/assets/ui/buttons/play-button-up.png')",
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundColor: 'transparent',
+              marginLeft: '-20px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'transform 0.12s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/play-button-up.png')"; }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/play-button-down.png')"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/play-button-up.png')"; }}
+          />
+        )}
 
-        {/* Secondary white button below the red one */}
-        <button
-          onClick={() => router.push('/views/leaderboard')}
-          style={{
-            width: '400px',
-            height: '115px',
-            marginTop: '24px',
-            marginLeft: '100px',
-            backgroundImage: "url('/assets/ui/buttons/button-blank-up.png')",
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundColor: 'transparent',
-            color: '#1b0f10',
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            fontFamily: 'November, sans-serif',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'transform 0.12s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textTransform: 'uppercase',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
-          }}
-          onMouseDown={(e) => {
-            e.currentTarget.style.transform = 'scale(0.98)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-down.png')";
-          }}
-          onMouseUp={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
-          }}
-        >
-          <span style={{ position: 'relative', top: '-6px', color: '#222' }}>score</span>
-        </button>
+        {!showNameOverlay && (
+          <>
+            {/* Secondary white button below the red one */}
+            <button
+              onClick={() => router.push('/views/leaderboard')}
+              style={{
+                width: '400px',
+                height: '115px',
+                marginTop: '24px',
+                marginLeft: '100px',
+                backgroundImage: "url('/assets/ui/buttons/button-blank-up.png')",
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'contain',
+                backgroundPosition: 'center',
+                backgroundColor: 'transparent',
+                color: '#1b0f10',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                fontFamily: 'November, sans-serif',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'transform 0.12s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textTransform: 'uppercase',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'scale(0.98)';
+                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-down.png')";
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
+              }}
+            >
+              <span style={{ position: 'relative', top: '-6px', color: '#222' }}>score</span>
+            </button>
 
-        {/* Third green button below the white one */}
-        <button
-          style={{
-            width: '580px',
-            height: '180px',
-            marginTop: '24px',
-            backgroundImage: "url('/assets/ui/buttons/button-green-up.png')",
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundColor: 'transparent',
-            color: '#1b0f10',
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            fontFamily: 'November, sans-serif',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'transform 0.12s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textTransform: 'uppercase',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-up.png')";
-          }}
-          onMouseDown={(e) => {
-            e.currentTarget.style.transform = 'scale(0.98)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-down.png')";
-          }}
-          onMouseUp={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-up.png')";
-          }}
-        >
-          <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
-        </button>
+            {/* Third green button below the white one */}
+            <button
+              style={{
+                width: '580px',
+                height: '180px',
+                marginTop: '24px',
+                backgroundImage: "url('/assets/ui/buttons/button-green-up.png')",
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'contain',
+                backgroundPosition: 'center',
+                backgroundColor: 'transparent',
+                color: '#1b0f10',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                fontFamily: 'November, sans-serif',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'transform 0.12s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textTransform: 'uppercase',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-up.png')";
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'scale(0.98)';
+                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-down.png')";
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-up.png')";
+              }}
+            >
+              <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
+            </button>
+          </>
+        )}
         </div>
         
 
       </div>
+
+      {showNameOverlay && (
+        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 3, paddingTop: '80px', pointerEvents: 'none' }}>
+          {/* Back button like leaderboard */}
+          <button
+            onClick={() => setShowNameOverlay(false)}
+            aria-label="Retour"
+            style={{
+              position: 'absolute',
+              top: '16px',
+              left: '16px',
+              width: '140px',
+              height: '70px',
+              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              zIndex: 4,
+              transition: 'transform 0.12s ease',
+              pointerEvents: 'auto',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
+          />
+          <div style={{ position: 'relative', width: '280px', maxWidth: '70vw', aspectRatio: '5 / 2', pointerEvents: 'auto' }}>
+            <img src="/assets/ui/main-menu/input.png" alt="Input" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
+            <form
+              onSubmit={(e) => { e.preventDefault(); submitName(); }}
+              style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '10% 16%' }}
+            >
+              <input
+                type="text"
+                value={pseudo}
+                onChange={(e) => setPseudo(e.target.value.slice(0, 13))}
+                placeholder="Votre pseudo"
+                maxLength={13}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.8rem',
+                  fontSize: '1.3rem',
+                  fontFamily: 'November, sans-serif',
+                  color: '#ffffff',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  textAlign: 'center',
+                }}
+              />
+              <style jsx>{`
+                input::placeholder { color: #ffffff; opacity: 0.85; }
+              `}</style>
+              {/* No on-screen buttons: Enter submits. Start button also calls submitName when overlay is open. */}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showWarning && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4 }}>
+          <div style={{ background: '#1a1a3a', border: '2px solid rgba(231, 233, 255, 0.2)', borderRadius: '16px', padding: '2rem', maxWidth: '480px', width: '92%', color: '#e7e9ff', boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>
+            <h2 style={{ margin: 0, marginBottom: '0.75rem', fontSize: '1.6rem', fontWeight: 'bold', color: '#ffd166' }}>Attention</h2>
+            <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
+              Le pseudo "{(pseudo || '').trim()}" correspond déjà à un joueur existant ({matchedExistingName}). Voulez-vous jouer en utilisant cette session existante ?
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowWarning(false)} style={{ padding: '0.75rem 1.25rem', background: 'transparent', color: '#e7e9ff', border: '2px solid rgba(231, 233, 255, 0.4)', borderRadius: '10px', cursor: 'pointer' }}>Modifier le pseudo</button>
+              <button onClick={confirmUseExisting} style={{ padding: '0.75rem 1.25rem', background: '#e7e9ff', color: '#040218', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Continuer avec ce compte</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
