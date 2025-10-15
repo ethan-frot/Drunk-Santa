@@ -66,22 +66,13 @@ export default function LeaderboardPage() {
 
   return (
     <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <style jsx global>{`
-        @font-face {
-          font-family: 'November';
-          src: url('/font/November.ttf') format('truetype');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-      `}</style>
       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '2rem', width: '100%', maxWidth: '1200px' }}>
         {/* Left column with title and back button, aligned to the left */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
           {/* Title framed inside an image — centered without absolute layout */}
           <div style={{ display: 'grid', placeItems: 'center', width: '520px', maxWidth: '38vw' }}>
             {/* background frame image */}
-            <img src="/assets/scoreboard/scoreboard-title-background.png" alt="Title" style={{ gridArea: '1 / 1', width: '70%', height: 'auto', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
+            <img src="/assets/ui/scoreboard/scoreboard-title-background.png" alt="Title" style={{ gridArea: '1 / 1', width: '70%', height: 'auto', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
             {/* centered text overlay */}
             <div style={{ gridArea: '1 / 1', textAlign: 'center', lineHeight: 1.05 }}>
               <div style={{ fontFamily: 'November, system-ui, Arial', fontWeight: 700, fontSize: 'clamp(18px, 3vw, 36px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)' }}>
@@ -97,7 +88,7 @@ export default function LeaderboardPage() {
         {/* Scoreboard card using background image */}
         <div style={{ position: 'relative', width: '100%', maxWidth: '820px', aspectRatio: '4 / 3' }}>
           {/* Background image */}
-          <img src="/assets/scoreboard/scoreboard-list-background.png" alt="Scoreboard" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
+          <img src="/assets/ui/scoreboard/scoreboard-list-background.png" alt="Scoreboard" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
 
           {/* Overlay grid for rows */}
           <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateRows: 'repeat(10, 1fr)', padding: '10% 30% 5% 25%' }}>
