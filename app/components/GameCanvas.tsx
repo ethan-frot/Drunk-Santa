@@ -990,7 +990,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.antiBoostManager.getJars().forEach((jar, index) => {
             if (!jar || !jar.active) return;
-            const jarBounds = this.getShrinkBounds(jar, 0.95);
+            // Use an even tighter hitbox for freeze jars so they don't hit from too far
+            const jarBounds = this.getShrinkBounds(jar, 0.5);
             if (this.rectsOverlap(charBounds, jarBounds)) {
               this.catchAntiBoost(jar, index);
             }
