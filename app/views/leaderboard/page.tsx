@@ -65,7 +65,7 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/scoreboard-background.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+    <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <style jsx global>{`
         @font-face {
           font-family: 'November';

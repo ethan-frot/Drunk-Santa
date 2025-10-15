@@ -30,7 +30,7 @@ export default function Home() {
 
     // Load player sprite
     const playerSprite = new Image();
-    playerSprite.src = '/assets/run_player.png';
+    playerSprite.src = '/assets/characters/santa-walk.png';
     
     // Player class
     class Player {
@@ -140,7 +140,7 @@ export default function Home() {
     <main style={{ 
       minHeight: '100vh', 
       height: '100vh', 
-      backgroundImage: "url('/assets/scoreboard-background.gif')",
+      backgroundImage: "url('/assets/ui/background-menu.gif')",
       backgroundSize: 'cover',
       backgroundRepeat: 'no-repeat',
       backgroundPosition: 'center',
