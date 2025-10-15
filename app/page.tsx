@@ -22,7 +22,7 @@ export default function Home() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       if (player) {
-        player.y = (canvas?.height || window.innerHeight) - 120; // keep low on screen
+        player.y = (canvas?.height || window.innerHeight) - 80; // keep on floor level
       }
     };
     resizeCanvas();
@@ -45,7 +45,7 @@ export default function Home() {
 
       constructor() {
         this.x = -50; // Start off-screen left
-        this.y = (canvas?.height || window.innerHeight) - 120; // Low on screen below button
+        this.y = (canvas?.height || window.innerHeight) - 80; // Floor level
         this.frame = 0;
         this.frameSpeed = 0.2;
         this.frameCount = 0;
@@ -71,12 +71,22 @@ export default function Home() {
         // Update animation frame
         this.frameCount += this.frameSpeed;
         this.frame = Math.floor(this.frameCount) % 6; // 6 frames in the sprite
-        // Move right across screen at fixed low Y
+        
+        // Move right across screen with trajectory
         this.x += this.speed;
-        if (this.x > (canvas?.width || window.innerWidth) + 50) {
-          // loop from left again
+        
+        // Calculate trajectory Y position - stay on floor level
+        const screenWidth = canvas?.width || window.innerWidth;
+        const screenHeight = canvas?.height || window.innerHeight;
+        
+        // Keep character on floor level (bottom of screen)
+        const floorY = screenHeight - 80; // Floor level
+        this.y = floorY;
+        
+        // Reset when off screen
+        if (this.x > screenWidth + 50) {
           this.x = -50;
-          this.y = (canvas?.height || window.innerHeight) - 120;
+          this.y = floorY; // start at floor level
         }
       }
 
@@ -224,6 +234,7 @@ export default function Home() {
 
         {/* Secondary white button below the red one */}
         <button
+          onClick={() => router.push('/views/leaderboard')}
           style={{
             width: '400px',
             height: '115px',
@@ -262,7 +273,7 @@ export default function Home() {
             (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
           }}
         >
-          <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
+          <span style={{ position: 'relative', top: '-6px', color: '#222' }}>score</span>
         </button>
 
         {/* Third green button below the white one */}
