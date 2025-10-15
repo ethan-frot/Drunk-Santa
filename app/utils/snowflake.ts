@@ -109,6 +109,16 @@ export class SnowflakeManager {
     this.scene.physics.add.existing(snowflake);
     const body = snowflake.body as Phaser.Physics.Arcade.Body;
     
+    // Set physics body to 95% of displayed sprite size for tighter hitbox
+    try {
+      const width = snowflake.displayWidth * 0.95;
+      const height = snowflake.displayHeight * 0.95;
+      const offsetX = (snowflake.displayWidth - width) / 2;
+      const offsetY = (snowflake.displayHeight - height) / 2;
+      body.setSize(width, height, false);
+      body.setOffset(offsetX, offsetY);
+    } catch {}
+
     // Use current fall speed
     body.setVelocityY(this.fallSpeed);
     
