@@ -182,14 +182,14 @@ export default function DisplayScorePage() {
       height: '100vh', 
       background: '#040218',
       display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'stretch',
+      flexDirection: 'column',
+      alignItems: 'center',
       justifyContent: 'center',
-      gap: '2.5rem',
+      gap: '1.5rem',
       padding: '2rem',
       overflow: 'hidden'
     }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <h1 style={{ 
           fontSize: '3.5rem', 
           fontWeight: 'bold', 
@@ -362,11 +362,7 @@ export default function DisplayScorePage() {
           </div>
         )}
 
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginTop: '0.5rem'
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem', gap: '1rem' }}>
           <button
             onClick={() => {
               try {
@@ -399,46 +395,6 @@ export default function DisplayScorePage() {
           </button>
         </div>
       </div>
-
-      <aside style={{
-        width: '380px',
-        alignSelf: 'center',
-        background: 'rgba(231, 233, 255, 0.06)',
-        borderRadius: '18px',
-        border: '2px solid rgba(231, 233, 255, 0.2)',
-        padding: '1.25rem',
-        color: '#e7e9ff'
-      }}>
-        <div style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '0.75rem' }}>Classement</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 90px', gap: '0.5rem', alignItems: 'center' }}>
-          {top10.map((row) => {
-            const isPlayer = row.name === pseudo && row.name !== '-';
-            return (
-              <div key={row.rank} style={{
-                display: 'contents'
-              }}>
-                <div style={{ opacity: 0.8, textAlign: 'right', paddingRight: '0.5rem' }}>#{row.rank}</div>
-                <div style={{
-                  padding: '0.5rem 0.75rem',
-                  background: isPlayer ? 'rgba(255, 209, 102, 0.2)' : 'transparent',
-                  borderRadius: '8px'
-                }}>{row.name}</div>
-              <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.bestScore > 0 ? row.bestScore : ''}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        {playerNotInTop && (
-          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed rgba(231, 233, 255, 0.25)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 90px', gap: '0.5rem', alignItems: 'center' }}>
-              <div style={{ opacity: 0.8, textAlign: 'right', paddingRight: '0.5rem' }}>#{playerNotInTop.rank}</div>
-              <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(102, 191, 255, 0.2)', borderRadius: '8px' }}>{playerNotInTop.name}</div>
-              <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{playerNotInTop.bestScore > 0 ? playerNotInTop.bestScore : ''}</div>
-            </div>
-          </div>
-        )}
-      </aside>
     </main>
   );
 }
