@@ -168,18 +168,36 @@ export default function Home() {
       
       {/* Content */}
       <div style={{ position: 'relative', zIndex: 2 }}>
-        <h1 style={{ 
-          fontSize: '4rem', 
-          fontWeight: 'bold', 
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff',
-          margin: 0,
-          textAlign: 'center',
-          textShadow: '0 0 20px rgba(231, 233, 255, 0.3)'
-        }}>
-          Catch Game
-        </h1>
-        
+        <div
+          style={{
+            width: '640px',
+            height: '160px',
+            backgroundImage: "url('/assets/ui/main-menu/title-background.png')",
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 8px',
+          }}
+        >
+          <h1
+            style={{
+              fontSize: '3rem',
+              color: '#ED1C24',
+              margin: '0 0 25px 0',
+              textAlign: 'center',
+              textShadow: '0 0 20px rgba(231, 233, 255, 0.3)'
+            }}
+          >
+            Drunk Santa
+          </h1>
+        </div>
+
+        <div style={{
+              margin: '0 0 0 20px',
+            }}>
         <button
           onClick={() => { sprintRef.current?.(); setTimeout(() => router.push('/views/name'), 650); }}
           style={{
@@ -306,6 +324,9 @@ export default function Home() {
         >
           <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
         </button>
+        </div>
+        
+
       </div>
     </main>
   );
