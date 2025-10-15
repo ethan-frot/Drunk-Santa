@@ -477,13 +477,16 @@ export default function Home() {
       )}
 
       {showWarning && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4 }}>
-          <div style={{ background: '#1a1a3a', border: '2px solid rgba(231, 233, 255, 0.2)', borderRadius: '16px', padding: '2rem', maxWidth: '480px', width: '92%', color: '#e7e9ff', boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>
-            <h2 style={{ margin: 0, marginBottom: '0.75rem', fontSize: '1.6rem', fontWeight: 'bold', color: '#ffd166' }}>Attention</h2>
-            <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
-              Le pseudo "{(pseudo || '').trim()}" correspond déjà à un joueur existant ({matchedExistingName}). Voulez-vous jouer en utilisant cette session existante ?
-            </p>
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4, padding: '16px' }}>
+          <div style={{ position: 'relative', width: '540px', maxWidth: '92vw' }}>
+            <img src="/assets/ui/scoreboard/scoreboard-title-background.png" alt="support" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }} />
+            <div style={{ position: 'absolute', marginBottom: '60px', inset: 0, display: 'grid', placeItems: 'center', padding: '0 8%' }}>
+              <div style={{ textAlign: 'center', fontFamily: 'November, sans-serif', fontWeight: 700, fontSize: 'clamp(14px, 2.2vw, 20px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)', lineHeight: 1.8, color: '#b20c0f' }}>
+                Le pseudo "{(pseudo || '').trim()}" correspond deja a un joueur existant ({matchedExistingName}). Voulez-vous jouer en utilisant cette session existante ?
+              </div>
+            </div>
+            {/* Buttons row under the image */}
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '12px' }}>
               <button onClick={() => setShowWarning(false)} style={{ padding: '0.75rem 1.25rem', background: 'transparent', color: '#e7e9ff', border: '2px solid rgba(231, 233, 255, 0.4)', borderRadius: '10px', cursor: 'pointer' }}>Modifier le pseudo</button>
               <button onClick={confirmUseExisting} style={{ padding: '0.75rem 1.25rem', background: '#e7e9ff', color: '#040218', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Continuer avec ce compte</button>
             </div>
