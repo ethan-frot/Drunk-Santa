@@ -189,7 +189,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Scale ~x5 total (0.7 * 5 = 3.5)
           this.character.setScale(3.5);
           this.character.setOrigin(0.5, 1);
-          this.character.setCollideWorldBounds(true);
+          this.character.setCollideWorldBounds(false);
 
           // Create animations
           if (!this.anims.exists('run')) {
@@ -263,6 +263,18 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           
           // Initial placement centered at bottom
           this.positionCharacterAtBottomCenter();
+          // Now that position is set, size the physics body to 95% and align to bottom
+          try {
+            const body = this.character.body as Phaser.Physics.Arcade.Body;
+            const width = this.character.displayWidth * 0.95;
+            const height = this.character.displayHeight * 0.95;
+            const offsetX = (this.character.displayWidth - width) / 2;
+            const offsetY = this.character.displayHeight - height;
+            body.setSize(width, height, false);
+            body.setOffset(offsetX, offsetY);
+            body.setAllowGravity(false);
+            body.setImmovable(true);
+          } catch {}
 
           // Reposition and resize bounds when the game resizes
           this.scale.on('resize', (gameSize: any) => {
@@ -644,6 +656,21 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.updateSnowballs();
         }
 
+        private getShrinkBounds(obj: Phaser.GameObjects.Sprite, shrinkFactor: number = 0.95) {
+          const width = (obj.displayWidth || 0) * shrinkFactor;
+          const height = (obj.displayHeight || 0) * shrinkFactor;
+          const originX = (obj.originX ?? 0.5);
+          const originY = (obj.originY ?? 0.5);
+          // Compute top-left relative to display size and origin
+          const left = obj.x - width * originX;
+          const top = obj.y - height * originY;
+          return { left, top, right: left + width, bottom: top + height };
+        }
+
+        private rectsOverlap(a: {left:number;top:number;right:number;bottom:number}, b: {left:number;top:number;right:number;bottom:number}) {
+          return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+        }
+
         private spawnMonsterA() {
           // Decide spawn side
           const fromLeft = Math.random() < 0.5;
@@ -878,53 +905,23 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private checkGiftCollisions() {
+          const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.giftManager.getGifts().forEach((gift, index) => {
-            if (gift && gift.active) {
-              // Calculate catch hitbox at the top of the character sprite
-              const topPortion = 0.3; // top 30% of character counts as catch zone
-              const horizontalOffsetFactor = 0.4; // offset left from center by 40% width (hand area)
-              const radiusFactor = 0.45; // catch radius is 45% of character size
-
-              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
-              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
-              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
-              
-              // Check if gift is close enough to the character's catch zone to be "caught"
-              const distance = Phaser.Math.Distance.Between(
-                this.character.x - offsetX, catchY,
-                gift.x, gift.y
-              );
-              
-              // If gift is close enough, catch it
-              if (distance < catchRadius) {
-                this.catchGift(gift, index);
-              }
+            if (!gift || !gift.active) return;
+            const giftBounds = this.getShrinkBounds(gift, 0.95);
+            if (this.rectsOverlap(charBounds, giftBounds)) {
+              this.catchGift(gift, index);
             }
           });
         }
 
         private checkSnowflakeCollisions() {
+          const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.snowflakeManager.getSnowflakes().forEach((snowflake, index) => {
-            if (snowflake && snowflake.active) {
-              // Calculate catch hitbox at the top of the character sprite
-              const topPortion = 0.3; // top 30% of character counts as catch zone
-              const horizontalOffsetFactor = 0.4; // offset left from center by 40% width (hand area)
-              const radiusFactor = 0.45; // catch radius is 45% of character size
-
-              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
-              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
-              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
-              
-              // Check if snowflake is close enough to the character's catch zone to be "caught"
-              const distance = Phaser.Math.Distance.Between(
-                this.character.x - offsetX, catchY,
-                snowflake.x, snowflake.y
-              );
-              
-              // If snowflake is close enough, catch it
-              if (distance < catchRadius) {
-                this.catchSnowflake(snowflake, index);
-              }
+            if (!snowflake || !snowflake.active) return;
+            const flakeBounds = this.getShrinkBounds(snowflake, 0.95);
+            if (this.rectsOverlap(charBounds, flakeBounds)) {
+              this.catchSnowflake(snowflake, index);
             }
           });
         }
@@ -977,47 +974,23 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private checkVodkaCollisions() {
+          const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.vodkaManager.getBottles().forEach((bottle, index) => {
-            if (bottle && bottle.active) {
-              const topPortion = 0.3;
-              const horizontalOffsetFactor = 0.4;
-              const radiusFactor = 0.45;
-
-              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
-              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
-              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
-
-              const distance = Phaser.Math.Distance.Between(
-                this.character.x - offsetX, catchY,
-                bottle.x, bottle.y
-              );
-
-              if (distance < catchRadius) {
-                this.catchVodka(bottle, index);
-              }
+            if (!bottle || !bottle.active) return;
+            const bottleBounds = this.getShrinkBounds(bottle, 0.95);
+            if (this.rectsOverlap(charBounds, bottleBounds)) {
+              this.catchVodka(bottle, index);
             }
           });
         }
 
         private checkAntiBoostCollisions() {
+          const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.antiBoostManager.getJars().forEach((jar, index) => {
-            if (jar && jar.active) {
-              const topPortion = 0.3;
-              const horizontalOffsetFactor = 0.4;
-              const radiusFactor = 0.45;
-
-              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
-              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
-              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
-
-              const distance = Phaser.Math.Distance.Between(
-                this.character.x - offsetX, catchY,
-                jar.x, jar.y
-              );
-
-              if (distance < catchRadius) {
-                this.catchAntiBoost(jar, index);
-              }
+            if (!jar || !jar.active) return;
+            const jarBounds = this.getShrinkBounds(jar, 0.95);
+            if (this.rectsOverlap(charBounds, jarBounds)) {
+              this.catchAntiBoost(jar, index);
             }
           });
         }

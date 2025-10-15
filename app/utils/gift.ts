@@ -80,6 +80,16 @@ export class GiftManager {
     this.scene.physics.add.existing(gift);
     const body = gift.body as Phaser.Physics.Arcade.Body;
     
+    // Set physics body to 95% of displayed sprite size for tighter hitbox
+    try {
+      const width = gift.displayWidth * 0.95;
+      const height = gift.displayHeight * 0.95;
+      const offsetX = (gift.displayWidth - width) / 2;
+      const offsetY = (gift.displayHeight - height) / 2;
+      body.setSize(width, height, false);
+      body.setOffset(offsetX, offsetY);
+    } catch {}
+
     // Set fall speed (slower than snowflakes)
     body.setVelocityY(this.fallSpeed);
     
