@@ -225,8 +225,8 @@ export default function Home() {
         {/* Secondary white button below the red one */}
         <button
           style={{
-            width: '380px',
-            height: '110px',
+            width: '400px',
+            height: '115px',
             marginTop: '24px',
             marginLeft: '100px',
             backgroundImage: "url('/assets/ui/buttons/button-blank-up.png')",
@@ -260,6 +260,48 @@ export default function Home() {
           onMouseUp={(e) => {
             e.currentTarget.style.transform = 'scale(1.05)';
             (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
+          }}
+        >
+          <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
+        </button>
+
+        {/* Third green button below the white one */}
+        <button
+          style={{
+            width: '580px',
+            height: '180px',
+            marginTop: '24px',
+            backgroundImage: "url('/assets/ui/buttons/button-green-up.png')",
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            backgroundColor: 'transparent',
+            color: '#1b0f10',
+            fontSize: '1.2rem',
+            fontWeight: 'bold',
+            fontFamily: 'November, sans-serif',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'transform 0.12s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textTransform: 'uppercase',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-up.png')";
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'scale(0.98)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-down.png')";
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-up.png')";
           }}
         >
           <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
