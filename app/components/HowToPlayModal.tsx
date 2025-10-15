@@ -26,7 +26,7 @@ export default function HowToPlayModal({ open, onClose }: Props) {
         <div style={{ height: '100%', overflowY: 'auto', padding: 16, paddingLeft: 64, paddingTop: 96, paddingBottom: 72, display: 'flex', flexDirection: 'column', gap: 16, backgroundImage: 'url(/assets/how-to-play-bg.png)', backgroundSize: 'cover', backgroundPosition: 'top center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'local' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ margin: 0, padding: 8, fontFamily: 'Novem, Arial, sans-serif', color: '#600000', fontSize: s(36) }}>Comment jouer</h2>
-            <button aria-label="Fermer" title="Fermer" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#8a8a8a', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontFamily: 'Novem, Arial, sans-serif', fontSize: s(28), lineHeight: 1, fontWeight: 700 }}>X</button>
+            <button aria-label="Fermer" title="Fermer" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#8a8a8a', borderRadius: 8, padding: '6px 40px', paddingRight: '50px', paddingTop: '0px', cursor: 'pointer', fontFamily: 'Novem, Arial, sans-serif', fontSize: s(28), lineHeight: 1, fontWeight: 700 }}>X</button>
           </div>
           {/* Section 1: Controls */}
           <section style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 16 }}>
