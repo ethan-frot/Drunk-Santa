@@ -234,6 +234,7 @@ export default function Home() {
 
         {/* Secondary white button below the red one */}
         <button
+          onClick={() => router.push('/views/leaderboard')}
           style={{
             width: '400px',
             height: '115px',
@@ -272,7 +273,7 @@ export default function Home() {
             (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
           }}
         >
-          <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
+          <span style={{ position: 'relative', top: '-6px', color: '#222' }}>score</span>
         </button>
 
         {/* Third green button below the white one */}
