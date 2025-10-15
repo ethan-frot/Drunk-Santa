@@ -250,6 +250,11 @@ export default function Home() {
 
         <div style={{
               margin: '0 0 0 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '24px',
             }}>
         {!showNameOverlay ? (
           <button
@@ -258,31 +263,28 @@ export default function Home() {
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
             style={{
-              width: '600px',
-              height: '160px',
-              backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundColor: 'transparent',
-              color: '#1b0f10',
-              fontSize: '1.3rem',
-              fontWeight: 'bold',
-              fontFamily: 'November, sans-serif',
-              textTransform: 'uppercase',
+              background: 'transparent',
               border: 'none',
+              padding: 0,
               cursor: 'pointer',
               transition: 'transform 0.12s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')"; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')"; }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
           >
-            <span style={{ position: 'relative', top: '-8px' }}>Commencer</span>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <img
+                src="/assets/ui/buttons/button-red-up.png"
+                alt="Commencer"
+                style={{ height: '160px', width: 'auto', display: 'block' }}
+                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
+                onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
+              />
+              <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#1b0f10', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Commencer</span>
+            </div>
           </button>
         ) : (
           <button
@@ -291,26 +293,29 @@ export default function Home() {
               setTimeout(() => submitName(), 150);
             }}
             style={{
-              width: '440px',
-              height: '130px',
-              backgroundImage: "url('/assets/ui/buttons/play-button-up.png')",
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundColor: 'transparent',
-              marginLeft: '-20px',
+              background: 'transparent',
               border: 'none',
+              padding: 0,
               cursor: 'pointer',
               transition: 'transform 0.12s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              marginLeft: '-20px',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/play-button-up.png')"; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/play-button-down.png')"; }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/play-button-up.png')"; }}
-          />
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+          >
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <img
+                src="/assets/ui/buttons/play-button-up.png"
+                alt="Jouer"
+                style={{ height: '130px', width: 'auto', display: 'block' }}
+                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-down.png'; }}
+                onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
+              />
+            </div>
+          </button>
         )}
 
         {!showNameOverlay && (
@@ -319,86 +324,57 @@ export default function Home() {
             <button
               onClick={() => router.push('/views/leaderboard')}
               style={{
-                width: '400px',
-                height: '115px',
-                marginTop: '24px',
-                marginLeft: '100px',
-                backgroundImage: "url('/assets/ui/buttons/button-blank-up.png')",
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundColor: 'transparent',
-                color: '#1b0f10',
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                fontFamily: 'November, sans-serif',
+                background: 'transparent',
                 border: 'none',
+                padding: 0,
                 cursor: 'pointer',
                 transition: 'transform 0.12s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textTransform: 'uppercase',
+                
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'scale(0.98)';
-                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-down.png')";
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-blank-up.png')";
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
             >
-              <span style={{ position: 'relative', top: '-6px', color: '#222' }}>score</span>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <img
+                  src="/assets/ui/buttons/button-blank-up.png"
+                  alt="Score"
+                  style={{ height: '115px', width: 'auto', display: 'block' }}
+                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-blank-down.png'; }}
+                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-blank-up.png'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-blank-up.png'; }}
+                />
+                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#222', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>score</span>
+              </div>
             </button>
 
             {/* Third green button below the white one */}
             <button
               style={{
-                width: '580px',
-                height: '180px',
-                marginTop: '24px',
-                backgroundImage: "url('/assets/ui/buttons/button-green-up.png')",
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundColor: 'transparent',
-                color: '#1b0f10',
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                fontFamily: 'November, sans-serif',
+                background: 'transparent',
                 border: 'none',
+                padding: 0,
                 cursor: 'pointer',
                 transition: 'transform 0.12s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textTransform: 'uppercase',
+                
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-up.png')";
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'scale(0.98)';
-                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-down.png')";
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-green-up.png')";
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
             >
-              <span style={{ position: 'relative', top: '-6px', color: '#222' }}>test</span>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <img
+                  src="/assets/ui/buttons/button-green-up.png"
+                  alt="Vert"
+                  style={{ height: '180px', width: 'auto', display: 'block' }}
+                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
+                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
+                />
+                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#222', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>test</span>
+              </div>
             </button>
           </>
         )}
