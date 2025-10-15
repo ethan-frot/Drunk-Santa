@@ -480,15 +480,56 @@ export default function Home() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4, padding: '16px' }}>
           <div style={{ position: 'relative', width: '540px', maxWidth: '92vw' }}>
             <img src="/assets/ui/scoreboard/scoreboard-title-background.png" alt="support" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }} />
-            <div style={{ position: 'absolute', marginBottom: '60px', inset: 0, display: 'grid', placeItems: 'center', padding: '0 8%' }}>
-              <div style={{ textAlign: 'center', fontFamily: 'November, sans-serif', fontWeight: 700, fontSize: 'clamp(14px, 2.2vw, 20px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)', lineHeight: 1.8, color: '#b20c0f' }}>
+            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '0 8%' }}>
+              <div style={{ textAlign: 'center', fontFamily: 'November, sans-serif', fontWeight: 700, fontSize: 'clamp(14px, 2.2vw, 20px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)', lineHeight: 1.8, color: '#b20c0f', marginBottom: '80px' }}>
                 Le pseudo "{(pseudo || '').trim()}" correspond deja a un joueur existant ({matchedExistingName}). Voulez-vous jouer en utilisant cette session existante ?
               </div>
             </div>
             {/* Buttons row under the image */}
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '12px' }}>
-              <button onClick={() => setShowWarning(false)} style={{ padding: '0.75rem 1.25rem', background: 'transparent', color: '#e7e9ff', border: '2px solid rgba(231, 233, 255, 0.4)', borderRadius: '10px', cursor: 'pointer' }}>Modifier le pseudo</button>
-              <button onClick={confirmUseExisting} style={{ padding: '0.75rem 1.25rem', background: '#e7e9ff', color: '#040218', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Continuer avec ce compte</button>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px' }}>
+              {/* Red continue */}
+              <button
+                onClick={confirmUseExisting}
+                style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.12s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              >
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <img
+                    src="/assets/ui/buttons/button-red-up.png"
+                    alt="Continuer"
+                    style={{ height: '80px', width: 'auto', display: 'block' }}
+                    onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
+                    onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
+                  />
+                  <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#1b0f10', fontSize: '1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-4px)' }}>Continuer</span>
+                </div>
+              </button>
+
+              {/* Green modify */}
+              <button
+                onClick={() => setShowWarning(false)}
+                style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.12s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              >
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <img
+                    src="/assets/ui/buttons/button-green-up.png"
+                    alt="Modifier"
+                    style={{ height: '80px', width: 'auto', display: 'block' }}
+                    onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
+                    onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
+                  />
+                  <span style={{ position: 'absolute', right: '-5px', top: '25px', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#1b0f10', fontSize: '1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase' }}>Modifier</span>
+                </div>
+              </button>
             </div>
           </div>
         </div>
