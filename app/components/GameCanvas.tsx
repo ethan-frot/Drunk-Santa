@@ -320,6 +320,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create score text
           this.scoreText = this.add.text(16, 16, 'Score: 0', {
             fontSize: '32px',
+            fontFamily: 'November, sans-serif',
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 4
@@ -349,7 +350,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create timer text
           this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
             fontSize: '48px',
-            fontFamily: 'Arial',
+            fontFamily: 'November, sans-serif',
             color: '#e7e9ff',
             fontStyle: 'bold'
           }).setOrigin(0.5);
@@ -961,6 +962,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create a temporary particle effect showing earned value
           const effect = this.add.text(x, y, `+${value}` , {
             fontSize: '24px',
+            fontFamily: 'November, sans-serif',
             color: '#00ff00',
             stroke: '#000000',
             strokeThickness: 2
@@ -1098,6 +1100,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create a special bonus effect for gifts
           const effect = this.add.text(x, y, '+50 BONUS!', {
             fontSize: '28px',
+            fontFamily: 'November, sans-serif',
             color: '#ffd700',
             stroke: '#000000',
             strokeThickness: 3
@@ -1136,7 +1139,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           if (this.bgMusic) {
             this.bgMusic.stop();
           }
-          
+
           // call callback (if passed through game.registry)
           // call onGameEnd with snowflakes earned and total score
           const onGameEnd = this.game.registry.get('onGameEnd');
