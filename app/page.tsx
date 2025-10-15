@@ -12,23 +12,52 @@ export default function Home() {
   const [pseudo, setPseudo] = useState('');
   const [showWarning, setShowWarning] = useState(false);
   const [matchedExistingName, setMatchedExistingName] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const playButtonRef = useRef<HTMLButtonElement | null>(null);
+  const playImageRef = useRef<HTMLImageElement | null>(null);
+
+  const animatePlayButton = () => {
+    const btn = playButtonRef.current as HTMLButtonElement | null;
+    const img = playImageRef.current as HTMLImageElement | null;
+    try {
+      if (btn) btn.style.transform = 'scale(0.98)';
+      if (img) img.src = '/assets/ui/buttons/play-button-down.png';
+      setTimeout(() => {
+        if (btn) btn.style.transform = 'scale(1.05)';
+        if (img) img.src = '/assets/ui/buttons/play-button-up.png';
+      }, 150);
+    } catch {}
+  };
 
   const submitName = async () => {
     const entered = (pseudo || '').trim();
     if (!entered) return;
     try {
       const res = await fetch('/api/players', { cache: 'no-store' });
-      if (res.ok) {
-        const names: string[] = await res.json();
-        const lower = entered.toLowerCase();
-        const match = names.find((n) => n.toLowerCase() === lower) || null;
-        if (match) {
-          setMatchedExistingName(match);
-          setShowWarning(true);
-          return;
-        }
+      if (!res.ok) throw new Error('players endpoint returned non-OK');
+      const names: string[] = await res.json();
+      const lower = entered.toLowerCase();
+      const match = names.find((n) => n.toLowerCase() === lower) || null;
+      if (match) {
+        setMatchedExistingName(match);
+        setShowWarning(true);
+        return;
       }
-    } catch {}
+    } catch (err: any) {
+      setApiError('Vérification du pseudo indisponible.');
+      try {
+        await fetch('/api/log', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            level: 'warn',
+            message: 'DB not reachable: name verification failed from client.',
+            detail: String(err?.message || err || 'unknown')
+          })
+        });
+      } catch {}
+      return; // Do not proceed to game when verification failed
+    }
     localStorage.setItem('playerPseudo', entered);
     router.push('/views/game');
   };
@@ -304,6 +333,7 @@ export default function Home() {
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
             onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            ref={playButtonRef}
           >
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <img
@@ -313,6 +343,7 @@ export default function Home() {
                 onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-down.png'; }}
                 onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
+                ref={playImageRef}
               />
             </div>
           </button>
@@ -414,7 +445,7 @@ export default function Home() {
           <div style={{ position: 'relative', width: '280px', maxWidth: '70vw', aspectRatio: '5 / 2', pointerEvents: 'auto' }}>
             <img src="/assets/ui/main-menu/input.png" alt="Input" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
             <form
-              onSubmit={(e) => { e.preventDefault(); submitName(); }}
+              onSubmit={(e) => { e.preventDefault(); sprintRef.current?.(); animatePlayButton(); setTimeout(() => submitName(), 150); }}
               style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '10% 16%' }}
             >
               <input
