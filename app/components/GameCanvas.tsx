@@ -65,6 +65,11 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.load.image('background', '/assets/ui/game/game-background.png');
           // Load snowflake sprite
           this.load.image('snowflake', '/assets/items/snowflake.png');
+          // Load animated snowflake frames
+          this.load.image('snow1', '/assets/items/snow1.png');
+          this.load.image('snow2', '/assets/items/snow2.png');
+          this.load.image('snow3', '/assets/items/snow3.png');
+          this.load.image('snow4', '/assets/items/snow4.png');
           // Load gift sprite
           this.load.image('cadeau', '/assets/items/gift.png');
           // Load vodka sprite
@@ -233,6 +238,20 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               key: 'monster4_anim',
               frames: this.anims.generateFrameNumbers('monster4', { start: 0, end: 3 }),
               frameRate: 10,
+              repeat: -1
+            });
+          }
+          // Snowflake animation (loops through snow1 -> snow4)
+          if (!this.anims.exists('snowflake_anim')) {
+            this.anims.create({
+              key: 'snowflake_anim',
+              frames: [
+                { key: 'snow1' },
+                { key: 'snow2' },
+                { key: 'snow3' },
+                { key: 'snow4' }
+              ],
+              frameRate: 2,
               repeat: -1
             });
           }
