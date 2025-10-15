@@ -66,10 +66,10 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Load snowflake sprite
           this.load.image('snowflake', '/assets/items/snowflake.png');
           // Load animated snowflake frames
-          this.load.image('snow1', '/assets/items/snow1.png');
-          this.load.image('snow2', '/assets/items/snow2.png');
-          this.load.image('snow3', '/assets/items/snow3.png');
-          this.load.image('snow4', '/assets/items/snow4.png');
+          this.load.image('snow1', '/assets/items/snowflakes/snow1.png');
+          this.load.image('snow2', '/assets/items/snowflakes/snow2.png');
+          this.load.image('snow3', '/assets/items/snowflakes/snow3.png');
+          this.load.image('snow4', '/assets/items/snowflakes/snow4.png');
           // Load gift sprite
           this.load.image('cadeau', '/assets/items/gift.png');
           // Load vodka sprite
