@@ -5,7 +5,7 @@ import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
-import { AntiBoostManager } from '../utils/antiboost';
+import { AntiBoostManager } from '../utils/freeze';
 
 
 export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void; isPaused?: boolean }) {
