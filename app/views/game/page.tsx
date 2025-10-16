@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GameCanvas from '../../components/GameCanvas';
-import AbilityUpgradePage from '../abilities/page';
+import { AbilityUpgradeView } from '../abilities/AbilityUpgradeView';
 
 export default function DisplayGamePage() {
     const router = useRouter();
@@ -67,7 +67,7 @@ export default function DisplayGamePage() {
     
     if (showAbilityPage && gameResults) {
         return (
-            <AbilityUpgradePage 
+            <AbilityUpgradeView 
                 onContinue={handleUpgradesContinueToGame}
                 snowflakesEarned={gameResults.snowflakesEarned}
                 totalScore={gameResults.totalScore}
