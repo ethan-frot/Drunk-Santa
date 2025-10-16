@@ -312,6 +312,7 @@ export default function Home() {
         {!showNameOverlay ? (
           <button
             onClick={() => { 
+              MusicManager.getInstance().startMusicOnInteraction();
               SoundManager.getInstance().playClickSound();
               sprintRef.current?.(); 
               setTimeout(() => setShowNameOverlay(true), 150);
@@ -393,6 +394,7 @@ export default function Home() {
             {/* Secondary button below the red one (Comment jouer) */}
             <button
               onClick={() => {
+                MusicManager.getInstance().startMusicOnInteraction();
                 SoundManager.getInstance().playClickSound();
                 router.push('/views/how-to-play');
               }}
@@ -437,6 +439,7 @@ export default function Home() {
             {/* Third green button below the white one */}
             <button
               onClick={() => {
+                MusicManager.getInstance().startMusicOnInteraction();
                 SoundManager.getInstance().playClickSound();
                 router.push('/views/leaderboard');
               }}

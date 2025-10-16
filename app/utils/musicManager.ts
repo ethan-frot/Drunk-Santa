@@ -2,6 +2,7 @@ class MusicManager {
   private static instance: MusicManager;
   private audio: HTMLAudioElement | null = null;
   private isPlaying = false;
+  private userInteracted = false;
 
   private constructor() {}
 
@@ -21,11 +22,21 @@ class MusicManager {
 
     if (!this.isPlaying) {
       this.audio.play().catch(() => {
-        // Ignore autoplay restrictions
+        // Ignore autoplay restrictions - music will start on first user interaction
       });
       this.isPlaying = true;
     }
     // If music is already playing, don't restart it
+  }
+
+  // Call this on first user interaction to start music
+  startMusicOnInteraction() {
+    if (!this.userInteracted && this.audio && this.audio.paused) {
+      this.userInteracted = true;
+      this.audio.play().catch(() => {
+        // Still ignore errors
+      });
+    }
   }
 
   stop() {
