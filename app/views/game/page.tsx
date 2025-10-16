@@ -19,6 +19,31 @@ export default function DisplayGamePage() {
         setGameResults({ snowflakesEarned, totalScore });
         // Open choice modal (game will be paused automatically)
         setShowEndModal(true);
+
+        // Immediately persist absolute total from server current value to avoid cross-user mixing
+        (async () => {
+          try {
+            const pseudo = localStorage.getItem('playerPseudo') || '';
+            if (!pseudo) return;
+            const getRes = await fetch(`/api/abilities?name=${encodeURIComponent(pseudo)}`, { cache: 'no-store' }).catch(() => null);
+            const currentTotal = getRes && getRes.ok ? (await getRes.json().catch(() => ({}))).totalSnowflakes || 0 : 0;
+            const absoluteTotal = Math.max(0, Math.trunc(currentTotal) + Math.trunc(snowflakesEarned));
+            await fetch('/api/snowflakes', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: pseudo, total: absoluteTotal })
+            }).catch(() => {});
+
+            // Update best score if improved
+            if (Number.isFinite(totalScore) && totalScore > 0) {
+              await fetch('/api/score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: pseudo, score: Math.trunc(totalScore) })
+              }).catch(() => {});
+            }
+          } catch {}
+        })();
     };
 
     const handleContinue = () => {
