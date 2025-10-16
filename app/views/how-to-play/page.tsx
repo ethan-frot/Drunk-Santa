@@ -85,18 +85,18 @@ export default function HowToPlayPage() {
             {/* Left keys with movement label and space below */}
             <div style={{ display: 'grid', gridTemplateRows: 'auto auto auto', justifyItems: 'center', alignItems: 'center', gap: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <img src={'/assets/Q.png'} alt="Q" width={s(36)} height={s(36)} style={{ objectFit: 'contain' }} />
-                <img src={'/assets/D.png'} alt="D" width={s(36)} height={s(36)} style={{ objectFit: 'contain' }} />
+                <img src={'/assets/ui/how-to-play/left-key.png'} alt="left-key" width={s(36)} height={s(36)} style={{ objectFit: 'contain' }} />
+                <img src={'/assets/ui/how-to-play/right-key.png'} alt="right-key" width={s(36)} height={s(36)} style={{ objectFit: 'contain' }} />
               </div>
               <div style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>Se déplacer (Q et D)</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <img src={'/assets/space.png'} alt="Space" width={s(90)} height={s(36)} style={{ objectFit: 'contain' }} />
+                <img src={'/assets/ui/how-to-play/dash-key.png'} alt="dash-key" width={s(90)} height={s(36)} style={{ objectFit: 'contain' }} />
                 <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>Dash</span>
               </div>
             </div>
             {/* Right mouse with 2-line caption below, no physical divider between sections */}
             <div style={{ display: 'grid', gridTemplateRows: 'auto auto', alignItems: 'center', justifyItems: 'center', gap: 4 }}>
-              <img src={'/assets/leftClick.png'} alt="Click gauche" width={s(40)} height={s(40)} style={{ objectFit: 'contain' }} />
+              <img src={'/assets/ui/how-to-play/left-click.png'} alt="left-click" width={s(40)} height={s(40)} style={{ objectFit: 'contain' }} />
               <div style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16), lineHeight: 1.15, textAlign: 'center' }}>
                 Lancer une<br />
                 boule de neige
@@ -109,7 +109,7 @@ export default function HowToPlayPage() {
         <div style={{
           background: 'rgba(255, 255, 255, 0.1)',
           borderRadius: '15px',
-          padding: '14px',
+          padding: '16px',
           border: '2px solid rgba(255, 255, 255, 0.2)',
           backdropFilter: 'blur(10px)'
         }}>
@@ -120,12 +120,12 @@ export default function HowToPlayPage() {
               <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(18) }}>Recupere des flocons pour ameliorer tes capacites</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: `${iconCol}px 1fr`, alignItems: 'center', gap: 10 }}>
-              <div style={{ width: s(56), height: s(56), borderRadius: s(56), background: 'radial-gradient(#ffffff, #d1d5db)', boxShadow: '0 2px 10px rgba(255,255,255,0.35), inset 0 -4px 8px rgba(0,0,0,0.15)', justifySelf: 'center' }} />
-              <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(18) }}>Enneige les ennemis et evite les pieges</span>
+              <img src={'/assets/ui/how-to-play/snowball.png'} alt="snowball" width={s(64)} height={s(64)} style={{ objectFit: 'contain', justifySelf: 'center' }} />
+              <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(18) }}>Enneige les ennemis</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: `${iconCol}px 1fr`, alignItems: 'center', gap: 10 }}>
-              <img src={'/assets/upgrade.png'} alt="upgrade" width={s(64)} height={s(64)} style={{ objectFit: 'contain', transform: 'rotate(-90deg)', justifySelf: 'center' }} />
-              <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(18) }}>Ameliore tes attributs entre les parties</span>
+              <img src={'/assets/ui/how-to-play/upgrade.png'} alt="upgrade" width={s(64)} height={s(64)} style={{ objectFit: 'contain', justifySelf: 'center' }} />
+              <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(18) }}>Ameliore les attribus apres chaque partie</span>
             </div>
           </div>
         </div>
@@ -135,12 +135,12 @@ export default function HowToPlayPage() {
         <div style={{
           background: 'rgba(255, 255, 255, 0.1)',
           borderRadius: '15px',
-          padding: '14px',
+          padding: '16px 16px 16px 32px',
           border: '2px solid rgba(255, 255, 255, 0.2)',
           backdropFilter: 'blur(10px)'
         }}>
           <h3 style={{ margin: '0 0 8px 0', color: '#e7e9ff', fontSize: '20px', fontFamily: 'November, sans-serif', textAlign: 'center' }}>Objets</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginTop: '32px' }}>
             {/* Each cell is a 2-col grid: fixed icon col and flexible label col */}
             <div style={{ display: 'grid', gridTemplateColumns: `${s(56)}px 1fr`, alignItems: 'center', gap: 10 }}>
               <img src={'/assets/gift1.png'} alt="gift1" width={s(48)} height={s(48)} style={{ objectFit: 'contain', justifySelf: 'center' }} />
