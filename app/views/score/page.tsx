@@ -180,7 +180,7 @@ export default function DisplayScorePage() {
     <main style={{ 
       minHeight: '100vh', 
       height: '100vh', 
-      background: '#040218',
+      background: 'url(/assets/ui/background-menu.gif) center/cover no-repeat',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -190,26 +190,51 @@ export default function DisplayScorePage() {
       overflow: 'hidden'
     }}>
       <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h1 style={{ 
-          fontSize: '3.5rem', 
-          fontWeight: 'bold', 
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff',
-          margin: 0,
-          textAlign: 'center'
+        <div style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '1rem'
         }}>
-          Partie Terminée!
-        </h1>
+          <img 
+            src="/assets/ui/main-menu/title-background.png" 
+            alt="Title background"
+            style={{
+              width: 'auto',
+              height: '220px',
+              objectFit: 'contain'
+            }}
+          />
+          <h1 style={{ 
+            position: 'absolute',
+            fontSize: '3.2rem', 
+            fontWeight: 'bold', 
+            fontFamily: 'November, sans-serif',
+            color: '#ff4444',
+            margin: 0,
+            textAlign: 'center',
+            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+            top: '46%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            whiteSpace: 'nowrap'
+          }}>
+            Partie Terminee!
+          </h1>
+        </div>
 
         <div style={{
-        background: 'rgba(231, 233, 255, 0.1)',
+        background: 'rgba(231, 233, 255, 0.05)',
         borderRadius: '20px',
         padding: '3rem 4rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '1.5rem',
         alignItems: 'center',
-        border: '2px solid rgba(231, 233, 255, 0.2)'
+        border: '1px solid rgba(231, 233, 255, 0.1)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
         }}>
           <div style={{
           fontSize: '1.3rem',
