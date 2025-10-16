@@ -65,7 +65,34 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+    <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', position: 'relative' }}>
+      {/* Home button top-left */}
+      <button
+        onClick={() => router.push('/')}
+        aria-label="Retour à l'accueil"
+        style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          width: '140px',
+          height: '70px',
+          backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundColor: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          zIndex: 5,
+          transition: 'transform 0.12s ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
+        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
+        onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
+        onTouchStart={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
+        onTouchEnd={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
+      />
       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '2rem', width: '100%', maxWidth: '1200px' }}>
         {/* Left column with title and back button, aligned to the left */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>

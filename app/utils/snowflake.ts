@@ -90,20 +90,23 @@ export class SnowflakeManager {
     // Start above the screen
     const y = -20;
     
-    // Create snowflake sprite
-    const snowflake = this.scene.add.sprite(x, y, 'snowflake');
+    // Create snowflake sprite (animated)
+    const snowflake = this.scene.add.sprite(x, y, 'snow1');
     
-    // Fixed size for consistency
-    const scale = 0.3;
+    // Fixed size for consistency (60% of original 0.3 => 0.18)
+    const scale = 0.18;
     snowflake.setScale(scale);
     
-    // Random rotation
-    const rotation = Phaser.Math.Between(0, 360) * Math.PI / 180;
-    snowflake.setRotation(rotation);
+    // Random rotation is now handled subtly by tween; avoid hard-setting to keep frames aligned
     
     // Fixed alpha
     const alpha = 1;
     snowflake.setAlpha(alpha);
+
+    // Play the snowflake frame animation
+    try {
+      snowflake.play('snowflake_anim');
+    } catch {}
     
     // Add physics body
     this.scene.physics.add.existing(snowflake);
