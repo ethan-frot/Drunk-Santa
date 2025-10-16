@@ -866,16 +866,15 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private tryThrowSnowball() {
           const hasA = this.slime && this.slime.active;
           const hasB = this.monsterB && this.monsterB.active;
-          if (!hasA && !hasB) return;
           if (this.isStunned) return;
           if (this.time.now < this.nextThrowTime) return;
           this.nextThrowTime = this.time.now + this.throwCooldownMs;
 
           // Play throw animation once, then restore run/idle
           const wasRunning = this.character.anims?.currentAnim?.key === 'run';
-          // Face the target before throwing
-          const target = hasA ? this.slime : this.monsterB;
-          const faceRight = target.x > this.character.x;
+          // Face toward pointer if available, otherwise keep current
+          const pointer = this.input.activePointer as any;
+          const faceRight = pointer ? (pointer.x > this.character.x) : !this.character.flipX;
           this.character.setFlipX(!faceRight);
           // Create a temporary throw sprite over the character
           if (this.throwSprite) { this.throwSprite.destroy(); this.throwSprite = null; this.character.setAlpha(1); }
@@ -920,12 +919,14 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           const body = (snowball as any).body as Phaser.Physics.Arcade.Body;
           body.setAllowGravity(false);
 
-          // velocity towards current slime position
-          const dx = (target.x) - startX;
-          const dy = (target.y - target.displayHeight * 0.5) - startY;
-          const len = Math.max(1, Math.hypot(dx, dy));
+          // Straight horizontal velocity based on facing/pointer direction
           const speed = isGolden ? 560 : 480;
-          body.setVelocity((dx / len) * speed, (dy / len) * speed);
+          const dirX = faceRight ? 1 : -1;
+          body.setVelocity(speed * dirX, 0);
+
+          // Track travel range (half the map width)
+          (snowball as any).__startX = startX;
+          (snowball as any).__maxRange = this.scale.width * 0.5;
 
           // Per-snowball small animation: toggle texture every 80ms
           const toggle = () => {
@@ -943,6 +944,17 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           if (this.snowballs.length === 0) return;
           this.snowballs.forEach((ball, index) => {
             if (!ball || !ball.active) return;
+            // Remove by range (half-map) if no hit
+            const startX = (ball as any).__startX as number | undefined;
+            const maxRange = (ball as any).__maxRange as number | undefined;
+            if (startX !== undefined && maxRange !== undefined) {
+              if (Math.abs(ball.x - startX) >= maxRange) {
+                try { (ball as any).__animTimer?.remove?.(); } catch {}
+                ball.destroy();
+                this.snowballs.splice(index, 1);
+                return;
+              }
+            }
             // Remove off-screen
             if (ball.x < -50 || ball.x > this.scale.width + 50 || ball.y < -50 || ball.y > this.scale.height + 50) {
               try { (ball as any).__animTimer?.remove?.(); } catch {}
