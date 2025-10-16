@@ -1,4 +1,4 @@
-import * as Phaser from 'phaser';
+import type * as Phaser from 'phaser';
 
 export class AntiBoostManager {
   private scene: Phaser.Scene;
@@ -69,7 +69,8 @@ export class AntiBoostManager {
         body.setOffset(offsetX, offsetY);
       } catch {}
       body.setVelocityY(this.fallSpeed);
-      body.setVelocityX(Phaser.Math.FloatBetween(-12, 12));
+      const floatBetween = (min: number, max: number) => Math.random() * (max - min) + min;
+      body.setVelocityX(floatBetween(-12, 12));
       body.setAllowGravity(false);
     } else {
       // Fallback tween in unlikely case body isn't ready
@@ -82,10 +83,11 @@ export class AntiBoostManager {
     }
 
     // Gentle swing similar to vodka
+    const between = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
     this.scene.tweens.add({
       targets: jar,
-      angle: Phaser.Math.Between(-6, 6),
-      duration: Phaser.Math.Between(1200, 2200),
+      angle: between(-6, 6),
+      duration: between(1200, 2200),
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
@@ -94,7 +96,7 @@ export class AntiBoostManager {
     this.jars.push(jar);
 
     // Randomize next spawn between 2–5s
-    this.spawnDelay = Phaser.Math.Between(2000, 5000);
+    this.spawnDelay = between(2000, 5000);
     if (this.spawnTimer) {
       this.spawnTimer.destroy();
       this.startSpawning();

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import GameCanvas from '../../components/GameCanvas';
 import { AbilityUpgradeView } from '../abilities/AbilityUpgradeView';
 
+// Prevent static prerender to avoid SSR touching browser APIs
+export const dynamic = 'force-dynamic';
+
 export default function DisplayGamePage() {
     const router = useRouter();
     const [showAbilityPage, setShowAbilityPage] = useState(false);

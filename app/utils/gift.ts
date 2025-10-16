@@ -1,4 +1,4 @@
-import * as Phaser from 'phaser';
+import type * as Phaser from 'phaser';
 
 export class GiftManager {
   private scene: Phaser.Scene;
@@ -59,13 +59,15 @@ export class GiftManager {
     const { width, height } = this.scene.scale;
     
     // Random horizontal position
-    const x = Phaser.Math.Between(50, width - 50);
+    const between = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const floatBetween = (min: number, max: number) => Math.random() * (max - min) + min;
+    const x = between(50, width - 50);
     
     // Start above the screen
     const y = -30;
     
     // Randomly choose a gift type: 1 (double points), 2 (+150), 3 (golden snowball)
-    const roll = Phaser.Math.Between(1, 3);
+    const roll = between(1, 3);
     const type = roll === 1 ? 'gift1' : roll === 2 ? 'gift2' : 'gift3';
 
     // Create gift sprite with selected texture
@@ -79,12 +81,13 @@ export class GiftManager {
     // At max upgrade, make gifts larger for extra reward
     const finalScale = this.bonusSizeProgress >= 1 ? baseFinalScale * 1.7 : baseFinalScale;
     const minScale = baseFinalScale * 0.6; // reduced at start
-    const t = Phaser.Math.Clamp(this.bonusSizeProgress, 0, 1);
+    const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+    const t = clamp(this.bonusSizeProgress, 0, 1);
     const scale = minScale + (finalScale - minScale) * t;
     gift.setScale(scale);
     
     // Random rotation
-    const rotation = Phaser.Math.Between(0, 360) * Math.PI / 180;
+    const rotation = between(0, 360) * Math.PI / 180;
     gift.setRotation(rotation);
     
     // Set alpha
@@ -108,15 +111,15 @@ export class GiftManager {
     body.setVelocityY(this.fallSpeed);
     
     // Add slight horizontal drift
-    const driftSpeed = Phaser.Math.FloatBetween(-15, 15);
+    const driftSpeed = floatBetween(-15, 15);
     body.setVelocityX(driftSpeed);
     
     // Add rotation animation (faster than snowflakes)
-    const rotationSpeed = Phaser.Math.FloatBetween(-120, 120);
+    const rotationSpeed = floatBetween(-120, 120);
     this.scene.tweens.add({
       targets: gift,
       rotation: gift.rotation + (rotationSpeed * Math.PI / 180),
-      duration: Phaser.Math.Between(3000, 5000),
+      duration: between(3000, 5000),
       repeat: -1,
       yoyo: true,
       ease: 'Sine.easeInOut'
@@ -125,8 +128,8 @@ export class GiftManager {
     // Add floating animation (more subtle than snowflakes)
     this.scene.tweens.add({
       targets: gift,
-      x: gift.x + Phaser.Math.Between(-25, 25),
-      duration: Phaser.Math.Between(2000, 3500),
+      x: gift.x + between(-25, 25),
+      duration: between(2000, 3500),
       repeat: -1,
       yoyo: true,
       ease: 'Sine.easeInOut'
@@ -136,7 +139,7 @@ export class GiftManager {
     this.gifts.push(gift);
     
     // Randomize next spawn time (between 5-12 seconds)
-    this.spawnDelay = Phaser.Math.Between(5000, 12000);
+    this.spawnDelay = between(5000, 12000);
     
     // Update the timer with new delay
     if (this.spawnTimer) {
