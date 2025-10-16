@@ -7,7 +7,7 @@ import ImageModal from '@/app/components/ImageModal';
 import { renderAlternating } from '@/app/utils/renderAlternating';
 import { AbilityUpgradeView } from '../abilities/AbilityUpgradeView';
 import MusicManager from '../../utils/musicManager';
-import SoundManager from '../../utils/soundManager';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 // Prevent static prerender to avoid SSR touching browser APIs
 export const dynamic = 'force-dynamic';
@@ -130,8 +130,11 @@ export default function DisplayGamePage() {
             />
           </div>
         )}
+        
+        {/* Sound toggle button */}
+        <SoundToggleButton />
       </main>
     );
-}
+  }
 
 

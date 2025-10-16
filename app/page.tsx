@@ -7,12 +7,17 @@ import HomeButton from '@/app/components/HomeButton';
 import UiImageButton, { UiImageButtonHandle } from '@/app/components/UiImageButton';
 import ImageModal from '@/app/components/ImageModal';
 import { renderAlternating } from '@/app/utils/renderAlternating';
+import MusicManager from '@/app/utils/musicManager';
+import MusicConsentModal from '@/app/components/MusicConsentModal';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
+import SoundManager from '@/app/utils/soundManager';
 
 export default function Home() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const sprintRef = useRef<() => void>(() => {});
+  const [showMusicConsent, setShowMusicConsent] = useState(false);
   const [showNameOverlay, setShowNameOverlay] = useState(false);
   const [pseudo, setPseudo] = useState('');
   const [showWarning, setShowWarning] = useState(false);
@@ -21,12 +26,18 @@ export default function Home() {
   const playUiRef = useRef<UiImageButtonHandle | null>(null);
 
   const animatePlayButton = () => {
+    // Play button click sound
+    SoundManager.getInstance().playButtonClick();
     playUiRef.current?.triggerPress(150);
   };
 
   const submitName = async () => {
     const entered = (pseudo || '').trim();
     if (!entered) return;
+    
+    // Start music on user interaction
+    MusicManager.getInstance().startMusicOnInteraction();
+    
     try {
       const res = await fetch('/api/players', { cache: 'no-store' });
       if (!res.ok) throw new Error('players endpoint returned non-OK');
@@ -69,20 +80,31 @@ export default function Home() {
     router.push('/views/game');
   };
 
+  const handleMusicConsentClose = () => {
+    setShowMusicConsent(false);
+    // Marquer que l'utilisateur a vu la popup
+    localStorage.setItem('hasSeenMusicConsent', 'true');
+  };
+
   // Menu music effect
   useEffect(() => {
-    const musicManager = MusicManager.getInstance();
+    // Vérifier si c'est la première visite
+    const hasSeenMusicConsent = localStorage.getItem('hasSeenMusicConsent');
     
-    // Only start music if it's not already playing
-    if (!musicManager.isCurrentlyPlaying()) {
-      musicManager.playMenuMusic();
+    if (!hasSeenMusicConsent) {
+      // Première visite : afficher la popup de consentement
+      setShowMusicConsent(true);
+    } else {
+      // Visite suivante : reprendre la musique si elle était activée
+      const musicManager = MusicManager.getInstance();
+      musicManager.resumeMusicIfEnabled();
     }
 
     return () => {
       // Only stop music if we're going to game, not to other menu pages
       const currentPath = window.location.pathname;
       if (currentPath.includes('/views/game')) {
-        musicManager.stop();
+        MusicManager.getInstance().stop();
       }
     };
   }, []);
@@ -397,6 +419,14 @@ export default function Home() {
           />
         </div>
       )}
-    </main>
-  );
-}
+
+      {/* Music Consent Modal */}
+        {showMusicConsent && (
+          <MusicConsentModal onClose={handleMusicConsentClose} />
+        )}
+
+        {/* Sound toggle button */}
+        <SoundToggleButton />
+      </main>
+    );
+  }

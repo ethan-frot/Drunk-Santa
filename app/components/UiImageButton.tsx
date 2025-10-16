@@ -1,6 +1,8 @@
 'use client';
 
 import React, { CSSProperties, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import SoundManager from '@/app/utils/soundManager';
+import MusicManager from '@/app/utils/musicManager';
 
 type UiImageButtonProps = {
   imageUpSrc: string;
@@ -140,6 +142,13 @@ function UiImageButtonInner({
   const handleClick = () => {
     if (isDisabled) return;
     if (!onClick) return;
+    
+    // Play button click sound
+    SoundManager.getInstance().playButtonClick();
+    
+    // Start music on user interaction if it should be playing
+    MusicManager.getInstance().startMusicOnInteraction();
+    
     setIsWaiting(true);
     setTimeout(() => {
       try { onClick(); } finally {

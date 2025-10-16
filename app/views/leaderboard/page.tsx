@@ -5,6 +5,8 @@ import { renderAlternating } from '@/app/utils/renderAlternating';
 import { useRouter } from 'next/navigation';
 import HomeButton from '@/app/components/HomeButton';
 import { useFakeLoading } from '@/app/hooks/useFakeLoading';
+import MusicManager from '@/app/utils/musicManager';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 type TopRow = { rank: number; name: string; bestScore: number };
 
@@ -100,6 +102,9 @@ function LeaderboardView() {
           {/* No player-specific row; only Top 10 is displayed */}
         </div>
       </div>
+      
+      {/* Sound toggle button */}
+      <SoundToggleButton />
     </main>
   );
 }

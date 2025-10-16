@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import TitleBanner from '@/app/components/TitleBanner';
 import HomeButton from '@/app/components/HomeButton';
 import { renderAlternating } from '@/app/utils/renderAlternating';
+import MusicManager from '@/app/utils/musicManager';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 function ScoreView() {
   const router = useRouter();
@@ -362,6 +364,9 @@ function ScoreView() {
           />
         </div>
       </div>
+      
+      {/* Sound toggle button */}
+      <SoundToggleButton />
     </main>
   );
 }
