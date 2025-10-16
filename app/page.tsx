@@ -341,6 +341,7 @@ export default function Home() {
               cursor: 'pointer',
               transition: 'transform 0.12s ease',
               marginLeft: '-20px',
+              paddingTop: '130px',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
