@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import TitleBanner from '@/app/components/TitleBanner';
+import UiImageButton from '@/app/components/UiImageButton';
 
 export default function Home() {
   const router = useRouter();
@@ -256,166 +257,53 @@ export default function Home() {
               gap: '24px',
             }}>
         {!showNameOverlay ? (
-          <button
+          <UiImageButton
+            imageUpSrc="/assets/ui/buttons/button-red-up.png"
+            imageDownSrc="/assets/ui/buttons/button-red-down.png"
+            label="Commencer"
+            heightPx={160}
             onClick={() => { 
               sprintRef.current?.(); 
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              transition: 'transform 0.12s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { 
-              e.currentTarget.style.transform = 'scale(1)'; 
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translateY(-6px)';
-            }}
-            onMouseDown={(e) => { 
-              e.currentTarget.style.transform = 'scale(0.98)'; 
-              sprintRef.current?.();
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translate(-12px, 6px)';
-            }}
-            onMouseUp={(e) => { 
-              e.currentTarget.style.transform = 'scale(1.05)'; 
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translateY(-6px)';
-            }}
-          >
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <img
-                src="/assets/ui/buttons/button-red-up.png"
-                alt="Commencer"
-                style={{ height: '160px', width: 'auto', display: 'block' }}
-                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
-                onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-              />
-              <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Commencer</span>
-            </div>
-          </button>
+            onPressDown={() => sprintRef.current?.()}
+            ariaLabel="Commencer"
+          />
         ) : (
-          <button
+          <UiImageButton
+            imageUpSrc="/assets/ui/buttons/play-button-up.png"
+            imageDownSrc="/assets/ui/buttons/play-button-down.png"
+            heightPx={130}
             onClick={() => { 
               sprintRef.current?.(); 
               setTimeout(() => submitName(), 150);
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              transition: 'transform 0.12s ease',
-              marginLeft: '-20px',
-              paddingTop: '130px',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            ref={playButtonRef}
-          >
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <img
-                src="/assets/ui/buttons/play-button-up.png"
-                alt="Jouer"
-                style={{ height: '130px', width: 'auto', display: 'block' }}
-                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-down.png'; }}
-                onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
-                ref={playImageRef}
-              />
-            </div>
-          </button>
+            onPressDown={() => sprintRef.current?.()}
+            ariaLabel="Jouer"
+          />
         )}
 
         {!showNameOverlay && (
           <>
             {/* Secondary button below the red one (Comment jouer) */}
-            <button
+            <UiImageButton
+              imageUpSrc="/assets/ui/buttons/button-brown-up.png"
+              imageDownSrc="/assets/ui/buttons/button-brown-down.png"
+              label="Comment jouer"
+              heightPx={160}
               onClick={() => router.push('/views/how-to-play')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                transition: 'transform 0.12s ease',
-                
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { 
-                e.currentTarget.style.transform = 'scale(1)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-              onMouseDown={(e) => { 
-                e.currentTarget.style.transform = 'scale(0.98)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translate(-12px, 6px)';
-              }}
-              onMouseUp={(e) => { 
-                e.currentTarget.style.transform = 'scale(1.05)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img
-                  src="/assets/ui/buttons/button-brown-up.png"
-                  alt="Comment jouer"
-                  style={{ height: '160px', width: 'auto', display: 'block' }}
-                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-down.png'; }}
-                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-up.png'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-up.png'; }}
-                />
-                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Comment jouer</span>
-              </div>
-            </button>
+              ariaLabel="Comment jouer"
+            />
 
             {/* Third green button below the white one */}
-            <button
+            <UiImageButton
+              imageUpSrc="/assets/ui/buttons/button-green-up.png"
+              imageDownSrc="/assets/ui/buttons/button-green-down.png"
+              label="classement"
+              heightPx={110}
               onClick={() => router.push('/views/leaderboard')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                transition: 'transform 0.12s ease',
-                
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { 
-                e.currentTarget.style.transform = 'scale(1)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-              onMouseDown={(e) => { 
-                e.currentTarget.style.transform = 'scale(0.98)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translate(-12px, 6px)';
-              }}
-              onMouseUp={(e) => { 
-                e.currentTarget.style.transform = 'scale(1.05)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img
-                  src="/assets/ui/buttons/button-green-up.png"
-                  alt="Classement"
-                  style={{ height: '110px', width: 'auto', display: 'block' }}
-                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
-                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                />
-                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>classement</span>
-              </div>
-            </button>
+              ariaLabel="Classement"
+            />
           </>
         )}
         </div>
