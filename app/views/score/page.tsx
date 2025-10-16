@@ -9,10 +9,9 @@ function ScoreView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pseudo, setPseudo] = useState('');
-  const [score, setScore] = useState(0);
+  const [score, setScore] = useState(0); // last game score, used for POST only
+  const [bestScore, setBestScore] = useState(0);
   const postedRef = useRef(false);
-  const [leaderboard, setLeaderboard] = useState<{ top: { rank: number; name: string; bestScore: number }[]; player: { name: string; bestScore: number; rank: number; inTop: boolean } | null }>({ top: [], player: null });
-  const leaderboardAbortRef = useRef<AbortController | null>(null);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
@@ -84,6 +83,21 @@ function ScoreView() {
     setScore(fromStorage);
   }, [searchParams]);
 
+  // Load current bestScore when we know the pseudo (independent of the current game score)
+  useEffect(() => {
+    if (!pseudo) return;
+    let aborted = false;
+    fetch(`/api/score?name=${encodeURIComponent(pseudo)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
+      .then((data) => {
+        if (aborted) return;
+        const value = typeof data?.bestScore === 'number' ? data.bestScore : 0;
+        setBestScore(value);
+      })
+      .catch(() => {});
+    return () => { aborted = true; };
+  }, [pseudo]);
+
   useEffect(() => {
     if (!pseudo) return;
     let aborted = false;
@@ -99,25 +113,7 @@ function ScoreView() {
     return () => { aborted = true; };
   }, [pseudo]);
 
-  const loadLeaderboard = (name: string) => {
-    if (!name) return;
-    // abort any in-flight leaderboard request
-    if (leaderboardAbortRef.current) leaderboardAbortRef.current.abort();
-    const controller = new AbortController();
-    leaderboardAbortRef.current = controller;
-    fetch(`/api/leaderboard?name=${encodeURIComponent(name)}`, { signal: controller.signal, cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
-      .then((data) => setLeaderboard({ top: data.top || [], player: data.player || null }))
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    if (!pseudo) return;
-    // If a post is about to happen (score > 0), let the POST callback refresh leaderboard.
-    // Else, load immediately (e.g., score 0 or revisit page).
-    if (score > 0 && !postedRef.current) return;
-    loadLeaderboard(pseudo);
-  }, [pseudo, score]);
+  // No leaderboard loading here; score page concerns player's best score only
 
   useEffect(() => {
     if (postedRef.current) return;
@@ -148,13 +144,13 @@ function ScoreView() {
         signal
       })
         .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
           if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
             // eslint-disable-next-line no-console
             console.warn('Failed to save score', data?.error || res.statusText);
           } else {
-            // refresh leaderboard so the user sees their new rank immediately
-            loadLeaderboard(pseudo);
+            // Update local bestScore from server response
+            if (typeof data?.bestScore === 'number') setBestScore(data.bestScore);
           }
         })
         .catch((err) => {
@@ -166,17 +162,6 @@ function ScoreView() {
 
     return () => controller.abort();
   }, [pseudo, score]);
-
-  const top10 = (() => {
-    const real = (leaderboard.top || []).filter((r) => r.bestScore > 0);
-    const filled = [...real];
-    for (let i = filled.length + 1; i <= 10; i++) {
-      filled.push({ rank: i, name: '-', bestScore: 0 });
-    }
-    return filled.slice(0, 10);
-  })();
-
-  const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
 
   // using shared renderAlternating
 
@@ -233,7 +218,7 @@ function ScoreView() {
             </div>
           </div>
 
-          {/* Score section */}
+          {/* Best score section */}
           <div style={{
           width: '100%',
           height: '80px',
@@ -249,7 +234,7 @@ function ScoreView() {
               fontFamily: 'November, sans-serif',
               textAlign: 'center'
             }}>
-              {renderAlternating(`Score: ${score}`, false)}
+              {renderAlternating(`Meilleur score: ${bestScore}`, false)}
             </div>
           </div>
 
