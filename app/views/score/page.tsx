@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import TitleBanner from '@/app/components/TitleBanner';
+import { renderAlternating } from '@/app/utils/renderAlternating';
 
 function ScoreView() {
   const router = useRouter();
@@ -176,28 +178,7 @@ function ScoreView() {
 
   const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
 
-  // Render text with alternating per-letter colors. If startWithRed is true, the
-  // first non-space character is red, otherwise green. Spaces are preserved.
-  const renderAlternating = (text: string, startWithRed: boolean) => {
-    const red = '#B45252';
-    const green = '#8AB060';
-    let useRed = startWithRed;
-    return (
-      <>
-        {text.split('')
-          .map((ch, idx) => {
-            if (ch === ' ') return <span key={idx}> </span>;
-            const color = useRed ? red : green;
-            useRed = !useRed;
-            return (
-              <span key={idx} style={{ color }}>
-                {ch}
-              </span>
-            );
-          })}
-      </>
-    );
-  };
+  // using shared renderAlternating
 
   return (
     <main style={{ 
@@ -213,40 +194,8 @@ function ScoreView() {
       overflow: 'hidden'
     }}>
       <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '1rem',
-          marginTop: '-2rem'
-        }}>
-          <img 
-            src="/assets/ui/main-menu/title-background.png" 
-            alt="Title background"
-            style={{
-              width: 'auto',
-              height: '220px',
-              objectFit: 'contain'
-            }}
-          />
-          <h1 style={{ 
-            position: 'absolute',
-            fontSize: '3.2rem', 
-            fontWeight: 'bold', 
-            fontFamily: 'November, sans-serif',
-            color: '#ff4444',
-            margin: 0,
-            textAlign: 'center',
-            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-            top: '46%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            whiteSpace: 'nowrap'
-          }}>
-            Partie Terminee!
-          </h1>
-        </div>
+        <TitleBanner text="Partie finie" backgroundSrc="/assets/ui/main-menu/title-background.png" />
+        <div style={{ height: '180px' }} />
 
         <div style={{
         position: 'relative',

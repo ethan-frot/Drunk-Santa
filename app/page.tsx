@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import TitleBanner from '@/app/components/TitleBanner';
 
 export default function Home() {
   const router = useRouter();
@@ -239,38 +240,7 @@ export default function Home() {
       
       {/* Content */}
       <div style={{ position: 'relative', zIndex: 2, paddingTop: '200px' }}>
-        <div
-          style={{
-            position: 'fixed',
-            top: '40px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '640px',
-            height: '160px',
-            backgroundImage: "url('/assets/ui/main-menu/title-background.png')",
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 8px',
-            zIndex: 2,
-            pointerEvents: 'none',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '3rem',
-              color: '#ED1C24',
-              margin: '0 0 25px 0',
-              textAlign: 'center',
-              textShadow: '0 0 20px rgba(231, 233, 255, 0.3)'
-            }}
-          >
-            Drunk Santa
-          </h1>
-        </div>
+        <TitleBanner text="Drunk Santa" backgroundSrc="/assets/ui/main-menu/title-background.png" />
 
         {/* Spacer shown when the input overlay is open to avoid overlap */}
         {showNameOverlay && (

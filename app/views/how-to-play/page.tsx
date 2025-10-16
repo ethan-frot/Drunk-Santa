@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import TitleBanner from '@/app/components/TitleBanner';
 
 export default function HowToPlayPage() {
   const router = useRouter();
@@ -40,24 +41,9 @@ export default function HowToPlayPage() {
         onTouchEnd={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
       />
       {/* Title banner */}
-      <div
-        style={{
-          width: '640px',
-          height: '160px',
-          backgroundImage: "url('/assets/ui/abilities/abilities-menu/title-background copy.png')",
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '10px auto 0',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', transform: 'translateY(-14px)' }}>
-          <div style={{ fontSize: '32px', color: '#ED1C24', fontFamily: 'November, sans-serif', fontWeight: 700, textAlign: 'center' }}>Comment jouer</div>
-        </div>
-      </div>
+      <TitleBanner text="Comment jouer" backgroundSrc="/assets/ui/abilities/abilities-menu/title-background copy.png" fixedTop={true} topOffsetPx={40} fontSizeRem={2.4} />
+      {/* Spacer to avoid content passing under the fixed banner */}
+      <div style={{ height: '180px' }} />
 
       {/* Cards grid */}
       <div style={{
