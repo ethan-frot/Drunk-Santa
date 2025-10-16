@@ -281,6 +281,7 @@ export default function Home() {
             }}
             onPressDown={() => sprintRef.current?.()}
             ariaLabel="Jouer"
+            style={{ paddingTop: '150px', marginLeft: '-15px' }}
           />
         )}
 
