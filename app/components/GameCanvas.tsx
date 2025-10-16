@@ -299,8 +299,14 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           if (this.bgMusic) {
             this.bgMusic.stop();
           }
-          this.bgMusic = this.sound.add('music', { loop: true, volume: 0.5 });
-          this.bgMusic.play();
+          
+          // Check if sound is enabled before playing music
+          const soundEnabled = localStorage.getItem('soundEnabled');
+          const musicEnabled = localStorage.getItem('musicEnabled');
+          if (soundEnabled !== 'false' && musicEnabled !== 'false') {
+            this.bgMusic = this.sound.add('music', { loop: true, volume: 0.5 });
+            this.bgMusic.play();
+          }
           
           // Initial placement centered at bottom
           this.positionCharacterAtBottomCenter();
@@ -500,7 +506,10 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.dashCooldownTotal = this.abilityManager.getCurrentValue('dash_cooldown');
           this.dashCooldown = this.dashCooldownTotal;
           // play dash sound effect starting 260ms into the clip and louder
-          try { this.sound.play('dash_sfx', { volume: 1, seek: 0.26 }); } catch {}
+          const soundEnabled = localStorage.getItem('soundEnabled');
+          if (soundEnabled !== 'false') {
+            try { this.sound.play('dash_sfx', { volume: 1, seek: 0.26 }); } catch {}
+          }
           
           // Calculate dash distance (quarter of map width)
           const dashDistance = this.scale.width * 0.25;

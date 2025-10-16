@@ -17,7 +17,8 @@ class MusicManager {
   private isMusicEnabled(): boolean {
     if (typeof window === 'undefined') return true;
     const enabled = localStorage.getItem('musicEnabled');
-    return enabled !== 'false'; // Default to enabled if not set
+    const soundEnabled = localStorage.getItem('soundEnabled');
+    return enabled !== 'false' && soundEnabled !== 'false'; // Both music and sound must be enabled
   }
 
   playMenuMusic() {
@@ -89,7 +90,8 @@ class MusicManager {
   getMusicEnabled(): boolean {
     if (typeof window === 'undefined') return true;
     const enabled = localStorage.getItem('musicEnabled');
-    return enabled !== 'false'; // Default to enabled if not set
+    const soundEnabled = localStorage.getItem('soundEnabled');
+    return enabled !== 'false' && soundEnabled !== 'false'; // Both music and sound must be enabled
   }
 
   // Method to resume music after reload if it was enabled
