@@ -33,6 +33,15 @@ export default function DisplayGamePage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: pseudo, total: absoluteTotal })
             }).catch(() => {});
+
+            // Update best score if improved
+            if (Number.isFinite(totalScore) && totalScore > 0) {
+              await fetch('/api/score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: pseudo, score: Math.trunc(totalScore) })
+              }).catch(() => {});
+            }
           } catch {}
         })();
     };
