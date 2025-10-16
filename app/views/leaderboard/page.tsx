@@ -1,52 +1,28 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { renderAlternating } from '@/app/utils/renderAlternating';
 import { useRouter } from 'next/navigation';
 import HomeButton from '@/app/components/HomeButton';
+import { useFakeLoading } from '@/app/hooks/useFakeLoading';
 
 type TopRow = { rank: number; name: string; bestScore: number };
 
 function LeaderboardView() {
   const router = useRouter();
   const [top, setTop] = useState<TopRow[]>([]);
-  const abortRef = useRef<AbortController | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dots, setDots] = useState(1);
+  const { isLoading, dots, startLoading, finishLoading } = useFakeLoading();
 
   useEffect(() => {
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setIsLoading(true);
-    const start = Date.now();
-    fetch(`/api/leaderboard`, { signal: controller.signal, cache: 'no-store' })
+    startLoading();
+    fetch(`/api/leaderboard`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
       .then((data) => setTop(data.top || []))
       .catch(() => {})
       .finally(() => {
-        // Random visible time between 1 and 2 cycles
-        const stepMs = 420; // dots update cadence
-        const cycleMs = 3 * stepMs; // one cycle = '.', '..', '...'
-        const minMs = cycleMs * 1; // 1 cycle
-        const maxMs = cycleMs * 2; // 2 cycles
-        const targetVisibleMs = minMs + Math.random() * (maxMs - minMs);
-        const elapsed = Date.now() - start;
-        const wait = Math.max(0, Math.round(targetVisibleMs) - elapsed);
-        setTimeout(() => setIsLoading(false), wait);
+        finishLoading();
       });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading) return;
-    let mounted = true;
-    const id = setInterval(() => {
-      if (!mounted) return;
-      setDots((d) => (d % 3) + 1);
-    }, 420);
-    return () => { mounted = false; clearInterval(id); };
-  }, [isLoading]);
+  }, []); // No dependencies to avoid infinite loops
 
   const top10: TopRow[] = useMemo(() => {
     const real = (top || []).filter((r) => r.bestScore > 0);

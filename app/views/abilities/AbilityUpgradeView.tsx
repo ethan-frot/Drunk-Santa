@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import TitleBanner from '@/app/components/TitleBanner';
 import UiImageButton from '@/app/components/UiImageButton';
 import { AbilityManager, AbilityUpgrade } from '../../utils/abilities';
-import { renderAlternating } from '@/app/utils/renderAlternating';
+import { useFakeLoading } from '@/app/hooks/useFakeLoading';
+import { LoadingCard } from '@/app/components/LoadingCard';
 
 interface AbilityUpgradePageProps {
   onContinue: () => void;
@@ -17,16 +18,10 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
   const [abilities, setAbilities] = useState<AbilityUpgrade[]>([]);
   const [totalSnowflakes, setTotalSnowflakes] = useState(0);
   const [showUpgradeEffect, setShowUpgradeEffect] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dots, setDots] = useState(1);
-  const abortRef = useRef<AbortController | null>(null);
+  const { isLoading, dots, startLoading, finishLoading } = useFakeLoading();
 
   useEffect(() => {
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setIsLoading(true);
-    const start = Date.now();
+    startLoading();
     
     let aborted = false;
     const pseudo = (typeof window !== 'undefined' ? localStorage.getItem('playerPseudo') : '') || '';
@@ -35,7 +30,6 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
       try {
         if (!pseudo) return;
         const res = await fetch(`/api/abilities?name=${encodeURIComponent(pseudo)}`, { 
-          signal: controller.signal,
           cache: 'no-store' 
         });
         if (!res.ok) return;
@@ -59,33 +53,13 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
     };
 
     init().finally(() => {
-      // Random visible time between 1 and 2 cycles (same as leaderboard)
-      const stepMs = 420; // dots update cadence
-      const cycleMs = 3 * stepMs; // one cycle = '.', '..', '...'
-      const minMs = cycleMs * 1; // 1 cycle
-      const maxMs = cycleMs * 2; // 2 cycles
-      const targetVisibleMs = minMs + Math.random() * (maxMs - minMs);
-      const elapsed = Date.now() - start;
-      const wait = Math.max(0, Math.round(targetVisibleMs) - elapsed);
-      setTimeout(() => setIsLoading(false), wait);
+      finishLoading();
     });
     
     return () => { 
       aborted = true; 
-      controller.abort();
     };
-  }, [abilityManager, snowflakesEarned, totalScore]);
-
-  // Dots animation effect (same as leaderboard)
-  useEffect(() => {
-    if (!isLoading) return;
-    let mounted = true;
-    const id = setInterval(() => {
-      if (!mounted) return;
-      setDots((d) => (d % 3) + 1);
-    }, 420);
-    return () => { mounted = false; clearInterval(id); };
-  }, [isLoading]);
+  }, [abilityManager, snowflakesEarned, totalScore]); // Retiré startLoading et finishLoading des dépendances
 
   const handleUpgrade = async (abilityId: string) => {
     // Guard against client-side over-leveling
@@ -178,41 +152,12 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
 
       {/* Loading or Abilities Content */}
       {isLoading ? (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          maxWidth: '1200px',
-          margin: '20px'
-        }}>
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '15px',
-            padding: '40px',
-            border: '2px solid rgba(255, 255, 255, 0.2)',
-            backdropFilter: 'blur(10px)',
-            textAlign: 'center',
-            minWidth: '300px'
-          }}>
-            <div style={{
-              fontWeight: 700,
-              fontFamily: 'November, system-ui, Arial',
-              fontSize: '24px',
-              textShadow: '0 2px 0 rgba(0,0,0,0.25)',
-              marginBottom: '20px'
-            }}>
-              {renderAlternating(`Chargement des capacites${'.'.repeat(dots)}`, true)}
-            </div>
-            <div style={{
-              fontSize: '16px',
-              color: '#b0b0b0',
-              opacity: 0.8
-            }}>
-              Synchronisation avec le serveur...
-            </div>
-          </div>
-        </div>
+        <LoadingCard 
+          isLoading={isLoading}
+          dots={dots}
+          title="Chargement des capacites"
+          subtitle="Synchronisation avec le serveur..."
+        />
       ) : (
         <div style={{
           display: 'flex',
