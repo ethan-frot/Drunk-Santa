@@ -6,6 +6,8 @@ import UiImageButton from '@/app/components/UiImageButton';
 import { AbilityManager, AbilityUpgrade } from '../../utils/abilities';
 import { useFakeLoading } from '@/app/hooks/useFakeLoading';
 import { LoadingCard } from '@/app/components/LoadingCard';
+import HomeButton from '@/app/components/HomeButton';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 interface AbilityUpgradePageProps {
   onContinue: () => void;
@@ -309,6 +311,12 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
           zIndex: 10
         }}
       />
+      
+      {/* Home button */}
+      <HomeButton />
+      
+      {/* Sound toggle button */}
+      <SoundToggleButton />
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AbilityUpgradeView } from './AbilityUpgradeView';
 import SoundManager from '../../utils/soundManager';
-import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 // Route page component without custom props to satisfy Next.js types
 export default function Page() {
@@ -22,7 +21,7 @@ export default function Page() {
   }, []);
 
   const handleContinue = () => {
-    SoundManager.getInstance().playClickSound();
+    SoundManager.getInstance().playButtonClick();
     router.push('/views/game');
   };
 
@@ -32,8 +31,5 @@ export default function Page() {
       snowflakesEarned={snowflakesEarned}
       totalScore={totalScore}
     />
-    
-    {/* Sound toggle button */}
-    <SoundToggleButton />
   );
 }
