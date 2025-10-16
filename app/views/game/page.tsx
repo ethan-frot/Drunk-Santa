@@ -80,66 +80,69 @@ export default function DisplayGamePage() {
         <GameCanvas key={runId} onGameEnd={handleGameEnd} isPaused={showEndModal} />
 
         {showEndModal && gameResults && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              background: '#1a1a3a',
-              border: '2px solid rgba(231, 233, 255, 0.2)',
-              borderRadius: '16px',
-              padding: '2rem',
-              maxWidth: '480px',
-              width: '92%',
-              color: '#e7e9ff',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
-            }}>
-              <h2 style={{
-                margin: 0,
-                marginBottom: '0.75rem',
-                fontSize: '1.6rem',
-                fontWeight: 'bold',
-                color: '#ffd166'
-              }}>
-                Partie terminée
-              </h2>
-              <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
-                Score: <strong>{gameResults.totalScore}</strong> — Flocons gagnés: <strong>+{gameResults.snowflakesEarned}</strong>
-              </p>
-              <p style={{ marginTop: '0.75rem', opacity: 0.9 }}>Voulez-vous continuer avec des améliorations ou voir votre score ?</p>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4, padding: '16px' }}>
+            <div style={{ position: 'relative', width: '540px', maxWidth: '92vw' }}>
+              <img src="/assets/ui/scoreboard/scoreboard-title-background.png" alt="support" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8%' }}>
+                <div style={{ textAlign: 'center', fontFamily: 'November, sans-serif', fontWeight: 700, fontSize: 'clamp(14px, 2.2vw, 20px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)', lineHeight: 1.8, color: '#b20c0f', transform: 'translateY(-60px)' }}>
+                  Partie terminee !<br/>
+                  Score: <strong>{gameResults.totalScore}</strong> — Flocons gagnes: <strong>+{gameResults.snowflakesEarned}</strong><br/>
+                  Voulez-vous continuer avec des ameliorations ou voir votre score ?
+                </div>
+              </div>
+              {/* Buttons row under the image */}
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px' }}>
                 <button
                   onClick={handleStop}
                   style={{
-                    padding: '0.6rem 1.1rem',
-                    background: '#e7e9ff',
-                    color: '#040218',
+                    background: 'transparent',
                     border: 'none',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
+                    padding: 0,
+                    cursor: 'pointer',
+                    transition: 'transform 0.12s ease',
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+                  onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
                 >
-                  Arrêter et voir le score
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <img
+                      src="/assets/ui/buttons/button-red-up.png"
+                      alt="Arrêter"
+                      style={{ height: '100px', width: 'auto', display: 'block' }}
+                      onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
+                      onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
+                    />
+                    <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-2px)' }}>Arreter</span>
+                  </div>
                 </button>
                 <button
                   onClick={handleContinue}
                   style={{
-                    padding: '0.6rem 1.1rem',
-                    background: 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))',
-                    color: '#e7e9ff',
+                    background: 'transparent',
                     border: 'none',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
+                    padding: 0,
+                    cursor: 'pointer',
+                    transition: 'transform 0.12s ease',
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+                  onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
                 >
-                  Continuer avec upgrades
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <img
+                      src="/assets/ui/buttons/button-green-up.png"
+                      alt="Continuer"
+                      style={{ height: '100px', width: 'auto', display: 'block' }}
+                      onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
+                      onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
+                    />
+                    <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-2px)' }}>Continuer</span>
+                  </div>
                 </button>
               </div>
             </div>
