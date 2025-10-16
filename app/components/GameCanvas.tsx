@@ -515,7 +515,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           const clampedTargetX = Phaser.Math.Clamp(targetX, minX, maxX);
           
           // Set high velocity for dash
-          const dashSpeed = 10; // Increased speed for wider dash
+          const dashSpeed = 1200; // Increased speed for wider dash
           this.character.setVelocityX(dashSpeed * direction);
           
           // Create afterimage trail
