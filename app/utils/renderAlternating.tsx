@@ -1,9 +1,11 @@
+import React from 'react';
+
 export function renderAlternating(
   text: string,
   startWithRed: boolean,
   red: string = '#B45252',
   green: string = '#8AB060'
-): JSX.Element {
+): React.ReactElement {
   let useRed = startWithRed;
   return (
     <>
