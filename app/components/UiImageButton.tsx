@@ -35,7 +35,10 @@ export default function UiImageButton({
   const rootStyle: CSSProperties = useMemo(() => ({
     background: 'transparent',
     border: 'none',
-    padding: 0,
+    paddingTop: 0,
+    paddingRight: 0,
+    paddingBottom: 0,
+    paddingLeft: 0,
     cursor: 'pointer',
     transition: 'transform 0.12s ease',
   }), []);
