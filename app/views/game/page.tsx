@@ -110,7 +110,7 @@ export default function DisplayGamePage() {
                     <img
                       src="/assets/ui/buttons/button-red-up.png"
                       alt="Arrêter"
-                      style={{ height: '100px', width: 'auto', display: 'block' }}
+                      style={{ height: '110px', width: 'auto', display: 'block' }}
                       onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
                       onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
@@ -136,7 +136,7 @@ export default function DisplayGamePage() {
                     <img
                       src="/assets/ui/buttons/button-green-up.png"
                       alt="Continuer"
-                      style={{ height: '100px', width: 'auto', display: 'block' }}
+                      style={{ height: '110px', width: 'auto', display: 'block' }}
                       onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
                       onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
