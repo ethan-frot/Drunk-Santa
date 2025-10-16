@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import TitleBanner from '@/app/components/TitleBanner';
+import UiImageButton from '@/app/components/UiImageButton';
 import { AbilityManager, AbilityUpgrade } from '../../utils/abilities';
 
 interface AbilityUpgradePageProps {
@@ -215,88 +216,37 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
               </div>
 
               {!isMaxed && (
-                <button
-                  onClick={() => handleUpgrade(ability.id)}
-                  disabled={!canUpgrade}
+                <UiImageButton
+                  imageUpSrc="/assets/ui/buttons/button-red-up.png"
+                  imageDownSrc="/assets/ui/buttons/button-red-down.png"
+                  label={canUpgrade
+                    ? `${ability.cost[ability.currentStage]}`
+                    : `${ability.cost[ability.currentStage] - totalSnowflakes} flocons manquants`}
+                  heightPx={120}
+                  onClick={() => canUpgrade && handleUpgrade(ability.id)}
+                  ariaLabel="Upgrade"
                   style={{
-                    position: 'relative',
-                    height: '120px',
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    cursor: canUpgrade ? 'pointer' : 'not-allowed',
-                    transition: 'transform 0.12s ease, opacity 0.2s ease',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     opacity: canUpgrade ? 1 : 0.55,
                     filter: canUpgrade ? 'none' : 'grayscale(20%)',
-                    transform: canUpgrade ? 'scale(1)' : 'scale(0.98)'
+                    cursor: canUpgrade ? 'pointer' : 'not-allowed'
                   }}
-                  onMouseEnter={(e) => {
-                    if (canUpgrade) {
-                      e.currentTarget.style.transform = 'scale(1.03)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (canUpgrade) {
-                      e.currentTarget.style.transform = 'scale(1)';
-                      const img = e.currentTarget.querySelector('img');
-                      if (img) (img as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png';
-                    }
-                  }}
-                  onMouseDown={(e) => {
-                    if (canUpgrade) {
-                      e.currentTarget.style.transform = 'scale(0.98)';
-                      const img = e.currentTarget.querySelector('img');
-                      if (img) (img as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png';
-                    }
-                  }}
-                  onMouseUp={(e) => {
-                    if (canUpgrade) {
-                      e.currentTarget.style.transform = 'scale(1.03)';
-                      const img = e.currentTarget.querySelector('img');
-                      if (img) (img as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png';
-                    }
-                  }}
-                >
-                  <img
-                    src={'/assets/ui/buttons/button-red-up.png'}
-                    alt="Upgrade"
-                    style={{ height: '120px', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
-                  />
-                  <span style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', marginBottom: '2px', color: '#ffffff', fontSize: '22px', fontWeight: 'bold', fontFamily: 'November, sans-serif' }}>
-                    {canUpgrade
-                      ? `${ability.cost[ability.currentStage]}`
-                      : `${ability.cost[ability.currentStage] - totalSnowflakes} manquants`}
-                  </span>
-                </button>
+                />
               )}
 
               {isMaxed && (
-                <button
-                  disabled
+                <UiImageButton
+                  imageUpSrc="/assets/ui/buttons/button-red-up.png"
+                  imageDownSrc="/assets/ui/buttons/button-red-up.png"
+                  label="✨ MAXIMUM ✨"
+                  heightPx={120}
+                  onClick={() => {}}
+                  ariaLabel="Maxed"
                   style={{
-                    position: 'relative',
-                    height: '120px',
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'not-allowed',
                     opacity: 0.75,
                     filter: 'grayscale(15%)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
+                    cursor: 'not-allowed'
                   }}
-                >
-                  <img
-                    src={'/assets/ui/buttons/button-red-up.png'}
-                    alt="Maxed"
-                    style={{ height: '120px', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
-                  />
-                  <span style={{ position: 'absolute', top: '50%', transform: 'translateY(-54%)', color: '#ffffff', fontSize: '22px', fontWeight: 'bold', fontFamily: 'November, sans-serif' }}>✨ MAXIMUM ✨</span>
-                </button>
+                />
               )}
             </div>
           );
@@ -307,64 +257,21 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
       </div>
 
       {/* Fixed Continue Button on the right */}
-      <button
+      <UiImageButton
+        imageUpSrc="/assets/ui/buttons/button-red-up.png"
+        imageDownSrc="/assets/ui/buttons/button-red-down.png"
+        label="Continuer"
+        heightPx={160}
         onClick={onContinue}
+        ariaLabel="Continuer"
         style={{
           position: 'fixed',
-          top: '62%',
+          top: '52%',
           right: '50px',
           transform: 'translateY(-50%)',
-          height: '160px',
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          transition: 'transform 0.12s ease',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           zIndex: 10
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-50%) scale(1.03)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-          const img = e.currentTarget.querySelector('img');
-          if (img) (img as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png';
-          const textSpan = e.currentTarget.querySelector('span');
-          if (textSpan) {
-            (textSpan as HTMLSpanElement).style.transform = 'translateY(-50%)';
-          }
-        }}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = 'translateY(-50%) scale(0.98)';
-          const img = e.currentTarget.querySelector('img');
-          if (img) (img as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png';
-          const textSpan = e.currentTarget.querySelector('span');
-          if (textSpan) {
-            (textSpan as HTMLSpanElement).style.transform = 'translateY(-46%)';
-          }
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = 'translateY(-50%) scale(1.03)';
-          const img = e.currentTarget.querySelector('img');
-          if (img) (img as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png';
-          const textSpan = e.currentTarget.querySelector('span');
-          if (textSpan) {
-            (textSpan as HTMLSpanElement).style.transform = 'translateY(-50%)';
-          }
-        }}
-      >
-        <img
-          src={'/assets/ui/buttons/button-red-up.png'}
-          alt="Continuer"
-          style={{ height: '160px', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
-        />
-        <span style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', marginBottom: '6px', color: '#ffffff', fontSize: '28px', fontWeight: 'bold', fontFamily: 'November, sans-serif', transition: 'transform 0.12s ease' }}>
-          Continuer
-        </span>
-      </button>
+      />
     </div>
   );
 }
