@@ -66,6 +66,11 @@ export default function UiImageButton({
     fontFamily: 'November, sans-serif',
     textTransform: 'uppercase',
     transform: 'translateY(-6px)',
+    textAlign: 'center',
+    lineHeight: 1.1,
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
+    maxWidth: "95%",
   }), [heightPx]);
 
   const handleMouseEnter = () => {
