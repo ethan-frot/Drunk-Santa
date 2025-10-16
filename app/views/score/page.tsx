@@ -8,7 +8,6 @@ export default function DisplayScorePage() {
   const searchParams = useSearchParams();
   const [pseudo, setPseudo] = useState('');
   const [score, setScore] = useState(0);
-  const [bestScore, setBestScore] = useState(0);
   const postedRef = useRef(false);
   const [leaderboard, setLeaderboard] = useState<{ top: { rank: number; name: string; bestScore: number }[]; player: { name: string; bestScore: number; rank: number; inTop: boolean } | null }>({ top: [], player: null });
   const leaderboardAbortRef = useRef<AbortController | null>(null);
@@ -106,11 +105,7 @@ export default function DisplayScorePage() {
     leaderboardAbortRef.current = controller;
     fetch(`/api/leaderboard?name=${encodeURIComponent(name)}`, { signal: controller.signal, cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
-      .then((data) => {
-        setLeaderboard({ top: data.top || [], player: data.player || null });
-        const bs = (data?.player && typeof data.player.bestScore === 'number') ? data.player.bestScore : 0;
-        setBestScore(bs);
-      })
+      .then((data) => setLeaderboard({ top: data.top || [], player: data.player || null }))
       .catch(() => {});
   };
 
@@ -156,10 +151,6 @@ export default function DisplayScorePage() {
             // eslint-disable-next-line no-console
             console.warn('Failed to save score', data?.error || res.statusText);
           } else {
-            const data = await res.json().catch(() => ({}));
-            if (typeof data?.bestScore === 'number') {
-              setBestScore(data.bestScore);
-            }
             // refresh leaderboard so the user sees their new rank immediately
             loadLeaderboard(pseudo);
           }
@@ -303,7 +294,14 @@ export default function DisplayScorePage() {
           justifyContent: 'center',
           marginBottom: '3rem'
           }}>
-          Meilleur Score
+            <div style={{
+              fontSize: '2.5rem',
+              fontWeight: 'bold',
+              fontFamily: 'November, sans-serif',
+              textAlign: 'center'
+            }}>
+              {renderAlternating(`Score: ${score}`, false)}
+            </div>
           </div>
 
           {/* Rating section inside the background */}
@@ -314,45 +312,36 @@ export default function DisplayScorePage() {
             alignItems: 'center',
             gap: '1.5rem'
           }}>
-          {bestScore}
-          </div>
-        </div>
-
-        {/* Rating section placed clearly between score card and scoreboard */}
-        <div style={{
-          width: '100%',
-          maxWidth: '560px',
-          background: 'rgba(231, 233, 255, 0.08)',
-          borderRadius: '16px',
-          border: '2px solid rgba(231, 233, 255, 0.18)',
-          padding: '1.25rem',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.75rem',
-          marginTop: '1rem',
-          marginBottom: '1rem'
-        }}>
-          <div style={{ color: '#e7e9ff', opacity: 0.9, fontWeight: 'bold' }}>Donnez une note au jeu</div>
-          <div style={{ display: 'flex', gap: '0.75rem' }} onMouseLeave={() => setHoverRating(null)}>
-            {[1,2,3,4,5].map((i) => {
-              const effective = (hoverRating != null && hoverRating > rating) ? hoverRating : rating;
-              const active = effective >= i;
-               return (
-                <button
-                   key={i}
-                  onMouseEnter={() => setHoverRating(i > rating ? i : null)}
-                  onClick={() => {
-                    fetch('/api/rating', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ name: pseudo, rating: i })
-                    })
-                      .then(async (res) => {
-                        if (!res.ok) {
-                          const data = await res.json().catch(() => ({}));
-                          if (res.status === 409) {
-                            setShowRatingWarning(true);
+            <div style={{ 
+              opacity: 0.9, 
+              fontWeight: 'bold', 
+              fontSize: '1.4rem',
+              fontFamily: 'November, sans-serif'
+            }}>
+              {renderAlternating('Donnez une note au jeu', true)}
+            </div>
+            <div style={{ display: 'flex', gap: '1.2rem' }} onMouseLeave={() => setHoverRating(null)}>
+              {[1,2,3,4,5].map((i) => {
+                const effective = (hoverRating != null && hoverRating > rating) ? hoverRating : rating;
+                const active = effective >= i;
+                 return (
+                  <button
+                     key={i}
+                    onMouseEnter={() => setHoverRating(i > rating ? i : null)}
+                    onClick={() => {
+                      fetch('/api/rating', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: pseudo, rating: i })
+                      })
+                        .then(async (res) => {
+                          if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            if (res.status === 409) {
+                              setShowRatingWarning(true);
+                            } else {
+                              console.warn('Failed to save rating', data?.error || res.statusText);
+                            }
                           } else {
                             setRating(i);
                             setRatingSubmitted(true);
@@ -477,5 +466,3 @@ export default function DisplayScorePage() {
     </main>
   );
 }
-
-
