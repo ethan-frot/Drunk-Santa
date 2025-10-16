@@ -7,6 +7,7 @@ import HomeButton from '@/app/components/HomeButton';
 import { renderAlternating } from '@/app/utils/renderAlternating';
 import MusicManager from '@/app/utils/musicManager';
 import SoundToggleButton from '@/app/components/SoundToggleButton';
+import SoundManager from '@/app/utils/soundManager';
 
 function ScoreView() {
   const router = useRouter();
@@ -277,7 +278,7 @@ function ScoreView() {
                      key={i}
                     onMouseEnter={() => setHoverRating(i > rating ? i : null)}
                     onClick={() => {
-                      SoundManager.getInstance().playClickSound();
+                      SoundManager.getInstance().playButtonClick();
                       fetch('/api/rating', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -318,50 +319,6 @@ function ScoreView() {
               </div>
             )}
           </div>
-        </div>
-
-
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', gap: '1rem' }}>
-          <button
-            onClick={() => {
-              SoundManager.getInstance().playClickSound();
-              try {
-                localStorage.removeItem('playerPseudo');
-                localStorage.removeItem('gameScore');
-              } catch {}
-              router.push('/');
-            }}
-            style={{
-              background: 'transparent',
-              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '100% 100%',
-              backgroundPosition: 'center',
-              imageRendering: 'pixelated',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100px',
-              height: '80px',
-              transform: 'scale(1.5)',
-              transition: 'transform 80ms ease-out'
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')";
-              e.currentTarget.style.transform = 'scale(1.5) translateY(2px)';
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
-              e.currentTarget.style.transform = 'scale(1.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
-              e.currentTarget.style.transform = 'scale(1.5)';
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.6)';
-            }}
-          />
         </div>
       </div>
       
