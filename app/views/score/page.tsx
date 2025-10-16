@@ -392,7 +392,7 @@ export default function DisplayScorePage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.25rem', gap: '1rem' }}>
           <button
             onClick={() => {
               try {
@@ -402,26 +402,40 @@ export default function DisplayScorePage() {
               router.push('/');
             }}
             style={{
-              padding: '1rem 2.5rem',
-              fontSize: '1.2rem',
-              fontWeight: 'bold',
-              color: '#e7e9ff',
-              background: 'rgba(231, 233, 255, 0.1)',
-              border: '2px solid #e7e9ff',
-              borderRadius: '12px',
+              background: 'transparent',
+              backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '100% 100%',
+              backgroundPosition: 'center',
+              imageRendering: 'pixelated',
+              border: 'none',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              padding: '1rem 1rem',
+              fontFamily: 'November, sans-serif',
+              color: '#ffffff',
+              fontSize: '1.8rem',
+              transform: 'scale(1.8)',
+              transition: 'transform 80ms ease-out',
+              width: 'auto',
+              minWidth: '110px'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.background = 'rgba(231, 233, 255, 0.2)';
+            onMouseDown={(e) => {
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
+              e.currentTarget.style.transform = 'scale(1.8) translateY(2px)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#ffe5e5';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+              e.currentTarget.style.transform = 'scale(1.8)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.background = 'rgba(231, 233, 255, 0.1)';
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+              e.currentTarget.style.transform = 'scale(1.8)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
             }}
           >
-            Menu Principal
+            Menu
           </button>
         </div>
       </div>
