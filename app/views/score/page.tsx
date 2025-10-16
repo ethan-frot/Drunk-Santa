@@ -68,7 +68,7 @@ export default function DisplayScorePage() {
       <img
         src={src}
         alt={active ? 'star active' : 'star inactive'}
-        style={{ height: '40px', width: 'auto', display: 'block' }}
+        style={{ height: '65px', width: 'auto', display: 'block' }}
       />
     );
   };
@@ -176,11 +176,34 @@ export default function DisplayScorePage() {
 
   const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
 
+  // Render text with alternating per-letter colors. If startWithRed is true, the
+  // first non-space character is red, otherwise green. Spaces are preserved.
+  const renderAlternating = (text: string, startWithRed: boolean) => {
+    const red = '#B45252';
+    const green = '#8AB060';
+    let useRed = startWithRed;
+    return (
+      <>
+        {text.split('')
+          .map((ch, idx) => {
+            if (ch === ' ') return <span key={idx}> </span>;
+            const color = useRed ? red : green;
+            useRed = !useRed;
+            return (
+              <span key={idx} style={{ color }}>
+                {ch}
+              </span>
+            );
+          })}
+      </>
+    );
+  };
+
   return (
     <main style={{ 
       minHeight: '100vh', 
       height: '100vh', 
-      background: '#040218',
+      background: 'url(/assets/ui/background-menu.gif) center/cover no-repeat',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -190,136 +213,168 @@ export default function DisplayScorePage() {
       overflow: 'hidden'
     }}>
       <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h1 style={{ 
-          fontSize: '3.5rem', 
-          fontWeight: 'bold', 
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff',
-          margin: 0,
-          textAlign: 'center'
+        <div style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '1rem',
+          marginTop: '-2rem'
         }}>
-          Partie Terminée!
-        </h1>
+          <img 
+            src="/assets/ui/main-menu/title-background.png" 
+            alt="Title background"
+            style={{
+              width: 'auto',
+              height: '220px',
+              objectFit: 'contain'
+            }}
+          />
+          <h1 style={{ 
+            position: 'absolute',
+            fontSize: '3.2rem', 
+            fontWeight: 'bold', 
+            fontFamily: 'November, sans-serif',
+            color: '#ff4444',
+            margin: 0,
+            textAlign: 'center',
+            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+            top: '46%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            whiteSpace: 'nowrap'
+          }}>
+            Partie Terminee!
+          </h1>
+        </div>
 
         <div style={{
-        background: 'rgba(231, 233, 255, 0.1)',
-        borderRadius: '20px',
-        padding: '3rem 4rem',
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        gap: '1.5rem',
         alignItems: 'center',
-        border: '2px solid rgba(231, 233, 255, 0.2)'
+        justifyContent: 'center',
+        width: '100%',
+        maxWidth: '800px',
+        padding: '4rem 3rem',
+        backgroundImage: "url('/assets/ui/score/scoreboard/engame-background.png')",
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center',
+        imageRendering: 'pixelated',
+        minHeight: '500px'
         }}>
-          <div style={{
-          fontSize: '1.3rem',
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff',
-          opacity: 0.8
-          }}>
-            Joueur
-          </div>
-          <div style={{
-          fontSize: '2rem',
-          fontWeight: 'bold',
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff'
-          }}>
-            {pseudo}
-          </div>
-
+          {/* Joueur section */}
           <div style={{
           width: '100%',
-          height: '2px',
-          background: 'rgba(231, 233, 255, 0.2)',
-          margin: '1rem 0'
-          }} />
-
-          <div style={{
-          fontSize: '1.3rem',
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff',
-          opacity: 0.8
-          }}>
-            Score
-          </div>
-          <div style={{
-          fontSize: '4rem',
-          fontWeight: 'bold',
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff'
-          }}>
-            {score}
-          </div>
-        </div>
-
-        {/* Rating section placed clearly between score card and scoreboard */}
-        <div style={{
-          width: '100%',
-          maxWidth: '560px',
-          background: 'rgba(231, 233, 255, 0.08)',
-          borderRadius: '16px',
-          border: '2px solid rgba(231, 233, 255, 0.18)',
-          padding: '1.25rem',
+          height: '80px',
+          background: 'transparent',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
-          gap: '0.75rem',
-          marginTop: '1rem',
-          marginBottom: '1rem'
-        }}>
-          <div style={{ color: '#e7e9ff', opacity: 0.9, fontWeight: 'bold' }}>Donnez une note au jeu</div>
-          <div style={{ display: 'flex', gap: '0.75rem' }} onMouseLeave={() => setHoverRating(null)}>
-            {[1,2,3,4,5].map((i) => {
-              const effective = (hoverRating != null && hoverRating > rating) ? hoverRating : rating;
-              const active = effective >= i;
-               return (
-                <button
-                   key={i}
-                  onMouseEnter={() => setHoverRating(i > rating ? i : null)}
-                  onClick={() => {
-                    fetch('/api/rating', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ name: pseudo, rating: i })
-                    })
-                      .then(async (res) => {
-                        if (!res.ok) {
-                          const data = await res.json().catch(() => ({}));
-                          if (res.status === 409) {
-                            setShowRatingWarning(true);
-                          } else {
-                            console.warn('Failed to save rating', data?.error || res.statusText);
-                          }
-                        } else {
-                          setRating(i);
-                          setRatingSubmitted(true);
-                        }
-                      })
-                      .catch((err) => {
-                        console.warn('Error saving rating', err);
-                      });
-                  }}
-                   style={{
-                     width: '40px',
-                     height: '40px',
-                     padding: 0,
-                     border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer'
-                   }}
-                   aria-label={`Note ${i}`}
-                  
-                 >
-                   <StarIcon active={active} />
-                 </button>
-               );
-             })}
+          justifyContent: 'center',
+          marginBottom: '2rem'
+          }}>
+            <div style={{
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              fontFamily: 'November, sans-serif',
+              textAlign: 'center'
+            }}>
+              {renderAlternating(`Joueur: ${pseudo}`, true)}
+            </div>
           </div>
-          {ratingSubmitted && (
-            <div style={{ color: '#66bfff' }}>Merci pour votre note !</div>
-          )}
+
+          {/* Score section */}
+          <div style={{
+          width: '100%',
+          height: '80px',
+          background: 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '3rem'
+          }}>
+            <div style={{
+              fontSize: '2.5rem',
+              fontWeight: 'bold',
+              fontFamily: 'November, sans-serif',
+              textAlign: 'center'
+            }}>
+              {renderAlternating(`Score: ${score}`, false)}
+            </div>
+          </div>
+
+          {/* Rating section inside the background */}
+          <div style={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.5rem'
+          }}>
+            <div style={{ 
+              opacity: 0.9, 
+              fontWeight: 'bold', 
+              fontSize: '1.4rem',
+              fontFamily: 'November, sans-serif'
+            }}>
+              {renderAlternating('Donnez une note au jeu', true)}
+            </div>
+            <div style={{ display: 'flex', gap: '1.2rem' }} onMouseLeave={() => setHoverRating(null)}>
+              {[1,2,3,4,5].map((i) => {
+                const effective = (hoverRating != null && hoverRating > rating) ? hoverRating : rating;
+                const active = effective >= i;
+                 return (
+                  <button
+                     key={i}
+                    onMouseEnter={() => setHoverRating(i > rating ? i : null)}
+                    onClick={() => {
+                      fetch('/api/rating', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: pseudo, rating: i })
+                      })
+                        .then(async (res) => {
+                          if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            if (res.status === 409) {
+                              setShowRatingWarning(true);
+                            } else {
+                              console.warn('Failed to save rating', data?.error || res.statusText);
+                            }
+                          } else {
+                            setRating(i);
+                            setRatingSubmitted(true);
+                          }
+                        })
+                        .catch((err) => {
+                          console.warn('Error saving rating', err);
+                        });
+                    }}
+                     style={{
+                       width: '65px',
+                       height: '65px',
+                       padding: 0,
+                       border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer'
+                     }}
+                     aria-label={`Note ${i}`}
+                    
+                     >
+                       <StarIcon active={active} />
+                     </button>
+                   );
+                 })}
+            </div>
+            {ratingSubmitted && (
+              <div style={{ fontSize: '1.2rem', fontFamily: 'November, sans-serif' }}>
+                {renderAlternating('Merci pour votre note !', false)}
+              </div>
+            )}
+          </div>
         </div>
+
 
         {showRatingWarning && (
           <div style={{
@@ -367,7 +422,7 @@ export default function DisplayScorePage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', gap: '1rem' }}>
           <button
             onClick={() => {
               try {
@@ -377,27 +432,35 @@ export default function DisplayScorePage() {
               router.push('/');
             }}
             style={{
-              padding: '1rem 2.5rem',
-              fontSize: '1.2rem',
-              fontWeight: 'bold',
-              color: '#e7e9ff',
-              background: 'rgba(231, 233, 255, 0.1)',
-              border: '2px solid #e7e9ff',
-              borderRadius: '12px',
+              background: 'transparent',
+              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '100% 100%',
+              backgroundPosition: 'center',
+              imageRendering: 'pixelated',
+              border: 'none',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              width: '100px',
+              height: '80px',
+              transform: 'scale(1.5)',
+              transition: 'transform 80ms ease-out'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.background = 'rgba(231, 233, 255, 0.2)';
+            onMouseDown={(e) => {
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')";
+              e.currentTarget.style.transform = 'scale(1.5) translateY(2px)';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
+              e.currentTarget.style.transform = 'scale(1.5)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.background = 'rgba(231, 233, 255, 0.1)';
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
+              e.currentTarget.style.transform = 'scale(1.5)';
             }}
-          >
-            Menu Principal
-          </button>
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.6)';
+            }}
+          />
         </div>
       </div>
     </main>
