@@ -299,9 +299,22 @@ export default function Home() {
               transition: 'transform 0.12s ease',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { 
+              e.currentTarget.style.transform = 'scale(1)'; 
+              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+              if (label) label.style.transform = 'translateY(-6px)';
+            }}
+            onMouseDown={(e) => { 
+              e.currentTarget.style.transform = 'scale(0.98)'; 
+              sprintRef.current?.();
+              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+              if (label) label.style.transform = 'translate(-12px, 6px)';
+            }}
+            onMouseUp={(e) => { 
+              e.currentTarget.style.transform = 'scale(1.05)'; 
+              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+              if (label) label.style.transform = 'translateY(-6px)';
+            }}
           >
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <img
@@ -312,7 +325,7 @@ export default function Home() {
                 onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
               />
-              <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#1b0f10', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Commencer</span>
+              <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Commencer</span>
             </div>
           </button>
         ) : (
@@ -351,7 +364,48 @@ export default function Home() {
 
         {!showNameOverlay && (
           <>
-            {/* Secondary white button below the red one */}
+            {/* Secondary button below the red one (Comment jouer) */}
+            <button
+              onClick={() => router.push('/views/how-to-play')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                transition: 'transform 0.12s ease',
+                
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { 
+                e.currentTarget.style.transform = 'scale(1)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translateY(-6px)';
+              }}
+              onMouseDown={(e) => { 
+                e.currentTarget.style.transform = 'scale(0.98)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translate(-12px, 6px)';
+              }}
+              onMouseUp={(e) => { 
+                e.currentTarget.style.transform = 'scale(1.05)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translateY(-6px)';
+              }}
+            >
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <img
+                  src="/assets/ui/buttons/button-brown-up.png"
+                  alt="Comment jouer"
+                  style={{ height: '160px', width: 'auto', display: 'block' }}
+                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-down.png'; }}
+                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-up.png'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-up.png'; }}
+                />
+                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Comment jouer</span>
+              </div>
+            </button>
+
+            {/* Third green button below the white one */}
             <button
               onClick={() => router.push('/views/leaderboard')}
               style={{
@@ -363,48 +417,32 @@ export default function Home() {
                 
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img
-                  src="/assets/ui/buttons/button-blank-up.png"
-                  alt="Score"
-                  style={{ height: '115px', width: 'auto', display: 'block' }}
-                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-blank-down.png'; }}
-                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-blank-up.png'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-blank-up.png'; }}
-                />
-                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#222', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>score</span>
-              </div>
-            </button>
-
-            {/* Third green button below the white one */}
-            <button
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                transition: 'transform 0.12s ease',
-                
+              onMouseLeave={(e) => { 
+                e.currentTarget.style.transform = 'scale(1)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translateY(-6px)';
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseDown={(e) => { 
+                e.currentTarget.style.transform = 'scale(0.98)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translate(-12px, 6px)';
+              }}
+              onMouseUp={(e) => { 
+                e.currentTarget.style.transform = 'scale(1.05)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translateY(-6px)';
+              }}
             >
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <img
                   src="/assets/ui/buttons/button-green-up.png"
-                  alt="Vert"
-                  style={{ height: '180px', width: 'auto', display: 'block' }}
+                  alt="Classement"
+                  style={{ height: '110px', width: 'auto', display: 'block' }}
                   onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
                   onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
                 />
-                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#222', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>test</span>
+                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>classement</span>
               </div>
             </button>
           </>
