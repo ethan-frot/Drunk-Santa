@@ -62,6 +62,8 @@ export default function Home() {
       return; // Do not proceed to game when verification failed
     }
     localStorage.setItem('playerPseudo', entered);
+    // Stop menu music before going to game
+    MusicManager.getInstance().stop();
     router.push('/views/game');
   };
 
@@ -70,8 +72,28 @@ export default function Home() {
     if (!nameToUse) return;
     localStorage.setItem('playerPseudo', nameToUse);
     setShowWarning(false);
+    // Stop menu music before going to game
+    MusicManager.getInstance().stop();
     router.push('/views/game');
   };
+
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+
+    return () => {
+      // Only stop music if we're going to game, not to other menu pages
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/views/game')) {
+        musicManager.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -264,6 +286,8 @@ export default function Home() {
             label="Commencer"
             heightPx={160}
             onClick={() => { 
+              MusicManager.getInstance().startMusicOnInteraction();
+              SoundManager.getInstance().playClickSound();
               sprintRef.current?.(); 
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
@@ -276,6 +300,7 @@ export default function Home() {
             imageDownSrc="/assets/ui/buttons/play-button-down.png"
             heightPx={130}
             onClick={() => { 
+              SoundManager.getInstance().playClickSound();
               sprintRef.current?.(); 
               setTimeout(() => submitName(), 150);
             }}
@@ -363,7 +388,10 @@ export default function Home() {
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px' }}>
               {/* Red continue */}
               <button
-                onClick={confirmUseExisting}
+                onClick={() => {
+                  SoundManager.getInstance().playClickSound();
+                  confirmUseExisting();
+                }}
                 style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.12s ease' }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -385,7 +413,10 @@ export default function Home() {
 
               {/* Green modify */}
               <button
-                onClick={() => setShowWarning(false)}
+                onClick={() => {
+                  SoundManager.getInstance().playClickSound();
+                  setShowWarning(false);
+                }}
                 style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.12s ease' }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}

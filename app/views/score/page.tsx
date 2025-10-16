@@ -16,7 +16,6 @@ function ScoreView() {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
-  const [showRatingWarning, setShowRatingWarning] = useState(false);
 
   const StarIcon = ({ active }: { active: boolean }) => {
     const [frame, setFrame] = useState<1 | 2 | 3>(active ? 1 : 3);
@@ -74,6 +73,16 @@ function ScoreView() {
       />
     );
   };
+
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
 
   useEffect(() => {
     const playerPseudo = localStorage.getItem('playerPseudo') || 'Joueur';
@@ -266,6 +275,7 @@ function ScoreView() {
                      key={i}
                     onMouseEnter={() => setHoverRating(i > rating ? i : null)}
                     onClick={() => {
+                      SoundManager.getInstance().playClickSound();
                       fetch('/api/rating', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -274,11 +284,7 @@ function ScoreView() {
                         .then(async (res) => {
                           if (!res.ok) {
                             const data = await res.json().catch(() => ({}));
-                            if (res.status === 409) {
-                              setShowRatingWarning(true);
-                            } else {
-                              console.warn('Failed to save rating', data?.error || res.statusText);
-                            }
+                            console.warn('Failed to save rating', data?.error || res.statusText);
                           } else {
                             setRating(i);
                             setRatingSubmitted(true);
@@ -313,51 +319,48 @@ function ScoreView() {
         </div>
 
 
-        {showRatingWarning && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              background: '#1a1a3a',
-              border: '2px solid rgba(231, 233, 255, 0.2)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              maxWidth: '440px',
-              width: '92%',
-              color: '#e7e9ff',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
-            }}>
-              <h2 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.4rem', fontWeight: 'bold', color: '#ffd166' }}>
-                Note déjà enregistrée
-              </h2>
-              <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
-                Vous avez déjà noté le jeu.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button
-                  onClick={() => setShowRatingWarning(false)}
-                  style={{
-                    padding: '0.6rem 1.1rem',
-                    background: '#e7e9ff',
-                    color: '#040218',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', gap: '1rem' }}>
+          <button
+            onClick={() => {
+              SoundManager.getInstance().playClickSound();
+              try {
+                localStorage.removeItem('playerPseudo');
+                localStorage.removeItem('gameScore');
+              } catch {}
+              router.push('/');
+            }}
+            style={{
+              background: 'transparent',
+              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '100% 100%',
+              backgroundPosition: 'center',
+              imageRendering: 'pixelated',
+              border: 'none',
+              cursor: 'pointer',
+              width: '100px',
+              height: '80px',
+              transform: 'scale(1.5)',
+              transition: 'transform 80ms ease-out'
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')";
+              e.currentTarget.style.transform = 'scale(1.5) translateY(2px)';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
+              e.currentTarget.style.transform = 'scale(1.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
+              e.currentTarget.style.transform = 'scale(1.5)';
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.6)';
+            }}
+          />
+        </div>
       </div>
     </main>
   );

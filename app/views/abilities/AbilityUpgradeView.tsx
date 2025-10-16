@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import TitleBanner from '@/app/components/TitleBanner';
 import { AbilityManager, AbilityUpgrade } from '../../utils/abilities';
+import SoundManager from '../../utils/soundManager';
 
 interface AbilityUpgradePageProps {
   onContinue: () => void;
@@ -216,7 +217,10 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
 
               {!isMaxed && (
                 <button
-                  onClick={() => handleUpgrade(ability.id)}
+                  onClick={() => {
+                    SoundManager.getInstance().playClickSound();
+                    handleUpgrade(ability.id);
+                  }}
                   disabled={!canUpgrade}
                   style={{
                     position: 'relative',
@@ -308,7 +312,10 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
 
       {/* Fixed Continue Button on the right */}
       <button
-        onClick={onContinue}
+        onClick={() => {
+          SoundManager.getInstance().playClickSound();
+          onContinue();
+        }}
         style={{
           position: 'fixed',
           top: '62%',

@@ -14,6 +14,16 @@ function LeaderboardView() {
   const [isLoading, setIsLoading] = useState(true);
   const [dots, setDots] = useState(1);
 
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
+
   useEffect(() => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
