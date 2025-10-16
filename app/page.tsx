@@ -256,10 +256,8 @@ export default function Home() {
             label="Commencer"
             heightPx={160}
             onClick={() => { 
-              sprintRef.current?.(); 
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
-            onPressDown={() => sprintRef.current?.()}
             ariaLabel="Commencer"
           />
         ) : (
@@ -268,10 +266,8 @@ export default function Home() {
             imageDownSrc="/assets/ui/buttons/play-button-down.png"
             heightPx={130}
             onClick={() => { 
-              sprintRef.current?.(); 
               setTimeout(() => submitName(), 150);
             }}
-            onPressDown={() => sprintRef.current?.()}
             ariaLabel="Jouer"
             style={{ paddingTop: '150px', marginLeft: '-15px' }}
             ref={playUiRef}
@@ -312,7 +308,7 @@ export default function Home() {
           <div style={{ position: 'relative', width: '280px', maxWidth: '70vw', aspectRatio: '5 / 2', pointerEvents: 'auto' }}>
             <img src="/assets/ui/main-menu/input.png" alt="Input" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
             <form
-              onSubmit={(e) => { e.preventDefault(); sprintRef.current?.(); animatePlayButton(); setTimeout(() => submitName(), 150); }}
+              onSubmit={(e) => { e.preventDefault(); animatePlayButton(); setTimeout(() => submitName(), 150); }}
               style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '10% 16%' }}
             >
               <input
