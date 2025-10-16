@@ -63,8 +63,6 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             spacing: 0
           });
           this.load.image('background', '/assets/ui/game/game-background.png');
-          // Load snowflake sprite
-          this.load.image('snowflake', '/assets/items/snowflake.png');
           // Load gift sprites (three types)
           this.load.image('cadeau', '/assets/items/gift.png'); // legacy/fallback
           this.load.image('gift1', '/assets/items/gift1.png'); // double points 10s
