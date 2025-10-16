@@ -2,36 +2,42 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import TitleBanner from '@/app/components/TitleBanner';
+import HomeButton from '@/app/components/HomeButton';
+import UiImageButton, { UiImageButtonHandle } from '@/app/components/UiImageButton';
+import ImageModal from '@/app/components/ImageModal';
+import { renderAlternating } from '@/app/utils/renderAlternating';
+import MusicManager from '@/app/utils/musicManager';
+import MusicConsentModal from '@/app/components/MusicConsentModal';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
+import SoundManager from '@/app/utils/soundManager';
 
 export default function Home() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const sprintRef = useRef<() => void>(() => {});
+  const [showMusicConsent, setShowMusicConsent] = useState(false);
   const [showNameOverlay, setShowNameOverlay] = useState(false);
   const [pseudo, setPseudo] = useState('');
   const [showWarning, setShowWarning] = useState(false);
   const [matchedExistingName, setMatchedExistingName] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  const playButtonRef = useRef<HTMLButtonElement | null>(null);
-  const playImageRef = useRef<HTMLImageElement | null>(null);
+  const playUiRef = useRef<UiImageButtonHandle | null>(null);
 
   const animatePlayButton = () => {
-    const btn = playButtonRef.current as HTMLButtonElement | null;
-    const img = playImageRef.current as HTMLImageElement | null;
-    try {
-      if (btn) btn.style.transform = 'scale(0.98)';
-      if (img) img.src = '/assets/ui/buttons/play-button-down.png';
-      setTimeout(() => {
-        if (btn) btn.style.transform = 'scale(1.05)';
-        if (img) img.src = '/assets/ui/buttons/play-button-up.png';
-      }, 150);
-    } catch {}
+    // Play button click sound
+    SoundManager.getInstance().playButtonClick();
+    playUiRef.current?.triggerPress(150);
   };
 
   const submitName = async () => {
     const entered = (pseudo || '').trim();
     if (!entered) return;
+    
+    // Start music on user interaction
+    MusicManager.getInstance().startMusicOnInteraction();
+    
     try {
       const res = await fetch('/api/players', { cache: 'no-store' });
       if (!res.ok) throw new Error('players endpoint returned non-OK');
@@ -59,6 +65,8 @@ export default function Home() {
       return; // Do not proceed to game when verification failed
     }
     localStorage.setItem('playerPseudo', entered);
+    // Stop menu music before going to game
+    MusicManager.getInstance().stop();
     router.push('/views/game');
   };
 
@@ -67,8 +75,39 @@ export default function Home() {
     if (!nameToUse) return;
     localStorage.setItem('playerPseudo', nameToUse);
     setShowWarning(false);
+    // Stop menu music before going to game
+    MusicManager.getInstance().stop();
     router.push('/views/game');
   };
+
+  const handleMusicConsentClose = () => {
+    setShowMusicConsent(false);
+    // Marquer que l'utilisateur a vu la popup
+    localStorage.setItem('hasSeenMusicConsent', 'true');
+  };
+
+  // Menu music effect
+  useEffect(() => {
+    // Vérifier si c'est la première visite
+    const hasSeenMusicConsent = localStorage.getItem('hasSeenMusicConsent');
+    
+    if (!hasSeenMusicConsent) {
+      // Première visite : afficher la popup de consentement
+      setShowMusicConsent(true);
+    } else {
+      // Visite suivante : reprendre la musique si elle était activée
+      const musicManager = MusicManager.getInstance();
+      musicManager.resumeMusicIfEnabled();
+    }
+
+    return () => {
+      // Only stop music if we're going to game, not to other menu pages
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/views/game')) {
+        MusicManager.getInstance().stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -239,38 +278,7 @@ export default function Home() {
       
       {/* Content */}
       <div style={{ position: 'relative', zIndex: 2, paddingTop: '200px' }}>
-        <div
-          style={{
-            position: 'fixed',
-            top: '40px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '640px',
-            height: '160px',
-            backgroundImage: "url('/assets/ui/main-menu/title-background.png')",
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 8px',
-            zIndex: 2,
-            pointerEvents: 'none',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '3rem',
-              color: '#ED1C24',
-              margin: '0 0 25px 0',
-              textAlign: 'center',
-              textShadow: '0 0 20px rgba(231, 233, 255, 0.3)'
-            }}
-          >
-            Drunk Santa
-          </h1>
-        </div>
+        <TitleBanner text="Drunk Santa" backgroundSrc="/assets/ui/main-menu/title-background.png" />
 
         {/* Spacer shown when the input overlay is open to avoid overlap */}
         {showNameOverlay && (
@@ -286,165 +294,51 @@ export default function Home() {
               gap: '24px',
             }}>
         {!showNameOverlay ? (
-          <button
+          <UiImageButton
+            imageUpSrc="/assets/ui/buttons/button-red-up.png"
+            imageDownSrc="/assets/ui/buttons/button-red-down.png"
+            label="Commencer"
+            heightPx={160}
             onClick={() => { 
-              sprintRef.current?.(); 
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              transition: 'transform 0.12s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { 
-              e.currentTarget.style.transform = 'scale(1)'; 
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translateY(-6px)';
-            }}
-            onMouseDown={(e) => { 
-              e.currentTarget.style.transform = 'scale(0.98)'; 
-              sprintRef.current?.();
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translate(-12px, 6px)';
-            }}
-            onMouseUp={(e) => { 
-              e.currentTarget.style.transform = 'scale(1.05)'; 
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translateY(-6px)';
-            }}
-          >
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <img
-                src="/assets/ui/buttons/button-red-up.png"
-                alt="Commencer"
-                style={{ height: '160px', width: 'auto', display: 'block' }}
-                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
-                onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-              />
-              <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Commencer</span>
-            </div>
-          </button>
+            ariaLabel="Commencer"
+          />
         ) : (
-          <button
+          <UiImageButton
+            imageUpSrc="/assets/ui/buttons/play-button-up.png"
+            imageDownSrc="/assets/ui/buttons/play-button-down.png"
+            heightPx={130}
             onClick={() => { 
-              sprintRef.current?.(); 
               setTimeout(() => submitName(), 150);
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              transition: 'transform 0.12s ease',
-              marginLeft: '-20px',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            ref={playButtonRef}
-          >
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <img
-                src="/assets/ui/buttons/play-button-up.png"
-                alt="Jouer"
-                style={{ height: '130px', width: 'auto', display: 'block' }}
-                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-down.png'; }}
-                onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
-                ref={playImageRef}
-              />
-            </div>
-          </button>
+            ariaLabel="Jouer"
+            style={{ paddingTop: '150px', marginLeft: '-15px' }}
+            ref={playUiRef}
+          />
         )}
 
         {!showNameOverlay && (
           <>
             {/* Secondary button below the red one (Comment jouer) */}
-            <button
+            <UiImageButton
+              imageUpSrc="/assets/ui/buttons/button-brown-up.png"
+              imageDownSrc="/assets/ui/buttons/button-brown-down.png"
+              label="Comment jouer"
+              heightPx={160}
               onClick={() => router.push('/views/how-to-play')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                transition: 'transform 0.12s ease',
-                
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { 
-                e.currentTarget.style.transform = 'scale(1)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-              onMouseDown={(e) => { 
-                e.currentTarget.style.transform = 'scale(0.98)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translate(-12px, 6px)';
-              }}
-              onMouseUp={(e) => { 
-                e.currentTarget.style.transform = 'scale(1.05)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img
-                  src="/assets/ui/buttons/button-brown-up.png"
-                  alt="Comment jouer"
-                  style={{ height: '160px', width: 'auto', display: 'block' }}
-                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-down.png'; }}
-                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-up.png'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-up.png'; }}
-                />
-                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Comment jouer</span>
-              </div>
-            </button>
+              ariaLabel="Comment jouer"
+            />
 
             {/* Third green button below the white one */}
-            <button
+            <UiImageButton
+              imageUpSrc="/assets/ui/buttons/button-green-up.png"
+              imageDownSrc="/assets/ui/buttons/button-green-down.png"
+              label="classement"
+              heightPx={110}
               onClick={() => router.push('/views/leaderboard')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                transition: 'transform 0.12s ease',
-                
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { 
-                e.currentTarget.style.transform = 'scale(1)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-              onMouseDown={(e) => { 
-                e.currentTarget.style.transform = 'scale(0.98)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translate(-12px, 6px)';
-              }}
-              onMouseUp={(e) => { 
-                e.currentTarget.style.transform = 'scale(1.05)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img
-                  src="/assets/ui/buttons/button-green-up.png"
-                  alt="Classement"
-                  style={{ height: '110px', width: 'auto', display: 'block' }}
-                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
-                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                />
-                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>classement</span>
-              </div>
-            </button>
+              ariaLabel="Classement"
+            />
           </>
         )}
         </div>
@@ -452,38 +346,13 @@ export default function Home() {
 
       </div>
 
-      {showNameOverlay && (
+        {showNameOverlay && (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 3, paddingTop: '80px', pointerEvents: 'none' }}>
-          {/* Back button like leaderboard */}
-          <button
-            onClick={() => setShowNameOverlay(false)}
-            aria-label="Retour"
-            style={{
-              position: 'absolute',
-              top: '16px',
-              left: '16px',
-              width: '140px',
-              height: '70px',
-              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              zIndex: 4,
-              transition: 'transform 0.12s ease',
-              pointerEvents: 'auto',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-          />
+          <HomeButton onClick={() => setShowNameOverlay(false)} delayMs={150} />
           <div style={{ position: 'relative', width: '280px', maxWidth: '70vw', aspectRatio: '5 / 2', pointerEvents: 'auto' }}>
             <img src="/assets/ui/main-menu/input.png" alt="Input" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
             <form
-              onSubmit={(e) => { e.preventDefault(); sprintRef.current?.(); animatePlayButton(); setTimeout(() => submitName(), 150); }}
+              onSubmit={(e) => { e.preventDefault(); animatePlayButton(); setTimeout(() => submitName(), 150); }}
               style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '10% 16%' }}
             >
               <input
@@ -516,62 +385,48 @@ export default function Home() {
 
       {showWarning && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4, padding: '16px' }}>
-          <div style={{ position: 'relative', width: '540px', maxWidth: '92vw' }}>
-            <img src="/assets/ui/scoreboard/scoreboard-title-background.png" alt="support" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }} />
-            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '0 8%' }}>
-              <div style={{ textAlign: 'center', fontFamily: 'November, sans-serif', fontWeight: 700, fontSize: 'clamp(14px, 2.2vw, 20px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)', lineHeight: 1.8, color: '#b20c0f', marginBottom: '80px' }}>
-                Le pseudo "{(pseudo || '').trim()}" correspond deja a un joueur existant ({matchedExistingName}). Voulez-vous jouer en utilisant cette session existante ?
+          <ImageModal
+            backgroundSrc="/assets/ui/scoreboard/scoreboard-title-background.png"
+            offsetTopPercent={32}
+            content={
+              <div style={{ textAlign: 'center', fontFamily: 'November, sans-serif', fontWeight: 700, fontSize: 'clamp(14px, 2.2vw, 20px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)', lineHeight: 1.8 }}>
+                <span style={{ color: '#b20c0f' }}>Le pseudo "</span>
+                <span>{renderAlternating(`${(pseudo || '').trim()}`, true)}</span>
+                <span style={{ color: '#b20c0f' }}>" correspond deja a un joueur existant (</span>
+                <span>{renderAlternating(`${matchedExistingName || ''}`, false)}</span>
+                <span style={{ color: '#b20c0f' }}>)
+                . Voulez-vous jouer en utilisant cette session existante ?</span>
               </div>
-            </div>
-            {/* Buttons row under the image */}
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px' }}>
-              {/* Red continue */}
-              <button
-                onClick={confirmUseExisting}
-                style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.12s ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              >
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <img
-                    src="/assets/ui/buttons/button-red-up.png"
-                    alt="Continuer"
-                    style={{ height: '80px', width: 'auto', display: 'block' }}
-                    onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
-                    onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-                  />
-                  <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#1b0f10', fontSize: '1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-4px)' }}>Continuer</span>
-                </div>
-              </button>
-
-              {/* Green modify */}
-              <button
-                onClick={() => setShowWarning(false)}
-                style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.12s ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              >
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <img
-                    src="/assets/ui/buttons/button-green-up.png"
-                    alt="Modifier"
-                    style={{ height: '80px', width: 'auto', display: 'block' }}
-                    onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
-                    onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                  />
-                  <span style={{ position: 'absolute', right: '-5px', top: '25px', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#1b0f10', fontSize: '1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase' }}>Modifier</span>
-                </div>
-              </button>
-            </div>
-          </div>
+            }
+            buttons={[
+              {
+                imageUpSrc: '/assets/ui/buttons/button-red-up.png',
+                imageDownSrc: '/assets/ui/buttons/button-red-down.png',
+                label: 'Continuer',
+                heightPx: 160,
+                onClick: confirmUseExisting,
+                ariaLabel: 'Continuer',
+              },
+              {
+                imageUpSrc: '/assets/ui/buttons/button-green-up.png',
+                imageDownSrc: '/assets/ui/buttons/button-green-down.png',
+                label: 'Modifier',
+                heightPx: 110,
+                onClick: () => setShowWarning(false),
+                ariaLabel: 'Modifier',
+              },
+            ]}
+          />
         </div>
       )}
-    </main>
-  );
-}
+
+      {/* Music Consent Modal */}
+        {showMusicConsent && (
+          <MusicConsentModal onClose={handleMusicConsentClose} />
+        )}
+
+        {/* Sound toggle button */}
+        <SoundToggleButton />
+      </main>
+    );
+  }

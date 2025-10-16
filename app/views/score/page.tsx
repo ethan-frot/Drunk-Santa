@@ -2,19 +2,26 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import TitleBanner from '@/app/components/TitleBanner';
+import HomeButton from '@/app/components/HomeButton';
+import { renderAlternating } from '@/app/utils/renderAlternating';
+import MusicManager from '@/app/utils/musicManager';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
+import SoundManager from '@/app/utils/soundManager';
+import { useFakeLoading } from '@/app/hooks/useFakeLoading';
+import { LoadingCard } from '@/app/components/LoadingCard';
 
 function ScoreView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pseudo, setPseudo] = useState('');
-  const [score, setScore] = useState(0);
+  const [score, setScore] = useState(0); // last game score, used for POST only
+  const [bestScore, setBestScore] = useState(0);
   const postedRef = useRef(false);
-  const [leaderboard, setLeaderboard] = useState<{ top: { rank: number; name: string; bestScore: number }[]; player: { name: string; bestScore: number; rank: number; inTop: boolean } | null }>({ top: [], player: null });
-  const leaderboardAbortRef = useRef<AbortController | null>(null);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
-  const [showRatingWarning, setShowRatingWarning] = useState(false);
+  const { isLoading, dots, startLoading, finishLoading } = useFakeLoading();
 
   const StarIcon = ({ active }: { active: boolean }) => {
     const [frame, setFrame] = useState<1 | 2 | 3>(active ? 1 : 3);
@@ -73,6 +80,16 @@ function ScoreView() {
     );
   };
 
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
+
   useEffect(() => {
     const playerPseudo = localStorage.getItem('playerPseudo') || 'Joueur';
     setPseudo(playerPseudo);
@@ -81,6 +98,26 @@ function ScoreView() {
     const fromStorage = parseInt(localStorage.getItem('gameScore') || '0');
     setScore(fromStorage);
   }, [searchParams]);
+
+  // Load current bestScore when we know the pseudo (independent of the current game score)
+  useEffect(() => {
+    if (!pseudo) return;
+    
+    startLoading();
+    let aborted = false;
+    fetch(`/api/score?name=${encodeURIComponent(pseudo)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
+      .then((data) => {
+        if (aborted) return;
+        const value = typeof data?.bestScore === 'number' ? data.bestScore : 0;
+        setBestScore(value);
+      })
+      .catch(() => {})
+      .finally(() => {
+        finishLoading();
+      });
+    return () => { aborted = true; };
+  }, [pseudo, startLoading, finishLoading]);
 
   useEffect(() => {
     if (!pseudo) return;
@@ -97,25 +134,7 @@ function ScoreView() {
     return () => { aborted = true; };
   }, [pseudo]);
 
-  const loadLeaderboard = (name: string) => {
-    if (!name) return;
-    // abort any in-flight leaderboard request
-    if (leaderboardAbortRef.current) leaderboardAbortRef.current.abort();
-    const controller = new AbortController();
-    leaderboardAbortRef.current = controller;
-    fetch(`/api/leaderboard?name=${encodeURIComponent(name)}`, { signal: controller.signal, cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
-      .then((data) => setLeaderboard({ top: data.top || [], player: data.player || null }))
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    if (!pseudo) return;
-    // If a post is about to happen (score > 0), let the POST callback refresh leaderboard.
-    // Else, load immediately (e.g., score 0 or revisit page).
-    if (score > 0 && !postedRef.current) return;
-    loadLeaderboard(pseudo);
-  }, [pseudo, score]);
+  // No leaderboard loading here; score page concerns player's best score only
 
   useEffect(() => {
     if (postedRef.current) return;
@@ -146,13 +165,13 @@ function ScoreView() {
         signal
       })
         .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
           if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
             // eslint-disable-next-line no-console
             console.warn('Failed to save score', data?.error || res.statusText);
           } else {
-            // refresh leaderboard so the user sees their new rank immediately
-            loadLeaderboard(pseudo);
+            // Update local bestScore from server response
+            if (typeof data?.bestScore === 'number') setBestScore(data.bestScore);
           }
         })
         .catch((err) => {
@@ -165,39 +184,7 @@ function ScoreView() {
     return () => controller.abort();
   }, [pseudo, score]);
 
-  const top10 = (() => {
-    const real = (leaderboard.top || []).filter((r) => r.bestScore > 0);
-    const filled = [...real];
-    for (let i = filled.length + 1; i <= 10; i++) {
-      filled.push({ rank: i, name: '-', bestScore: 0 });
-    }
-    return filled.slice(0, 10);
-  })();
-
-  const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
-
-  // Render text with alternating per-letter colors. If startWithRed is true, the
-  // first non-space character is red, otherwise green. Spaces are preserved.
-  const renderAlternating = (text: string, startWithRed: boolean) => {
-    const red = '#B45252';
-    const green = '#8AB060';
-    let useRed = startWithRed;
-    return (
-      <>
-        {text.split('')
-          .map((ch, idx) => {
-            if (ch === ' ') return <span key={idx}> </span>;
-            const color = useRed ? red : green;
-            useRed = !useRed;
-            return (
-              <span key={idx} style={{ color }}>
-                {ch}
-              </span>
-            );
-          })}
-      </>
-    );
-  };
+  // using shared renderAlternating
 
   return (
     <main style={{ 
@@ -210,43 +197,22 @@ function ScoreView() {
       justifyContent: 'center',
       gap: '1.5rem',
       padding: '2rem',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative'
     }}>
-      <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '1rem',
-          marginTop: '-2rem'
-        }}>
-          <img 
-            src="/assets/ui/main-menu/title-background.png" 
-            alt="Title background"
-            style={{
-              width: 'auto',
-              height: '220px',
-              objectFit: 'contain'
-            }}
-          />
-          <h1 style={{ 
-            position: 'absolute',
-            fontSize: '3.2rem', 
-            fontWeight: 'bold', 
-            fontFamily: 'November, sans-serif',
-            color: '#ff4444',
-            margin: 0,
-            textAlign: 'center',
-            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-            top: '46%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            whiteSpace: 'nowrap'
-          }}>
-            Partie Terminee!
-          </h1>
-        </div>
+      <HomeButton />
+      
+      {isLoading ? (
+        <LoadingCard
+          isLoading={isLoading}
+          dots={dots}
+          title="Chargement du score"
+          subtitle="Synchronisation avec le serveur..."
+        />
+      ) : (
+        <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <TitleBanner text="Partie finie" backgroundSrc="/assets/ui/main-menu/title-background.png" />
+        <div style={{ height: '180px' }} />
 
         <div style={{
         position: 'relative',
@@ -284,7 +250,7 @@ function ScoreView() {
             </div>
           </div>
 
-          {/* Score section */}
+          {/* Best score section */}
           <div style={{
           width: '100%',
           height: '80px',
@@ -300,7 +266,7 @@ function ScoreView() {
               fontFamily: 'November, sans-serif',
               textAlign: 'center'
             }}>
-              {renderAlternating(`Score: ${score}`, false)}
+              {renderAlternating(`Meilleur score: ${bestScore}`, false)}
             </div>
           </div>
 
@@ -329,6 +295,7 @@ function ScoreView() {
                      key={i}
                     onMouseEnter={() => setHoverRating(i > rating ? i : null)}
                     onClick={() => {
+                      SoundManager.getInstance().playButtonClick();
                       fetch('/api/rating', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -337,11 +304,7 @@ function ScoreView() {
                         .then(async (res) => {
                           if (!res.ok) {
                             const data = await res.json().catch(() => ({}));
-                            if (res.status === 409) {
-                              setShowRatingWarning(true);
-                            } else {
-                              console.warn('Failed to save rating', data?.error || res.statusText);
-                            }
+                            console.warn('Failed to save rating', data?.error || res.statusText);
                           } else {
                             setRating(i);
                             setRatingSubmitted(true);
@@ -374,95 +337,11 @@ function ScoreView() {
             )}
           </div>
         </div>
-
-
-        {showRatingWarning && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              background: '#1a1a3a',
-              border: '2px solid rgba(231, 233, 255, 0.2)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-              maxWidth: '440px',
-              width: '92%',
-              color: '#e7e9ff',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
-            }}>
-              <h2 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.4rem', fontWeight: 'bold', color: '#ffd166' }}>
-                Note déjà enregistrée
-              </h2>
-              <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
-                Vous avez déjà noté le jeu.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button
-                  onClick={() => setShowRatingWarning(false)}
-                  style={{
-                    padding: '0.6rem 1.1rem',
-                    background: '#e7e9ff',
-                    color: '#040218',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', gap: '1rem' }}>
-          <button
-            onClick={() => {
-              try {
-                localStorage.removeItem('playerPseudo');
-                localStorage.removeItem('gameScore');
-              } catch {}
-              router.push('/');
-            }}
-            style={{
-              background: 'transparent',
-              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '100% 100%',
-              backgroundPosition: 'center',
-              imageRendering: 'pixelated',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100px',
-              height: '80px',
-              transform: 'scale(1.5)',
-              transition: 'transform 80ms ease-out'
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')";
-              e.currentTarget.style.transform = 'scale(1.5) translateY(2px)';
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
-              e.currentTarget.style.transform = 'scale(1.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
-              e.currentTarget.style.transform = 'scale(1.5)';
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.6)';
-            }}
-          />
-        </div>
       </div>
+      )}
+      
+      {/* Sound toggle button */}
+      <SoundToggleButton />
     </main>
   );
 }

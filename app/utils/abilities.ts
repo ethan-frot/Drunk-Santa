@@ -183,8 +183,8 @@ export class AbilityManager {
               const currentStage = Math.max(0, Math.min(3, ab.currentStage || 0));
               return {
                 id: 'bonus_size',
-                name: 'Bonus Size',
-                description: 'Increase gifts and vodka size',
+                name: 'Taille des bonus',
+                description: 'Rend les bonus plus grands et plus faciles a attraper',
                 baseValue: 0.0,
                 stages: [0.33, 0.66, 1.0],
                 currentStage,

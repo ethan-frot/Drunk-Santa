@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import GameCanvas from '../../components/GameCanvas';
+import ImageModal from '@/app/components/ImageModal';
+import { renderAlternating } from '@/app/utils/renderAlternating';
 import { AbilityUpgradeView } from '../abilities/AbilityUpgradeView';
+import MusicManager from '../../utils/musicManager';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 // Prevent static prerender to avoid SSR touching browser APIs
 export const dynamic = 'force-dynamic';
@@ -14,6 +18,12 @@ export default function DisplayGamePage() {
     const [gameResults, setGameResults] = useState<{snowflakesEarned: number, totalScore: number} | null>(null);
     const [runId, setRunId] = useState(0); // forces GameCanvas remount
     const [showEndModal, setShowEndModal] = useState(false);
+    const [buttonsEnabled, setButtonsEnabled] = useState(false);
+    
+    // Stop menu music when entering game
+    useEffect(() => {
+        MusicManager.getInstance().stop();
+    }, []);
     
     const handleGameEnd = (snowflakesEarned: number, totalScore: number) => {
         // Save results
@@ -22,6 +32,13 @@ export default function DisplayGamePage() {
         setGameResults({ snowflakesEarned, totalScore });
         // Open choice modal (game will be paused automatically)
         setShowEndModal(true);
+        // Disable buttons initially
+        setButtonsEnabled(false);
+        
+        // Enable buttons after 2 seconds
+        setTimeout(() => {
+            setButtonsEnabled(true);
+        }, 2000);
 
         // Immediately persist absolute total from server current value to avoid cross-user mixing
         (async () => {
@@ -58,6 +75,8 @@ export default function DisplayGamePage() {
     const handleStop = () => {
         // From modal, go to score page
         setShowEndModal(false);
+        // Resume menu music when going to score page
+        MusicManager.getInstance().playMenuMusic();
         router.push('/views/score');
     };
 
@@ -83,73 +102,60 @@ export default function DisplayGamePage() {
         <GameCanvas key={runId} onGameEnd={handleGameEnd} isPaused={showEndModal} />
 
         {showEndModal && gameResults && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              background: '#1a1a3a',
-              border: '2px solid rgba(231, 233, 255, 0.2)',
-              borderRadius: '16px',
-              padding: '2rem',
-              maxWidth: '480px',
-              width: '92%',
-              color: '#e7e9ff',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
-            }}>
-              <h2 style={{
-                margin: 0,
-                marginBottom: '0.75rem',
-                fontSize: '1.6rem',
-                fontWeight: 'bold',
-                color: '#ffd166'
-              }}>
-                Partie terminée
-              </h2>
-              <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
-                Score: <strong>{gameResults.totalScore}</strong> — Flocons gagnés: <strong>+{gameResults.snowflakesEarned}</strong>
-              </p>
-              <p style={{ marginTop: '0.75rem', opacity: 0.9 }}>Voulez-vous continuer avec des améliorations ou voir votre score ?</p>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={handleStop}
-                  style={{
-                    padding: '0.6rem 1.1rem',
-                    background: '#e7e9ff',
-                    color: '#040218',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Arrêter et voir le score
-                </button>
-                <button
-                  onClick={handleContinue}
-                  style={{
-                    padding: '0.6rem 1.1rem',
-                    background: 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))',
-                    color: '#e7e9ff',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Continuer avec upgrades
-                </button>
-              </div>
-            </div>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4, padding: '16px' }}>
+            <ImageModal
+              backgroundSrc="/assets/ui/scoreboard/scoreboard-title-background.png"
+              offsetTopPercent={32}
+              content={
+                <div style={{ 
+                  textAlign: 'center', 
+                  fontFamily: 'November, sans-serif', 
+                  fontWeight: 700, 
+                  fontSize: 'clamp(14px, 2.2vw, 20px)', 
+                  textShadow: '0 2px 0 rgba(0,0,0,0.25)', 
+                  lineHeight: 1.8,
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none'
+                }}>
+                  <div style={{ color: '#b20c0f', marginBottom: '6px' }}>Partie terminee !</div>
+                  <div>
+                    {renderAlternating(`Score: ${gameResults.totalScore}`, true)}
+                    <span style={{ color: '#b20c0f' }}> — </span>
+                    {renderAlternating(`Flocons gagnes: +${gameResults.snowflakesEarned}`, false)}
+                  </div>
+                  <div style={{ color: '#b20c0f', marginTop: '6px' }}>Voulez-vous continuer avec des ameliorations ou voir votre score ?</div>
+                </div>
+              }
+              buttons={[
+                {
+                  imageUpSrc: '/assets/ui/buttons/button-red-up.png',
+                  imageDownSrc: '/assets/ui/buttons/button-red-down.png',
+                  label: 'Arreter',
+                  heightPx: 160,
+                  onClick: buttonsEnabled ? handleStop : () => {},
+                  disabled: !buttonsEnabled,
+                  ariaLabel: 'Arreter',
+                },
+                {
+                  imageUpSrc: '/assets/ui/buttons/button-green-up.png',
+                  imageDownSrc: '/assets/ui/buttons/button-green-down.png',
+                  label: 'Continuer avec ameliorations',
+                  heightPx: 110,
+                  onClick: buttonsEnabled ? handleContinue : () => {},
+                  disabled: !buttonsEnabled,
+                  ariaLabel: 'Continuer',
+                },
+              ]}
+            />
           </div>
         )}
+        
+        {/* Sound toggle button */}
+        <SoundToggleButton />
       </main>
     );
-}
+  }
 
 

@@ -1,7 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import HomeButton from '@/app/components/HomeButton';
+import TitleBanner from '@/app/components/TitleBanner';
+import MusicManager from '@/app/utils/musicManager';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 export default function HowToPlayPage() {
   const router = useRouter();
@@ -10,54 +14,23 @@ export default function HowToPlayPage() {
   const s = (n: number) => Math.round(n * scale);
   const iconCol = s(120);
 
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
+
   return (
     <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: '20px', position: 'relative' }}>
-      {/* Home button top-left (same as leaderboard) */}
-      <button
-        onClick={() => router.push('/')}
-        aria-label="Retour à l'accueil"
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '16px',
-          width: '140px',
-          height: '70px',
-          backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundColor: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          zIndex: 5,
-          transition: 'transform 0.12s ease',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-        onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-        onTouchStart={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-        onTouchEnd={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-      />
+      <HomeButton />
       {/* Title banner */}
-      <div
-        style={{
-          width: '640px',
-          height: '160px',
-          backgroundImage: "url('/assets/ui/abilities/abilities-menu/title-background copy.png')",
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '10px auto 0',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', transform: 'translateY(-14px)' }}>
-          <div style={{ fontSize: '32px', color: '#ED1C24', fontFamily: 'November, sans-serif', fontWeight: 700, textAlign: 'center' }}>Comment jouer</div>
-        </div>
-      </div>
+      <TitleBanner text="Comment jouer" backgroundSrc="/assets/ui/abilities/abilities-menu/title-background copy.png" fixedTop={true} topOffsetPx={40} fontSizeRem={2.4} />
+      {/* Spacer to avoid content passing under the fixed banner */}
+      <div style={{ height: '180px' }} />
 
       {/* Cards grid */}
       <div style={{
@@ -165,6 +138,9 @@ export default function HowToPlayPage() {
           </div>
         </div>
       </div>
+      
+      {/* Sound toggle button */}
+      <SoundToggleButton />
     </main>
   );
 }
