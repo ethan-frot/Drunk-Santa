@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { renderAlternating } from '@/app/utils/renderAlternating';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 type TopRow = { rank: number; name: string; bestScore: number };
@@ -40,29 +41,6 @@ function LeaderboardView() {
   }, [leaderboard.top]);
 
   const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
-
-  // Render text with alternating per-letter colors. If startWithRed is true, the
-  // first non-space character is red, otherwise green. Spaces are preserved.
-  const renderAlternating = (text: string, startWithRed: boolean) => {
-    const red = '#B45252';
-    const green = '#8AB060';
-    let useRed = startWithRed;
-    return (
-      <>
-        {text.split('')
-          .map((ch, idx) => {
-            if (ch === ' ') return <span key={idx}> </span>;
-            const color = useRed ? red : green;
-            useRed = !useRed;
-            return (
-              <span key={idx} style={{ color }}>
-                {ch}
-              </span>
-            );
-          })}
-      </>
-    );
-  };
 
   return (
     <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', position: 'relative' }}>
