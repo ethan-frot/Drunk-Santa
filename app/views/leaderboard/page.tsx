@@ -2,45 +2,34 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { renderAlternating } from '@/app/utils/renderAlternating';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 type TopRow = { rank: number; name: string; bestScore: number };
-type PlayerRow = { name: string; bestScore: number; rank: number; inTop: boolean };
 
 function LeaderboardView() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [pseudo, setPseudo] = useState('');
-  const [leaderboard, setLeaderboard] = useState<{ top: TopRow[]; player: PlayerRow | null }>({ top: [], player: null });
+  const [top, setTop] = useState<TopRow[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    const playerPseudo = localStorage.getItem('playerPseudo') || 'Joueur';
-    setPseudo(playerPseudo);
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!pseudo) return;
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    fetch(`/api/leaderboard?name=${encodeURIComponent(pseudo)}`, { signal: controller.signal, cache: 'no-store' })
+    fetch(`/api/leaderboard`, { signal: controller.signal, cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
-      .then((data) => setLeaderboard({ top: data.top || [], player: data.player || null }))
+      .then((data) => setTop(data.top || []))
       .catch(() => {});
     return () => controller.abort();
-  }, [pseudo]);
+  }, []);
 
   const top10: TopRow[] = useMemo(() => {
-    const real = (leaderboard.top || []).filter((r) => r.bestScore > 0);
+    const real = (top || []).filter((r) => r.bestScore > 0);
     const filled = [...real];
     for (let i = filled.length + 1; i <= 10; i++) {
       filled.push({ rank: i, name: '-', bestScore: 0 });
     }
     return filled.slice(0, 10);
-  }, [leaderboard.top]);
-
-  const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
+  }, [top]);
 
   return (
     <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', position: 'relative' }}>
@@ -109,15 +98,7 @@ function LeaderboardView() {
             })}
           </div>
 
-          {/* Player row (not in top) pinned at the bottom over the image */}
-          {playerNotInTop && (
-            <div style={{ position: 'absolute', left: '14%', right: '14%', bottom: '6%', color: '#8AB060', fontWeight: 700, fontFamily: 'November, system-ui, Arial', fontSize: 'clamp(11px, 1.5vw, 16px)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '56px 1fr', alignItems: 'center' }}>
-                <div style={{ textAlign: 'right', paddingRight: '0.4rem' }}>#{playerNotInTop.rank}</div>
-                <div style={{ }}>{playerNotInTop.name}</div>
-              </div>
-            </div>
-          )}
+          {/* No player-specific row; only Top 10 is displayed */}
         </div>
       </div>
     </main>
