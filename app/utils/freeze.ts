@@ -48,7 +48,8 @@ export class AntiBoostManager {
 
   private spawnJar() {
     const { width } = this.scene.scale;
-    const x = Phaser.Math.Between(50, width - 50);
+    const between = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const x = between(50, width - 50);
     const y = -40;
 
     const jar = this.scene.add.sprite(x, y, 'antiboost');
@@ -83,7 +84,6 @@ export class AntiBoostManager {
     }
 
     // Gentle swing similar to vodka
-    const between = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
     this.scene.tweens.add({
       targets: jar,
       angle: between(-6, 6),

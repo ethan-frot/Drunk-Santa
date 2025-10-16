@@ -14,7 +14,8 @@ export class GiftManager {
   }
 
   public setGiftSize(progress: number) {
-    this.bonusSizeProgress = Phaser.Math.Clamp(progress, 0, 1);
+    const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+    this.bonusSizeProgress = clamp(progress, 0, 1);
   }
 
   public getGiftSize(): number {
