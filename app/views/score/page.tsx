@@ -402,7 +402,7 @@ export default function DisplayScorePage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.25rem', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', gap: '1rem' }}>
           <button
             onClick={() => {
               try {
@@ -420,28 +420,28 @@ export default function DisplayScorePage() {
               imageRendering: 'pixelated',
               border: 'none',
               cursor: 'pointer',
-              padding: '1rem 1rem',
+              padding: '1.2rem 1.2rem',
               fontFamily: 'November, sans-serif',
               color: '#ffffff',
-              fontSize: '1.8rem',
-              transform: 'scale(1.8)',
+              fontSize: '1.4rem',
+              transform: 'scale(2.0)',
               transition: 'transform 80ms ease-out',
               width: 'auto',
-              minWidth: '110px'
+              minWidth: '120px'
             }}
             onMouseDown={(e) => {
               e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
-              e.currentTarget.style.transform = 'scale(1.8) translateY(2px)';
+              e.currentTarget.style.transform = 'scale(2.0) translateY(2px)';
               (e.currentTarget as HTMLButtonElement).style.color = '#ffe5e5';
             }}
             onMouseUp={(e) => {
               e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
-              e.currentTarget.style.transform = 'scale(1.8)';
+              e.currentTarget.style.transform = 'scale(2.0)';
               (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
-              e.currentTarget.style.transform = 'scale(1.8)';
+              e.currentTarget.style.transform = 'scale(2.0)';
               (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
             }}
           >
