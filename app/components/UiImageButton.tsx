@@ -12,6 +12,7 @@ type UiImageButtonProps = {
   ariaLabel?: string;
   labelStyle?: CSSProperties;
   delayMs?: number; // artificial delay before firing onClick
+  style?: CSSProperties; // allow positioning overrides
 };
 
 export default function UiImageButton({
@@ -24,6 +25,7 @@ export default function UiImageButton({
   ariaLabel,
   labelStyle,
   delayMs = 50,
+  style,
 }: UiImageButtonProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const rootRef = useRef<HTMLButtonElement | null>(null);
@@ -121,7 +123,7 @@ export default function UiImageButton({
       ref={rootRef}
       onClick={handleClick}
       aria-label={ariaLabel}
-      style={rootStyle}
+      style={{ ...rootStyle, ...(style || {}) }}
       disabled={isWaiting}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

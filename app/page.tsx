@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import TitleBanner from '@/app/components/TitleBanner';
+import HomeButton from '@/app/components/HomeButton';
 import UiImageButton from '@/app/components/UiImageButton';
 
 export default function Home() {
@@ -311,34 +312,9 @@ export default function Home() {
 
       </div>
 
-      {showNameOverlay && (
+        {showNameOverlay && (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 3, paddingTop: '80px', pointerEvents: 'none' }}>
-          {/* Back button like leaderboard */}
-          <button
-            onClick={() => setShowNameOverlay(false)}
-            aria-label="Retour"
-            style={{
-              position: 'absolute',
-              top: '16px',
-              left: '16px',
-              width: '140px',
-              height: '70px',
-              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              zIndex: 4,
-              transition: 'transform 0.12s ease',
-              pointerEvents: 'auto',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-          />
+          <HomeButton onClick={() => setShowNameOverlay(false)} delayMs={150} />
           <div style={{ position: 'relative', width: '280px', maxWidth: '70vw', aspectRatio: '5 / 2', pointerEvents: 'auto' }}>
             <img src="/assets/ui/main-menu/input.png" alt="Input" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
             <form

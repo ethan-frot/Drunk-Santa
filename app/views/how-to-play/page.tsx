@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import HomeButton from '@/app/components/HomeButton';
 import TitleBanner from '@/app/components/TitleBanner';
 
 export default function HowToPlayPage() {
@@ -13,33 +14,7 @@ export default function HowToPlayPage() {
 
   return (
     <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: '20px', position: 'relative' }}>
-      {/* Home button top-left (same as leaderboard) */}
-      <button
-        onClick={() => router.push('/')}
-        aria-label="Retour à l'accueil"
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '16px',
-          width: '140px',
-          height: '70px',
-          backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundColor: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          zIndex: 5,
-          transition: 'transform 0.12s ease',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-        onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-        onTouchStart={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-        onTouchEnd={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-      />
+      <HomeButton />
       {/* Title banner */}
       <TitleBanner text="Comment jouer" backgroundSrc="/assets/ui/abilities/abilities-menu/title-background copy.png" fixedTop={true} topOffsetPx={40} fontSizeRem={2.4} />
       {/* Spacer to avoid content passing under the fixed banner */}

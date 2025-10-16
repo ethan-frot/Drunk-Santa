@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import TitleBanner from '@/app/components/TitleBanner';
+import HomeButton from '@/app/components/HomeButton';
 import { renderAlternating } from '@/app/utils/renderAlternating';
 
 function ScoreView() {
@@ -179,33 +180,7 @@ function ScoreView() {
       overflow: 'hidden',
       position: 'relative'
     }}>
-      {/* Home button top-left */}
-      <button
-        onClick={() => router.push('/')}
-        aria-label="Retour à l'accueil"
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '16px',
-          width: '140px',
-          height: '70px',
-          backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundColor: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          zIndex: 5,
-          transition: 'transform 0.12s ease',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-        onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-        onTouchStart={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-        onTouchEnd={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-      />
+      <HomeButton />
       <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <TitleBanner text="Partie finie" backgroundSrc="/assets/ui/main-menu/title-background.png" />
         <div style={{ height: '180px' }} />
