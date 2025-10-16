@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import MusicManager from './utils/musicManager';
-import SoundManager from './utils/soundManager';
+import TitleBanner from '@/app/components/TitleBanner';
+import HomeButton from '@/app/components/HomeButton';
+import UiImageButton from '@/app/components/UiImageButton';
 
 export default function Home() {
   const router = useRouter();
@@ -263,38 +264,7 @@ export default function Home() {
       
       {/* Content */}
       <div style={{ position: 'relative', zIndex: 2, paddingTop: '200px' }}>
-        <div
-          style={{
-            position: 'fixed',
-            top: '40px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '640px',
-            height: '160px',
-            backgroundImage: "url('/assets/ui/main-menu/title-background.png')",
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 8px',
-            zIndex: 2,
-            pointerEvents: 'none',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '3rem',
-              color: '#ED1C24',
-              margin: '0 0 25px 0',
-              textAlign: 'center',
-              textShadow: '0 0 20px rgba(231, 233, 255, 0.3)'
-            }}
-          >
-            Drunk Santa
-          </h1>
-        </div>
+        <TitleBanner text="Drunk Santa" backgroundSrc="/assets/ui/main-menu/title-background.png" />
 
         {/* Spacer shown when the input overlay is open to avoid overlap */}
         {showNameOverlay && (
@@ -310,176 +280,57 @@ export default function Home() {
               gap: '24px',
             }}>
         {!showNameOverlay ? (
-          <button
+          <UiImageButton
+            imageUpSrc="/assets/ui/buttons/button-red-up.png"
+            imageDownSrc="/assets/ui/buttons/button-red-down.png"
+            label="Commencer"
+            heightPx={160}
             onClick={() => { 
               MusicManager.getInstance().startMusicOnInteraction();
               SoundManager.getInstance().playClickSound();
               sprintRef.current?.(); 
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              transition: 'transform 0.12s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { 
-              e.currentTarget.style.transform = 'scale(1)'; 
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translateY(-6px)';
-            }}
-            onMouseDown={(e) => { 
-              e.currentTarget.style.transform = 'scale(0.98)'; 
-              sprintRef.current?.();
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translate(-12px, 6px)';
-            }}
-            onMouseUp={(e) => { 
-              e.currentTarget.style.transform = 'scale(1.05)'; 
-              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-              if (label) label.style.transform = 'translateY(-6px)';
-            }}
-          >
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <img
-                src="/assets/ui/buttons/button-red-up.png"
-                alt="Commencer"
-                style={{ height: '160px', width: 'auto', display: 'block' }}
-                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
-                onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-              />
-              <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Commencer</span>
-            </div>
-          </button>
+            onPressDown={() => sprintRef.current?.()}
+            ariaLabel="Commencer"
+          />
         ) : (
-          <button
+          <UiImageButton
+            imageUpSrc="/assets/ui/buttons/play-button-up.png"
+            imageDownSrc="/assets/ui/buttons/play-button-down.png"
+            heightPx={130}
             onClick={() => { 
               SoundManager.getInstance().playClickSound();
               sprintRef.current?.(); 
               setTimeout(() => submitName(), 150);
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              transition: 'transform 0.12s ease',
-              marginLeft: '-20px',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            ref={playButtonRef}
-          >
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <img
-                src="/assets/ui/buttons/play-button-up.png"
-                alt="Jouer"
-                style={{ height: '130px', width: 'auto', display: 'block' }}
-                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-down.png'; }}
-                onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
-                ref={playImageRef}
-              />
-            </div>
-          </button>
+            onPressDown={() => sprintRef.current?.()}
+            ariaLabel="Jouer"
+            style={{ paddingTop: '150px', marginLeft: '-15px' }}
+          />
         )}
 
         {!showNameOverlay && (
           <>
             {/* Secondary button below the red one (Comment jouer) */}
-            <button
-              onClick={() => {
-                MusicManager.getInstance().startMusicOnInteraction();
-                SoundManager.getInstance().playClickSound();
-                router.push('/views/how-to-play');
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                transition: 'transform 0.12s ease',
-                
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { 
-                e.currentTarget.style.transform = 'scale(1)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-              onMouseDown={(e) => { 
-                e.currentTarget.style.transform = 'scale(0.98)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translate(-12px, 6px)';
-              }}
-              onMouseUp={(e) => { 
-                e.currentTarget.style.transform = 'scale(1.05)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img
-                  src="/assets/ui/buttons/button-brown-up.png"
-                  alt="Comment jouer"
-                  style={{ height: '160px', width: 'auto', display: 'block' }}
-                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-down.png'; }}
-                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-up.png'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-brown-up.png'; }}
-                />
-                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>Comment jouer</span>
-              </div>
-            </button>
+            <UiImageButton
+              imageUpSrc="/assets/ui/buttons/button-brown-up.png"
+              imageDownSrc="/assets/ui/buttons/button-brown-down.png"
+              label="Comment jouer"
+              heightPx={160}
+              onClick={() => router.push('/views/how-to-play')}
+              ariaLabel="Comment jouer"
+            />
 
             {/* Third green button below the white one */}
-            <button
-              onClick={() => {
-                MusicManager.getInstance().startMusicOnInteraction();
-                SoundManager.getInstance().playClickSound();
-                router.push('/views/leaderboard');
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                transition: 'transform 0.12s ease',
-                
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { 
-                e.currentTarget.style.transform = 'scale(1)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-              onMouseDown={(e) => { 
-                e.currentTarget.style.transform = 'scale(0.98)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translate(-12px, 6px)';
-              }}
-              onMouseUp={(e) => { 
-                e.currentTarget.style.transform = 'scale(1.05)'; 
-                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
-                if (label) label.style.transform = 'translateY(-6px)';
-              }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img
-                  src="/assets/ui/buttons/button-green-up.png"
-                  alt="Classement"
-                  style={{ height: '110px', width: 'auto', display: 'block' }}
-                  onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
-                  onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                />
-                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>classement</span>
-              </div>
-            </button>
+            <UiImageButton
+              imageUpSrc="/assets/ui/buttons/button-green-up.png"
+              imageDownSrc="/assets/ui/buttons/button-green-down.png"
+              label="classement"
+              heightPx={110}
+              onClick={() => router.push('/views/leaderboard')}
+              ariaLabel="Classement"
+            />
           </>
         )}
         </div>
@@ -487,37 +338,9 @@ export default function Home() {
 
       </div>
 
-      {showNameOverlay && (
+        {showNameOverlay && (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 3, paddingTop: '80px', pointerEvents: 'none' }}>
-          {/* Back button like leaderboard */}
-          <button
-            onClick={() => {
-              SoundManager.getInstance().playClickSound();
-              setShowNameOverlay(false);
-            }}
-            aria-label="Retour"
-            style={{
-              position: 'absolute',
-              top: '16px',
-              left: '16px',
-              width: '140px',
-              height: '70px',
-              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              zIndex: 4,
-              transition: 'transform 0.12s ease',
-              pointerEvents: 'auto',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-          />
+          <HomeButton onClick={() => setShowNameOverlay(false)} delayMs={150} />
           <div style={{ position: 'relative', width: '280px', maxWidth: '70vw', aspectRatio: '5 / 2', pointerEvents: 'auto' }}>
             <img src="/assets/ui/main-menu/input.png" alt="Input" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
             <form

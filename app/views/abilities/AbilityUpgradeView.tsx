@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import TitleBanner from '@/app/components/TitleBanner';
 import { AbilityManager, AbilityUpgrade } from '../../utils/abilities';
 import SoundManager from '../../utils/soundManager';
 
@@ -116,32 +117,18 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
       fontFamily: 'November, sans-serif',
       padding: '20px'
     }}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <div
-          style={{
-            width: '640px',
-            height: '160px',
-            backgroundImage: "url('/assets/ui/abilities/abilities-menu/title-background copy.png')",
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '10px auto 0',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', transform: 'translateY(-14px)' }}>
-            <div style={{ fontSize: '24px', color: '#ED1C24' }}>
-            Flocons gagnes : <span style={{ color: '#ED1C24', fontWeight: 'bold' }}>+{snowflakesEarned}</span>
-            </div>
-            <div style={{ fontSize: '20px', color: '#ED1C24' }}>
-            Total : <span style={{ fontWeight: 'bold' }}>{totalSnowflakes}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Header using shared TitleBanner with reduced font size for long text */}
+      <TitleBanner
+        text={`Flocons gagnes: +${snowflakesEarned}`}
+        subtitleText={`Total: ${totalSnowflakes}`}
+        backgroundSrc="/assets/ui/abilities/abilities-menu/title-background copy.png"
+        fixedTop={true}
+        topOffsetPx={40}
+        fontSizeRem={1.6}
+        subtitleFontSizeRem={1.6}
+      />
+      {/* Spacer to avoid content passing under the fixed banner */}
+      <div style={{ height: '180px' }} />
 
       {/* Abilities + Sidebar */}
       <div style={{

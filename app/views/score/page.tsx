@@ -2,17 +2,17 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import MusicManager from '../../utils/musicManager';
-import SoundManager from '../../utils/soundManager';
+import TitleBanner from '@/app/components/TitleBanner';
+import HomeButton from '@/app/components/HomeButton';
+import { renderAlternating } from '@/app/utils/renderAlternating';
 
 function ScoreView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pseudo, setPseudo] = useState('');
-  const [score, setScore] = useState(0);
+  const [score, setScore] = useState(0); // last game score, used for POST only
+  const [bestScore, setBestScore] = useState(0);
   const postedRef = useRef(false);
-  const [leaderboard, setLeaderboard] = useState<{ top: { rank: number; name: string; bestScore: number }[]; player: { name: string; bestScore: number; rank: number; inTop: boolean } | null }>({ top: [], player: null });
-  const leaderboardAbortRef = useRef<AbortController | null>(null);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
@@ -93,6 +93,21 @@ function ScoreView() {
     setScore(fromStorage);
   }, [searchParams]);
 
+  // Load current bestScore when we know the pseudo (independent of the current game score)
+  useEffect(() => {
+    if (!pseudo) return;
+    let aborted = false;
+    fetch(`/api/score?name=${encodeURIComponent(pseudo)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
+      .then((data) => {
+        if (aborted) return;
+        const value = typeof data?.bestScore === 'number' ? data.bestScore : 0;
+        setBestScore(value);
+      })
+      .catch(() => {});
+    return () => { aborted = true; };
+  }, [pseudo]);
+
   useEffect(() => {
     if (!pseudo) return;
     let aborted = false;
@@ -108,25 +123,7 @@ function ScoreView() {
     return () => { aborted = true; };
   }, [pseudo]);
 
-  const loadLeaderboard = (name: string) => {
-    if (!name) return;
-    // abort any in-flight leaderboard request
-    if (leaderboardAbortRef.current) leaderboardAbortRef.current.abort();
-    const controller = new AbortController();
-    leaderboardAbortRef.current = controller;
-    fetch(`/api/leaderboard?name=${encodeURIComponent(name)}`, { signal: controller.signal, cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
-      .then((data) => setLeaderboard({ top: data.top || [], player: data.player || null }))
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    if (!pseudo) return;
-    // If a post is about to happen (score > 0), let the POST callback refresh leaderboard.
-    // Else, load immediately (e.g., score 0 or revisit page).
-    if (score > 0 && !postedRef.current) return;
-    loadLeaderboard(pseudo);
-  }, [pseudo, score]);
+  // No leaderboard loading here; score page concerns player's best score only
 
   useEffect(() => {
     if (postedRef.current) return;
@@ -157,13 +154,13 @@ function ScoreView() {
         signal
       })
         .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
           if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
             // eslint-disable-next-line no-console
             console.warn('Failed to save score', data?.error || res.statusText);
           } else {
-            // refresh leaderboard so the user sees their new rank immediately
-            loadLeaderboard(pseudo);
+            // Update local bestScore from server response
+            if (typeof data?.bestScore === 'number') setBestScore(data.bestScore);
           }
         })
         .catch((err) => {
@@ -176,39 +173,7 @@ function ScoreView() {
     return () => controller.abort();
   }, [pseudo, score]);
 
-  const top10 = (() => {
-    const real = (leaderboard.top || []).filter((r) => r.bestScore > 0);
-    const filled = [...real];
-    for (let i = filled.length + 1; i <= 10; i++) {
-      filled.push({ rank: i, name: '-', bestScore: 0 });
-    }
-    return filled.slice(0, 10);
-  })();
-
-  const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
-
-  // Render text with alternating per-letter colors. If startWithRed is true, the
-  // first non-space character is red, otherwise green. Spaces are preserved.
-  const renderAlternating = (text: string, startWithRed: boolean) => {
-    const red = '#B45252';
-    const green = '#8AB060';
-    let useRed = startWithRed;
-    return (
-      <>
-        {text.split('')
-          .map((ch, idx) => {
-            if (ch === ' ') return <span key={idx}> </span>;
-            const color = useRed ? red : green;
-            useRed = !useRed;
-            return (
-              <span key={idx} style={{ color }}>
-                {ch}
-              </span>
-            );
-          })}
-      </>
-    );
-  };
+  // using shared renderAlternating
 
   return (
     <main style={{ 
@@ -221,43 +186,13 @@ function ScoreView() {
       justifyContent: 'center',
       gap: '1.5rem',
       padding: '2rem',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative'
     }}>
+      <HomeButton />
       <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '1rem',
-          marginTop: '-2rem'
-        }}>
-          <img 
-            src="/assets/ui/main-menu/title-background.png" 
-            alt="Title background"
-            style={{
-              width: 'auto',
-              height: '220px',
-              objectFit: 'contain'
-            }}
-          />
-          <h1 style={{ 
-            position: 'absolute',
-            fontSize: '3.2rem', 
-            fontWeight: 'bold', 
-            fontFamily: 'November, sans-serif',
-            color: '#ff4444',
-            margin: 0,
-            textAlign: 'center',
-            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-            top: '46%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            whiteSpace: 'nowrap'
-          }}>
-            Partie Terminee!
-          </h1>
-        </div>
+        <TitleBanner text="Partie finie" backgroundSrc="/assets/ui/main-menu/title-background.png" />
+        <div style={{ height: '180px' }} />
 
         <div style={{
         position: 'relative',
@@ -295,7 +230,7 @@ function ScoreView() {
             </div>
           </div>
 
-          {/* Score section */}
+          {/* Best score section */}
           <div style={{
           width: '100%',
           height: '80px',
@@ -311,7 +246,7 @@ function ScoreView() {
               fontFamily: 'November, sans-serif',
               textAlign: 'center'
             }}>
-              {renderAlternating(`Score: ${score}`, false)}
+              {renderAlternating(`Meilleur score: ${bestScore}`, false)}
             </div>
           </div>
 

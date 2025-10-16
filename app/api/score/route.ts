@@ -3,6 +3,19 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
 
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const name = (searchParams.get('name') || '').trim();
+    if (!name) return NextResponse.json({ error: 'Missing name' }, { status: 400 });
+
+    const player = await prisma.player.findUnique({ where: { name }, select: { bestScore: true } });
+    return NextResponse.json({ bestScore: player?.bestScore || 0 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { name, score } = await req.json();

@@ -1,19 +1,18 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import MusicManager from '../../utils/musicManager';
-import SoundManager from '../../utils/soundManager';
+import { renderAlternating } from '@/app/utils/renderAlternating';
+import { useRouter } from 'next/navigation';
+import HomeButton from '@/app/components/HomeButton';
 
 type TopRow = { rank: number; name: string; bestScore: number };
-type PlayerRow = { name: string; bestScore: number; rank: number; inTop: boolean };
 
 function LeaderboardView() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [pseudo, setPseudo] = useState('');
-  const [leaderboard, setLeaderboard] = useState<{ top: TopRow[]; player: PlayerRow | null }>({ top: [], player: null });
+  const [top, setTop] = useState<TopRow[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dots, setDots] = useState(1);
 
   // Menu music effect
   useEffect(() => {
@@ -26,88 +25,51 @@ function LeaderboardView() {
   }, []);
 
   useEffect(() => {
-    const playerPseudo = localStorage.getItem('playerPseudo') || 'Joueur';
-    setPseudo(playerPseudo);
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!pseudo) return;
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    fetch(`/api/leaderboard?name=${encodeURIComponent(pseudo)}`, { signal: controller.signal, cache: 'no-store' })
+    setIsLoading(true);
+    const start = Date.now();
+    fetch(`/api/leaderboard`, { signal: controller.signal, cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
-      .then((data) => setLeaderboard({ top: data.top || [], player: data.player || null }))
-      .catch(() => {});
+      .then((data) => setTop(data.top || []))
+      .catch(() => {})
+      .finally(() => {
+        // Random visible time between 1 and 2 cycles
+        const stepMs = 420; // dots update cadence
+        const cycleMs = 3 * stepMs; // one cycle = '.', '..', '...'
+        const minMs = cycleMs * 1; // 1 cycle
+        const maxMs = cycleMs * 2; // 2 cycles
+        const targetVisibleMs = minMs + Math.random() * (maxMs - minMs);
+        const elapsed = Date.now() - start;
+        const wait = Math.max(0, Math.round(targetVisibleMs) - elapsed);
+        setTimeout(() => setIsLoading(false), wait);
+      });
     return () => controller.abort();
-  }, [pseudo]);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) return;
+    let mounted = true;
+    const id = setInterval(() => {
+      if (!mounted) return;
+      setDots((d) => (d % 3) + 1);
+    }, 420);
+    return () => { mounted = false; clearInterval(id); };
+  }, [isLoading]);
 
   const top10: TopRow[] = useMemo(() => {
-    const real = (leaderboard.top || []).filter((r) => r.bestScore > 0);
+    const real = (top || []).filter((r) => r.bestScore > 0);
     const filled = [...real];
     for (let i = filled.length + 1; i <= 10; i++) {
       filled.push({ rank: i, name: '-', bestScore: 0 });
     }
     return filled.slice(0, 10);
-  }, [leaderboard.top]);
-
-  const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
-
-  // Render text with alternating per-letter colors. If startWithRed is true, the
-  // first non-space character is red, otherwise green. Spaces are preserved.
-  const renderAlternating = (text: string, startWithRed: boolean) => {
-    const red = '#B45252';
-    const green = '#8AB060';
-    let useRed = startWithRed;
-    return (
-      <>
-        {text.split('')
-          .map((ch, idx) => {
-            if (ch === ' ') return <span key={idx}> </span>;
-            const color = useRed ? red : green;
-            useRed = !useRed;
-            return (
-              <span key={idx} style={{ color }}>
-                {ch}
-              </span>
-            );
-          })}
-      </>
-    );
-  };
+  }, [top]);
 
   return (
     <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', position: 'relative' }}>
-      {/* Home button top-left */}
-      <button
-        onClick={() => {
-          SoundManager.getInstance().playClickSound();
-          router.push('/');
-        }}
-        aria-label="Retour à l'accueil"
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '16px',
-          width: '140px',
-          height: '70px',
-          backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundColor: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          zIndex: 5,
-          transition: 'transform 0.12s ease',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-        onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-        onTouchStart={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
-        onTouchEnd={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
-      />
+      <HomeButton />
       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '2rem', width: '100%', maxWidth: '1200px' }}>
         {/* Left column with title and back button, aligned to the left */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
@@ -132,29 +94,34 @@ function LeaderboardView() {
           {/* Background image */}
           <img src="/assets/ui/scoreboard/scoreboard-list-background.png" alt="Scoreboard" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', userSelect: 'none' }} />
 
-          {/* Overlay grid for rows */}
-          <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateRows: 'repeat(10, 1fr)', padding: '10% 30% 5% 25%' }}>
-            {top10.map((row, i) => {
-              const rowColor = i % 2 === 0 ? '#8AB060' : '#B45252';
-              return (
-                <div key={row.rank} style={{ display: 'grid', gridTemplateColumns: '56px 1fr 48px', alignItems: 'center', color: rowColor, fontWeight: 700, fontFamily: 'November, system-ui, Arial', fontSize: 'clamp(11px, 1.5vw, 16px)', borderBottom: i < 9 ? '1px dashed #c6bfae' : 'none' }}>
-                  <div style={{ textAlign: 'right', paddingRight: '0.4rem' }}>#{row.rank}</div>
-                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</div>
-                  <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.bestScore > 0 ? row.bestScore : ''}</div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Player row (not in top) pinned at the bottom over the image */}
-          {playerNotInTop && (
-            <div style={{ position: 'absolute', left: '14%', right: '14%', bottom: '6%', color: '#8AB060', fontWeight: 700, fontFamily: 'November, system-ui, Arial', fontSize: 'clamp(11px, 1.5vw, 16px)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '56px 1fr', alignItems: 'center' }}>
-                <div style={{ textAlign: 'right', paddingRight: '0.4rem' }}>#{playerNotInTop.rank}</div>
-                <div style={{ }}>{playerNotInTop.name}</div>
+          {/* Overlay grid for rows or loading state */}
+          {isLoading ? (
+            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: '10% 30% 5% 25%' }}>
+              <div style={{
+                fontWeight: 700,
+                fontFamily: 'November, system-ui, Arial',
+                fontSize: 'clamp(14px, 2vw, 22px)',
+                textShadow: '0 2px 0 rgba(0,0,0,0.25)'
+              }}>
+                {renderAlternating(`Chargement${'.'.repeat(dots)}`, true)}
               </div>
             </div>
+          ) : (
+            <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateRows: 'repeat(10, 1fr)', padding: '10% 30% 5% 25%' }}>
+              {top10.map((row, i) => {
+                const rowColor = i % 2 === 0 ? '#8AB060' : '#B45252';
+                return (
+                  <div key={row.rank} style={{ display: 'grid', gridTemplateColumns: '56px 1fr 48px', alignItems: 'center', color: rowColor, fontWeight: 700, fontFamily: 'November, system-ui, Arial', fontSize: 'clamp(11px, 1.5vw, 16px)', borderBottom: i < 9 ? '1px dashed #c6bfae' : 'none' }}>
+                    <div style={{ textAlign: 'right', paddingRight: '0.4rem' }}>#{row.rank}</div>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</div>
+                    <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.bestScore > 0 ? row.bestScore : ''}</div>
+                  </div>
+                );
+              })}
+            </div>
           )}
+
+          {/* No player-specific row; only Top 10 is displayed */}
         </div>
       </div>
     </main>
