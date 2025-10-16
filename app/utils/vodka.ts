@@ -6,6 +6,7 @@ export class VodkaManager {
   private fallSpeed: number = 90; // between snowflake (100) and gift (80)
   private spawnTimer: any;
   private spawnDelay: number = 6000; // spawn every ~6s, randomized each time
+  private bonusSizeProgress: number = 0; // 0..1 from ability
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -23,6 +24,10 @@ export class VodkaManager {
 
   public getBottles(): Phaser.GameObjects.Sprite[] {
     return this.bottles;
+  }
+
+  public setBonusSizeProgress(progress: number) {
+    this.bonusSizeProgress = Phaser.Math.Clamp(progress, 0, 1);
   }
 
   public cleanup() {
@@ -51,7 +56,11 @@ export class VodkaManager {
     const y = -40;
 
     const bottle = this.scene.add.sprite(x, y, 'vodka');
-    bottle.setScale(0.16); // reduced size
+    // Map bonus progress to scale: start smaller and grow to target at 1.0
+    const finalScale = 0.14; // average between 0.16 and 0.12
+    const minScale = finalScale * 0.6; // reduced at start
+    const scale = minScale + (finalScale - minScale) * this.bonusSizeProgress;
+    bottle.setScale(scale);
     bottle.setAlpha(1);
 
     this.scene.physics.add.existing(bottle);

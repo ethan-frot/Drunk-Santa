@@ -47,11 +47,12 @@ export class AbilityManager {
         cost: [10, 25, 50] // Cost in snowflakes for each stage
       },
       {
-        id: 'gift_size',
-        name: 'Taille des Cadeaux',
-        description: 'Rend les cadeaux plus grands et plus faciles a attraper',
-        baseValue: 0.15,
-        stages: [0.20, 0.25, 0.30], // 3 upgrade stages
+        id: 'bonus_size',
+        name: 'Taille des bonus',
+        description: 'Rend les bonus plus grands et plus faciles a attraper',
+        // Represent upgrade as progress 0..1, mapped per item type
+        baseValue: 0.0,
+        stages: [0.33, 0.66, 1.0], // 3 stages: one third, two thirds, full size
         currentStage: 0,
         cost: [15, 35, 70]
       },
@@ -152,6 +153,27 @@ export class AbilityManager {
       if (savedAbilities) {
         try {
           this.abilities = JSON.parse(savedAbilities);
+          // Migration: rename 'gift_size' -> 'bonus_size' and map fields
+          let migrated = false;
+          this.abilities = this.abilities.map((ab: any) => {
+            if (ab && ab.id === 'gift_size') {
+              migrated = true;
+              const currentStage = Math.max(0, Math.min(3, ab.currentStage || 0));
+              return {
+                id: 'bonus_size',
+                name: 'Bonus Size',
+                description: 'Increase gifts and vodka size',
+                baseValue: 0.0,
+                stages: [0.33, 0.66, 1.0],
+                currentStage,
+                cost: [15, 35, 70]
+              } as any;
+            }
+            return ab;
+          });
+          if (migrated) {
+            this.saveToStorage();
+          }
         } catch (e) {
           console.warn('Failed to load abilities from storage');
         }
