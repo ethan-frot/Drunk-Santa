@@ -16,32 +16,25 @@ export default function DisplayGamePage() {
         // Save results
         localStorage.setItem('gameScore', totalScore.toString());
         localStorage.setItem('snowflakesEarned', snowflakesEarned.toString());
-        // Mark this run as synced once PUT happens
-        localStorage.setItem('snowflakesSyncPending', '1');
         setGameResults({ snowflakesEarned, totalScore });
         // Open choice modal (game will be paused automatically)
         setShowEndModal(true);
 
-        // Immediately send absolute total snowflakes so players who skip upgrades still persist
-        try {
-          const pseudo = localStorage.getItem('playerPseudo') || '';
-          const prevTotal = parseInt(localStorage.getItem('prevTotalSnowflakes') || '0');
-          const absoluteTotal = Math.max(0, prevTotal + Math.trunc(snowflakesEarned));
-          if (pseudo && Number.isFinite(absoluteTotal)) {
-            fetch('/api/snowflakes', {
+        // Immediately persist absolute total from server current value to avoid cross-user mixing
+        (async () => {
+          try {
+            const pseudo = localStorage.getItem('playerPseudo') || '';
+            if (!pseudo) return;
+            const getRes = await fetch(`/api/abilities?name=${encodeURIComponent(pseudo)}`, { cache: 'no-store' }).catch(() => null);
+            const currentTotal = getRes && getRes.ok ? (await getRes.json().catch(() => ({}))).totalSnowflakes || 0 : 0;
+            const absoluteTotal = Math.max(0, Math.trunc(currentTotal) + Math.trunc(snowflakesEarned));
+            await fetch('/api/snowflakes', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: pseudo, total: absoluteTotal })
-            }).then(async (res) => {
-              if (res.ok) {
-                const data = await res.json().catch(() => null);
-                const total = (data && typeof data.totalSnowflakes === 'number') ? data.totalSnowflakes : absoluteTotal;
-                localStorage.setItem('prevTotalSnowflakes', String(total));
-                localStorage.setItem('snowflakesSyncPending', '0');
-              }
             }).catch(() => {});
-          }
-        } catch {}
+          } catch {}
+        })();
     };
 
     const handleContinue = () => {

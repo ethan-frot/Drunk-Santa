@@ -19,20 +19,6 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
     let aborted = false;
     const pseudo = (typeof window !== 'undefined' ? localStorage.getItem('playerPseudo') : '') || '';
 
-    // 1) Credit earned snowflakes on server, then 2) fetch abilities state
-    const credit = async () => {
-      try {
-        const alreadySynced = (typeof window !== 'undefined' ? localStorage.getItem('snowflakesSyncPending') : '0') === '0';
-        if (pseudo && snowflakesEarned > 0 && !alreadySynced) {
-          await fetch('/api/snowflakes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: pseudo, delta: Math.trunc(snowflakesEarned) })
-          }).catch(() => {});
-        }
-      } catch {}
-    };
-
     const load = async () => {
       try {
         if (!pseudo) return;
@@ -43,13 +29,6 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
         // Sync client with server state
         abilityManager.setTotalSnowflakesFromServer(data?.totalSnowflakes || 0);
         abilityManager.setAllStagesFromServer(data?.abilities || {});
-        // Cache server total for next run's absolute PUT baseline
-        if (typeof window !== 'undefined') {
-          const serverTotal = Number(data?.totalSnowflakes || 0);
-          if (Number.isFinite(serverTotal)) {
-            localStorage.setItem('prevTotalSnowflakes', String(serverTotal));
-          }
-        }
       } catch {}
     };
 
@@ -58,12 +37,7 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
         // update local stats for gameplay history
         abilityManager.addGamePlayed(totalScore);
         // perform server sync
-        await credit();
         await load();
-        // Clear pending flag after we ensured state is consistent
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('snowflakesSyncPending', '0');
-        }
       } finally {
         if (!aborted) {
           setAbilities(abilityManager.getAbilities());
