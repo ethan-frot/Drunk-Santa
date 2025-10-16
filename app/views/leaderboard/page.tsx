@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import MusicManager from '../../utils/musicManager';
+import SoundManager from '../../utils/soundManager';
 
 type TopRow = { rank: number; name: string; bestScore: number };
 type PlayerRow = { name: string; bestScore: number; rank: number; inTop: boolean };
@@ -12,6 +14,16 @@ function LeaderboardView() {
   const [pseudo, setPseudo] = useState('');
   const [leaderboard, setLeaderboard] = useState<{ top: TopRow[]; player: PlayerRow | null }>({ top: [], player: null });
   const abortRef = useRef<AbortController | null>(null);
+
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
 
   useEffect(() => {
     const playerPseudo = localStorage.getItem('playerPseudo') || 'Joueur';
@@ -68,7 +80,10 @@ function LeaderboardView() {
     <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', position: 'relative' }}>
       {/* Home button top-left */}
       <button
-        onClick={() => router.push('/')}
+        onClick={() => {
+          SoundManager.getInstance().playClickSound();
+          router.push('/');
+        }}
         aria-label="Retour à l'accueil"
         style={{
           position: 'absolute',

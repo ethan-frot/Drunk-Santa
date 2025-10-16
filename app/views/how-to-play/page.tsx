@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import MusicManager from '../../utils/musicManager';
+import SoundManager from '../../utils/soundManager';
 
 export default function HowToPlayPage() {
   const router = useRouter();
@@ -10,11 +12,24 @@ export default function HowToPlayPage() {
   const s = (n: number) => Math.round(n * scale);
   const iconCol = s(120);
 
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
+
   return (
     <main style={{ minHeight: '100vh', height: '100vh', background: `#040218 url(/assets/ui/background-menu.gif) center/cover no-repeat fixed`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: '20px', position: 'relative' }}>
       {/* Home button top-left (same as leaderboard) */}
       <button
-        onClick={() => router.push('/')}
+        onClick={() => {
+          SoundManager.getInstance().playClickSound();
+          router.push('/');
+        }}
         aria-label="Retour à l'accueil"
         style={{
           position: 'absolute',

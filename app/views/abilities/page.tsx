@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AbilityUpgradeView } from './AbilityUpgradeView';
+import SoundManager from '../../utils/soundManager';
 
 // Route page component without custom props to satisfy Next.js types
 export default function Page() {
@@ -20,6 +21,7 @@ export default function Page() {
   }, []);
 
   const handleContinue = () => {
+    SoundManager.getInstance().playClickSound();
     router.push('/views/game');
   };
 
