@@ -68,7 +68,7 @@ export default function DisplayScorePage() {
       <img
         src={src}
         alt={active ? 'star active' : 'star inactive'}
-        style={{ height: '40px', width: 'auto', display: 'block' }}
+        style={{ height: '65px', width: 'auto', display: 'block' }}
       />
     );
   };
@@ -195,7 +195,8 @@ export default function DisplayScorePage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
+          marginTop: '-2rem'
         }}>
           <img 
             src="/assets/ui/main-menu/title-background.png" 
@@ -225,76 +226,81 @@ export default function DisplayScorePage() {
         </div>
 
         <div style={{
-        background: 'rgba(231, 233, 255, 0.05)',
-        borderRadius: '20px',
-        padding: '3rem 4rem',
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        gap: '1.5rem',
         alignItems: 'center',
-        border: '1px solid rgba(231, 233, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+        justifyContent: 'center',
+        width: '100%',
+        maxWidth: '700px',
+        padding: '3rem',
+        backgroundImage: "url('/assets/ui/score/scoreboard/endgame-background.png')",
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center',
+        imageRendering: 'pixelated',
+        minHeight: '400px'
         }}>
+          {/* Joueur section */}
           <div style={{
-          fontSize: '1.3rem',
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff',
-          opacity: 0.8
+          width: '400px',
+          height: '60px',
+          background: 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '1rem'
           }}>
-            Joueur
-          </div>
-          <div style={{
-          fontSize: '2rem',
-          fontWeight: 'bold',
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff'
-          }}>
-            {pseudo}
+            <div style={{
+              fontSize: '1.6rem',
+              fontWeight: 'bold',
+              fontFamily: 'November, sans-serif',
+              color: '#2c2c2c',
+              textAlign: 'center'
+            }}>
+              Joueur: {pseudo}
+            </div>
           </div>
 
+          {/* Score section */}
           <div style={{
-          width: '100%',
-          height: '2px',
-          background: 'rgba(231, 233, 255, 0.2)',
-          margin: '1rem 0'
-          }} />
-
-          <div style={{
-          fontSize: '1.3rem',
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff',
-          opacity: 0.8
+          width: '400px',
+          height: '60px',
+          background: 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '2rem'
           }}>
-            Score
-          </div>
-          <div style={{
-          fontSize: '4rem',
-          fontWeight: 'bold',
-          fontFamily: 'November, sans-serif',
-          color: '#e7e9ff'
-          }}>
-            {score}
+            <div style={{
+              fontSize: '1.6rem',
+              fontWeight: 'bold',
+              fontFamily: 'November, sans-serif',
+              color: '#2c2c2c',
+              textAlign: 'center'
+            }}>
+              Score: {score}
+            </div>
           </div>
         </div>
 
         {/* Rating section placed clearly between score card and scoreboard */}
         <div style={{
           width: '100%',
-          maxWidth: '560px',
+          maxWidth: '680px',
           background: 'rgba(231, 233, 255, 0.08)',
-          borderRadius: '16px',
+          borderRadius: '20px',
           border: '2px solid rgba(231, 233, 255, 0.18)',
-          padding: '1.25rem',
+          padding: '2rem',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '0.75rem',
+          gap: '1.5rem',
           marginTop: '1rem',
           marginBottom: '1rem'
         }}>
-          <div style={{ color: '#e7e9ff', opacity: 0.9, fontWeight: 'bold' }}>Donnez une note au jeu</div>
-          <div style={{ display: 'flex', gap: '0.75rem' }} onMouseLeave={() => setHoverRating(null)}>
+          <div style={{ color: '#e7e9ff', opacity: 0.9, fontWeight: 'bold', fontSize: '1.3rem' }}>Donnez une note au jeu</div>
+          <div style={{ display: 'flex', gap: '1.2rem' }} onMouseLeave={() => setHoverRating(null)}>
             {[1,2,3,4,5].map((i) => {
               const effective = (hoverRating != null && hoverRating > rating) ? hoverRating : rating;
               const active = effective >= i;
@@ -326,8 +332,8 @@ export default function DisplayScorePage() {
                       });
                   }}
                    style={{
-                     width: '40px',
-                     height: '40px',
+                     width: '65px',
+                     height: '65px',
                      padding: 0,
                      border: 'none',
                     background: 'transparent',
