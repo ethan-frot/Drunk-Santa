@@ -433,40 +433,34 @@ export default function DisplayScorePage() {
             }}
             style={{
               background: 'transparent',
-              backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
               backgroundRepeat: 'no-repeat',
               backgroundSize: '100% 100%',
               backgroundPosition: 'center',
               imageRendering: 'pixelated',
               border: 'none',
               cursor: 'pointer',
-              padding: '1.2rem 1.2rem',
-              fontFamily: 'November, sans-serif',
-              color: '#ffffff',
-              fontSize: '1.4rem',
-              transform: 'scale(2.0)',
-              transition: 'transform 80ms ease-out',
-              width: 'auto',
-              minWidth: '120px'
+              width: '100px',
+              height: '80px',
+              transform: 'scale(1.5)',
+              transition: 'transform 80ms ease-out'
             }}
             onMouseDown={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
-              e.currentTarget.style.transform = 'scale(2.0) translateY(2px)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#ffe5e5';
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')";
+              e.currentTarget.style.transform = 'scale(1.5) translateY(2px)';
             }}
             onMouseUp={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
-              e.currentTarget.style.transform = 'scale(2.0)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
+              e.currentTarget.style.transform = 'scale(1.5)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
-              e.currentTarget.style.transform = 'scale(2.0)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
+              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
+              e.currentTarget.style.transform = 'scale(1.5)';
             }}
-          >
-            Menu
-          </button>
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.6)';
+            }}
+          />
         </div>
       </div>
     </main>
