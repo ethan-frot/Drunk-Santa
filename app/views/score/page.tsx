@@ -232,27 +232,27 @@ export default function DisplayScorePage() {
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
-        maxWidth: '700px',
-        padding: '3rem',
+        maxWidth: '800px',
+        padding: '4rem 3rem',
         backgroundImage: "url('/assets/ui/score/scoreboard/endgame-background.png')",
         backgroundRepeat: 'no-repeat',
         backgroundSize: '100% 100%',
         backgroundPosition: 'center',
         imageRendering: 'pixelated',
-        minHeight: '400px'
+        minHeight: '500px'
         }}>
           {/* Joueur section */}
           <div style={{
-          width: '400px',
-          height: '60px',
+          width: '100%',
+          height: '80px',
           background: 'transparent',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '1rem'
+          marginBottom: '2rem'
           }}>
             <div style={{
-              fontSize: '1.6rem',
+              fontSize: '2rem',
               fontWeight: 'bold',
               fontFamily: 'November, sans-serif',
               color: '#2c2c2c',
@@ -264,16 +264,16 @@ export default function DisplayScorePage() {
 
           {/* Score section */}
           <div style={{
-          width: '400px',
-          height: '60px',
+          width: '100%',
+          height: '80px',
           background: 'transparent',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '2rem'
+          marginBottom: '3rem'
           }}>
             <div style={{
-              fontSize: '1.6rem',
+              fontSize: '2.5rem',
               fontWeight: 'bold',
               fontFamily: 'November, sans-serif',
               color: '#2c2c2c',
@@ -282,75 +282,79 @@ export default function DisplayScorePage() {
               Score: {score}
             </div>
           </div>
+
+          {/* Rating section inside the background */}
+          <div style={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.5rem'
+          }}>
+            <div style={{ 
+              color: '#2c2c2c', 
+              opacity: 0.9, 
+              fontWeight: 'bold', 
+              fontSize: '1.4rem',
+              fontFamily: 'November, sans-serif'
+            }}>
+              Donnez une note au jeu
+            </div>
+            <div style={{ display: 'flex', gap: '1.2rem' }} onMouseLeave={() => setHoverRating(null)}>
+              {[1,2,3,4,5].map((i) => {
+                const effective = (hoverRating != null && hoverRating > rating) ? hoverRating : rating;
+                const active = effective >= i;
+                 return (
+                  <button
+                     key={i}
+                    onMouseEnter={() => setHoverRating(i > rating ? i : null)}
+                    onClick={() => {
+                      fetch('/api/rating', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: pseudo, rating: i })
+                      })
+                        .then(async (res) => {
+                          if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            if (res.status === 409) {
+                              setShowRatingWarning(true);
+                            } else {
+                              console.warn('Failed to save rating', data?.error || res.statusText);
+                            }
+                          } else {
+                            setRating(i);
+                            setRatingSubmitted(true);
+                          }
+                        })
+                        .catch((err) => {
+                          console.warn('Error saving rating', err);
+                        });
+                    }}
+                     style={{
+                       width: '65px',
+                       height: '65px',
+                       padding: 0,
+                       border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer'
+                     }}
+                     aria-label={`Note ${i}`}
+                    
+                     >
+                       <StarIcon active={active} />
+                     </button>
+                   );
+                 })}
+            </div>
+            {ratingSubmitted && (
+              <div style={{ color: '#2c2c2c', fontSize: '1.2rem', fontFamily: 'November, sans-serif' }}>
+                Merci pour votre note !
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Rating section placed clearly between score card and scoreboard */}
-        <div style={{
-          width: '100%',
-          maxWidth: '680px',
-          background: 'rgba(231, 233, 255, 0.08)',
-          borderRadius: '20px',
-          border: '2px solid rgba(231, 233, 255, 0.18)',
-          padding: '2rem',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '1.5rem',
-          marginTop: '1rem',
-          marginBottom: '1rem'
-        }}>
-          <div style={{ color: '#e7e9ff', opacity: 0.9, fontWeight: 'bold', fontSize: '1.3rem' }}>Donnez une note au jeu</div>
-          <div style={{ display: 'flex', gap: '1.2rem' }} onMouseLeave={() => setHoverRating(null)}>
-            {[1,2,3,4,5].map((i) => {
-              const effective = (hoverRating != null && hoverRating > rating) ? hoverRating : rating;
-              const active = effective >= i;
-               return (
-                <button
-                   key={i}
-                  onMouseEnter={() => setHoverRating(i > rating ? i : null)}
-                  onClick={() => {
-                    fetch('/api/rating', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ name: pseudo, rating: i })
-                    })
-                      .then(async (res) => {
-                        if (!res.ok) {
-                          const data = await res.json().catch(() => ({}));
-                          if (res.status === 409) {
-                            setShowRatingWarning(true);
-                          } else {
-                            console.warn('Failed to save rating', data?.error || res.statusText);
-                          }
-                        } else {
-                          setRating(i);
-                          setRatingSubmitted(true);
-                        }
-                      })
-                      .catch((err) => {
-                        console.warn('Error saving rating', err);
-                      });
-                  }}
-                   style={{
-                     width: '65px',
-                     height: '65px',
-                     padding: 0,
-                     border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer'
-                   }}
-                   aria-label={`Note ${i}`}
-                  
-                 >
-                   <StarIcon active={active} />
-                 </button>
-               );
-             })}
-          </div>
-          {ratingSubmitted && (
-            <div style={{ color: '#66bfff' }}>Merci pour votre note !</div>
-          )}
-        </div>
 
         {showRatingWarning && (
           <div style={{
