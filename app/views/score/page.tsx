@@ -176,6 +176,29 @@ export default function DisplayScorePage() {
 
   const playerNotInTop = leaderboard.player && !leaderboard.player.inTop && leaderboard.player.bestScore > 0 ? leaderboard.player : null;
 
+  // Render text with alternating per-letter colors. If startWithRed is true, the
+  // first non-space character is red, otherwise green. Spaces are preserved.
+  const renderAlternating = (text: string, startWithRed: boolean) => {
+    const red = '#B45252';
+    const green = '#8AB060';
+    let useRed = startWithRed;
+    return (
+      <>
+        {text.split('')
+          .map((ch, idx) => {
+            if (ch === ' ') return <span key={idx}> </span>;
+            const color = useRed ? red : green;
+            useRed = !useRed;
+            return (
+              <span key={idx} style={{ color }}>
+                {ch}
+              </span>
+            );
+          })}
+      </>
+    );
+  };
+
   return (
     <main style={{ 
       minHeight: '100vh', 
@@ -255,10 +278,9 @@ export default function DisplayScorePage() {
               fontSize: '2rem',
               fontWeight: 'bold',
               fontFamily: 'November, sans-serif',
-              color: '#2c2c2c',
               textAlign: 'center'
             }}>
-              Joueur: {pseudo}
+              {renderAlternating(`Joueur: ${pseudo}`, true)}
             </div>
           </div>
 
@@ -276,10 +298,9 @@ export default function DisplayScorePage() {
               fontSize: '2.5rem',
               fontWeight: 'bold',
               fontFamily: 'November, sans-serif',
-              color: '#2c2c2c',
               textAlign: 'center'
             }}>
-              Score: {score}
+              {renderAlternating(`Score: ${score}`, false)}
             </div>
           </div>
 
@@ -292,13 +313,12 @@ export default function DisplayScorePage() {
             gap: '1.5rem'
           }}>
             <div style={{ 
-              color: '#2c2c2c', 
               opacity: 0.9, 
               fontWeight: 'bold', 
               fontSize: '1.4rem',
               fontFamily: 'November, sans-serif'
             }}>
-              Donnez une note au jeu
+              {renderAlternating('Donnez une note au jeu', true)}
             </div>
             <div style={{ display: 'flex', gap: '1.2rem' }} onMouseLeave={() => setHoverRating(null)}>
               {[1,2,3,4,5].map((i) => {
@@ -348,8 +368,8 @@ export default function DisplayScorePage() {
                  })}
             </div>
             {ratingSubmitted && (
-              <div style={{ color: '#2c2c2c', fontSize: '1.2rem', fontFamily: 'November, sans-serif' }}>
-                Merci pour votre note !
+              <div style={{ fontSize: '1.2rem', fontFamily: 'November, sans-serif' }}>
+                {renderAlternating('Merci pour votre note !', false)}
               </div>
             )}
           </div>
