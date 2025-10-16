@@ -176,8 +176,36 @@ function ScoreView() {
       justifyContent: 'center',
       gap: '1.5rem',
       padding: '2rem',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative'
     }}>
+      {/* Home button top-left */}
+      <button
+        onClick={() => router.push('/')}
+        aria-label="Retour à l'accueil"
+        style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          width: '140px',
+          height: '70px',
+          backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundColor: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          zIndex: 5,
+          transition: 'transform 0.12s ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
+        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
+        onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
+        onTouchStart={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')"; }}
+        onTouchEnd={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')"; }}
+      />
       <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <TitleBanner text="Partie finie" backgroundSrc="/assets/ui/main-menu/title-background.png" />
         <div style={{ height: '180px' }} />
@@ -355,47 +383,6 @@ function ScoreView() {
             </div>
           </div>
         )}
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', gap: '1rem' }}>
-          <button
-            onClick={() => {
-              try {
-                localStorage.removeItem('playerPseudo');
-                localStorage.removeItem('gameScore');
-              } catch {}
-              router.push('/');
-            }}
-            style={{
-              background: 'transparent',
-              backgroundImage: "url('/assets/ui/buttons/home-button-up.png')",
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '100% 100%',
-              backgroundPosition: 'center',
-              imageRendering: 'pixelated',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100px',
-              height: '80px',
-              transform: 'scale(1.5)',
-              transition: 'transform 80ms ease-out'
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-down.png')";
-              e.currentTarget.style.transform = 'scale(1.5) translateY(2px)';
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
-              e.currentTarget.style.transform = 'scale(1.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundImage = "url('/assets/ui/buttons/home-button-up.png')";
-              e.currentTarget.style.transform = 'scale(1.5)';
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.6)';
-            }}
-          />
-        </div>
       </div>
     </main>
   );
