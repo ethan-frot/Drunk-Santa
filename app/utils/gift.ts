@@ -6,9 +6,19 @@ export class GiftManager {
   private fallSpeed: number = 80; // Slightly slower than snowflakes
   private spawnTimer: any;
   private spawnDelay: number = 8000; // Spawn every 8 seconds initially
+  // bonus size progress 0..1 mapped to visual scale
+  private bonusSizeProgress: number = 0; 
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+  }
+
+  public setGiftSize(progress: number) {
+    this.bonusSizeProgress = Phaser.Math.Clamp(progress, 0, 1);
+  }
+
+  public getGiftSize(): number {
+    return this.bonusSizeProgress;
   }
 
   public start() {
@@ -54,11 +64,23 @@ export class GiftManager {
     // Start above the screen
     const y = -30;
     
-    // Create gift sprite
-    const gift = this.scene.add.sprite(x, y, 'cadeau');
+    // Randomly choose a gift type: 1 (double points), 2 (+150), 3 (golden snowball)
+    const roll = Phaser.Math.Between(1, 3);
+    const type = roll === 1 ? 'gift1' : roll === 2 ? 'gift2' : 'gift3';
+
+    // Create gift sprite with selected texture
+    const gift = this.scene.add.sprite(x, y, type);
+    // Store type on the sprite for catch handling
+    (gift as any).giftType = type;
     
-    // Set appropriate size for gifts
-    const scale = 0.15;
+    // Map bonus progress to scale: start smaller and grow to target at 1.0
+    // Base target size for gifts (previously 0.15), we divided by 4 -> 0.0375
+    const baseFinalScale = 0.0375;
+    // At max upgrade, make gifts larger for extra reward
+    const finalScale = this.bonusSizeProgress >= 1 ? baseFinalScale * 1.7 : baseFinalScale;
+    const minScale = baseFinalScale * 0.6; // reduced at start
+    const t = Phaser.Math.Clamp(this.bonusSizeProgress, 0, 1);
+    const scale = minScale + (finalScale - minScale) * t;
     gift.setScale(scale);
     
     // Random rotation
@@ -72,6 +94,16 @@ export class GiftManager {
     this.scene.physics.add.existing(gift);
     const body = gift.body as Phaser.Physics.Arcade.Body;
     
+    // Set physics body to 95% of displayed sprite size for tighter hitbox
+    try {
+      const width = gift.displayWidth * 0.95;
+      const height = gift.displayHeight * 0.95;
+      const offsetX = (gift.displayWidth - width) / 2;
+      const offsetY = (gift.displayHeight - height) / 2;
+      body.setSize(width, height, false);
+      body.setOffset(offsetX, offsetY);
+    } catch {}
+
     // Set fall speed (slower than snowflakes)
     body.setVelocityY(this.fallSpeed);
     
