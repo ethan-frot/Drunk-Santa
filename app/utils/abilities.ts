@@ -39,8 +39,8 @@ export class AbilityManager {
     this.abilities = [
       {
         id: 'movement_speed',
-        name: 'Movement Speed',
-        description: 'Increase character movement speed',
+        name: 'Vitesse de Deplacement',
+        description: 'Augmente la vitesse de deplacement du personnage',
         baseValue: 200,
         stages: [250, 300, 350], // 3 upgrade stages
         currentStage: 0,
@@ -48,8 +48,8 @@ export class AbilityManager {
       },
       {
         id: 'gift_size',
-        name: 'Gift Size',
-        description: 'Make gifts larger and easier to catch',
+        name: 'Taille des Cadeaux',
+        description: 'Rend les cadeaux plus grands et plus faciles a attraper',
         baseValue: 0.15,
         stages: [0.20, 0.25, 0.30], // 3 upgrade stages
         currentStage: 0,
@@ -57,8 +57,8 @@ export class AbilityManager {
       },
       {
         id: 'dash_cooldown',
-        name: 'Dash Cooldown',
-        description: 'Reduce dash cooldown time',
+        name: 'Temps de Recharge du Dash',
+        description: 'Reduit le temps de recharge du dash',
         baseValue: 2000, // 2 seconds
         stages: [1500, 1000, 500], // 3 upgrade stages (1.5s, 1s, 0.5s)
         currentStage: 0,
@@ -66,8 +66,8 @@ export class AbilityManager {
       },
       {
         id: 'snowflake_value',
-        name: 'Snowflake Value',
-        description: 'Increase points per snowflake',
+        name: 'Valeur des Flocons',
+        description: 'Augmente les points par flocon',
         baseValue: 1,
         stages: [2, 3, 5], // 3 upgrade stages
         currentStage: 0,

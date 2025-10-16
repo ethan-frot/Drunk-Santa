@@ -67,7 +67,10 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+      backgroundImage: "url('/assets/ui/background-menu.gif')",
+      backgroundSize: 'cover',
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'center',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -77,33 +80,50 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
       padding: '20px'
     }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <h1 style={{ 
           fontSize: '48px', 
           margin: '0 0 10px 0',
-          background: 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))',
+          background: 'white',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          textShadow: '0 0 20px rgba(0, 229, 255, 0.5)'
-        }}>
-          🎁 Ability Upgrades
+          
+        }}        >
+          🎁 Ameliorations des Abilites
         </h1>
-        <div style={{ fontSize: '24px', marginBottom: '10px' }}>
-          Snowflakes Earned: <span style={{ color: '#00ff88', fontWeight: 'bold' }}>+{snowflakesEarned}</span>
-        </div>
-        <div style={{ fontSize: '20px', color: '#ffd700' }}>
-          Total Snowflakes: <span style={{ fontWeight: 'bold' }}>{totalSnowflakes}</span>
+        <div
+          style={{
+            width: '640px',
+            height: '160px',
+            backgroundImage: "url('/assets/ui/abilities/abilities-menu/title-background copy.png')",
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '10px auto 0',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', transform: 'translateY(-14px)' }}>
+            <div style={{ fontSize: '24px', color: '#ED1C24' }}>
+            Flocons gagnes : <span style={{ color: '#ED1C24', fontWeight: 'bold' }}>+{snowflakesEarned}</span>
+            </div>
+            <div style={{ fontSize: '20px', color: '#ED1C24' }}>
+            Total : <span style={{ fontWeight: 'bold' }}>{totalSnowflakes}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Abilities Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gridTemplateColumns: 'repeat(2, 1fr)',
         gap: '20px',
-        maxWidth: '1000px',
+        maxWidth: '800px',
         width: '100%',
-        marginBottom: '40px'
+        marginBottom: '20px'
       }}>
         {abilities.map((ability) => {
           const canUpgrade = abilityManager.canUpgrade(ability.id);
@@ -118,7 +138,7 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
               style={{
                 background: 'rgba(255, 255, 255, 0.1)',
                 borderRadius: '15px',
-                padding: '20px',
+                padding: '15px',
                 border: '2px solid rgba(255, 255, 255, 0.2)',
                 backdropFilter: 'blur(10px)',
                 transform: isUpgrading ? 'scale(1.05)' : 'scale(1)',
@@ -138,29 +158,29 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
               <p style={{ 
                 fontSize: '14px', 
                 color: '#b0b0b0', 
-                margin: '0 0 15px 0',
+                margin: '0 0 10px 0',
                 lineHeight: '1.4'
               }}>
                 {ability.description}
               </p>
 
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <div style={{ fontSize: '16px', marginBottom: '5px' }}>
-                  Current: <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
+                  Actuel : <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
                     {formatValue(ability.id, currentValue)}
                   </span>
                 </div>
                 {nextValue && (
                   <div style={{ fontSize: '16px' }}>
-                    Next: <span style={{ color: '#ffd700', fontWeight: 'bold' }}>
+                    Suivant : <span style={{ color: '#ffd700', fontWeight: 'bold' }}>
                       {formatValue(ability.id, nextValue)}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div style={{ fontSize: '14px', marginBottom: '15px' }}>
-                Stage: {ability.currentStage}/{ability.stages.length}
+              <div style={{ fontSize: '14px', marginBottom: '10px' }}>
+                Niveau : {ability.currentStage}/{ability.stages.length}
               </div>
 
               {!isMaxed && (
@@ -169,52 +189,81 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
                   disabled={!canUpgrade}
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    fontSize: '16px',
+                    height: '120px',
+                    backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundColor: 'transparent',
+                    color: '#ffffff',
+                    fontSize: '22px',
                     fontWeight: 'bold',
-                    borderRadius: '8px',
+                    fontFamily: 'November, sans-serif',
                     border: 'none',
                     cursor: canUpgrade ? 'pointer' : 'not-allowed',
-                    background: canUpgrade 
-                      ? 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))'
-                      : 'rgba(100, 100, 100, 0.5)',
-                    color: canUpgrade ? '#1a1a2e' : '#666',
-                    transition: 'all 0.3s ease',
-                    transform: canUpgrade ? 'scale(1)' : 'scale(0.95)'
+                    transition: 'transform 0.12s ease, opacity 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: canUpgrade ? 1 : 0.55,
+                    filter: canUpgrade ? 'none' : 'grayscale(20%)',
+                    transform: canUpgrade ? 'scale(1)' : 'scale(0.98)'
                   }}
                   onMouseEnter={(e) => {
                     if (canUpgrade) {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.4)';
+                      e.currentTarget.style.transform = 'scale(1.03)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (canUpgrade) {
                       e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = 'none';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    if (canUpgrade) {
+                      e.currentTarget.style.transform = 'scale(0.98)';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    if (canUpgrade) {
+                      e.currentTarget.style.transform = 'scale(1.03)';
+                      (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
                     }
                   }}
                 >
-                  {canUpgrade 
-                    ? `Upgrade - ${ability.cost[ability.currentStage]} Snowflakes`
-                    : `Need ${ability.cost[ability.currentStage] - totalSnowflakes} more`
-                  }
+                  <span style={{ position: 'relative', top: '-4px' }}>
+                    {canUpgrade 
+                      ? `${ability.cost[ability.currentStage]}`
+                      : `${ability.cost[ability.currentStage] - totalSnowflakes} manquants`}
+                  </span>
                 </button>
               )}
 
               {isMaxed && (
-                <div style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(45deg,rgb(0, 145, 255),rgb(0, 89, 254))',
-                  color: '#1a1a2e',
-                  textAlign: 'center'
-                }}>
-                  ✨ MAXED OUT ✨
-                </div>
+                <button
+                  disabled
+                  style={{
+                    width: '100%',
+                    height: '120px',
+                    backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundColor: 'transparent',
+                    color: '#ffffff',
+                    fontSize: '22px',
+                    fontWeight: 'bold',
+                    fontFamily: 'November, sans-serif',
+                    border: 'none',
+                    cursor: 'not-allowed',
+                    opacity: 0.75,
+                    filter: 'grayscale(15%)'
+                  }}
+                >
+                  <span style={{ position: 'relative', top: '-4px' }}>✨ MAXIMUM ✨</span>
+                </button>
               )}
             </div>
           );
@@ -225,27 +274,57 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
       <button
         onClick={onContinue}
         style={{
-          padding: '15px 40px',
-          fontSize: '20px',
+          width: '1200px',
+          height: '260px',
+          backgroundImage: "url('/assets/ui/buttons/button-red-up.png')",
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundColor: 'transparent',
+          color: '#ffffff',
+          fontSize: '36px',
           fontWeight: 'bold',
-          borderRadius: '10px',
+          fontFamily: 'November, sans-serif',
           border: 'none',
           cursor: 'pointer',
-          background: 'linear-gradient(45deg, #00ff88, #00cc6a)',
-          color: '#1a1a2e',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 4px 15px rgba(0, 255, 136, 0.3)'
+          transition: 'transform 0.12s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: '8px'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.05)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 255, 136, 0.5)';
+          e.currentTarget.style.transform = 'scale(1.03)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 255, 136, 0.3)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'scale(0.98)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-down.png')";
+          // Опускаем текст при нажатии
+          const textSpan = e.currentTarget.querySelector('span');
+          if (textSpan) {
+            textSpan.style.transform = 'translateY(12px)';
+          }
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'scale(1.03)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundImage = "url('/assets/ui/buttons/button-red-up.png')";
+          // Возвращаем текст в исходное положение
+          const textSpan = e.currentTarget.querySelector('span');
+          if (textSpan) {
+            textSpan.style.transform = 'translateY(0px)';
+          }
         }}
       >
-        Continue Playing 🎮
+        <span style={{ 
+          position: 'relative', 
+          top: '-16px',
+          transition: 'transform 0.12s ease'
+        }}>Continuer
+        </span>
       </button>
     </div>
   );
