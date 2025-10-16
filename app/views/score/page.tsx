@@ -8,6 +8,7 @@ export default function DisplayScorePage() {
   const searchParams = useSearchParams();
   const [pseudo, setPseudo] = useState('');
   const [score, setScore] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
   const postedRef = useRef(false);
   const [leaderboard, setLeaderboard] = useState<{ top: { rank: number; name: string; bestScore: number }[]; player: { name: string; bestScore: number; rank: number; inTop: boolean } | null }>({ top: [], player: null });
   const leaderboardAbortRef = useRef<AbortController | null>(null);
@@ -105,7 +106,11 @@ export default function DisplayScorePage() {
     leaderboardAbortRef.current = controller;
     fetch(`/api/leaderboard?name=${encodeURIComponent(name)}`, { signal: controller.signal, cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
-      .then((data) => setLeaderboard({ top: data.top || [], player: data.player || null }))
+      .then((data) => {
+        setLeaderboard({ top: data.top || [], player: data.player || null });
+        const bs = (data?.player && typeof data.player.bestScore === 'number') ? data.player.bestScore : 0;
+        setBestScore(bs);
+      })
       .catch(() => {});
   };
 
@@ -151,6 +156,10 @@ export default function DisplayScorePage() {
             // eslint-disable-next-line no-console
             console.warn('Failed to save score', data?.error || res.statusText);
           } else {
+            const data = await res.json().catch(() => ({}));
+            if (typeof data?.bestScore === 'number') {
+              setBestScore(data.bestScore);
+            }
             // refresh leaderboard so the user sees their new rank immediately
             loadLeaderboard(pseudo);
           }
@@ -241,7 +250,7 @@ export default function DisplayScorePage() {
           color: '#e7e9ff',
           opacity: 0.8
           }}>
-            Score
+          Meilleur Score
           </div>
           <div style={{
           fontSize: '4rem',
@@ -249,7 +258,7 @@ export default function DisplayScorePage() {
           fontFamily: 'November, sans-serif',
           color: '#e7e9ff'
           }}>
-            {score}
+          {bestScore}
           </div>
         </div>
 
