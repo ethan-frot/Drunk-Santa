@@ -1,27 +1,50 @@
 class SoundManager {
   private static instance: SoundManager;
-  private clickAudio: HTMLAudioElement | null = null;
+  private buttonClickAudio: HTMLAudioElement | null = null;
+  private soundEnabled: boolean = true;
 
-  private constructor() {}
+  private constructor() {
+    if (typeof window !== 'undefined') {
+      this.buttonClickAudio = new Audio('/sounds/button-click.mp3');
+      this.buttonClickAudio.preload = 'auto';
+      this.buttonClickAudio.volume = 0.5; // Moderate volume for clicks
+      
+      // Initialize sound state from localStorage
+      const soundEnabled = localStorage.getItem('soundEnabled');
+      this.soundEnabled = soundEnabled !== 'false'; // Default to enabled
+    }
+  }
 
-  static getInstance(): SoundManager {
+  public static getInstance(): SoundManager {
     if (!SoundManager.instance) {
       SoundManager.instance = new SoundManager();
     }
     return SoundManager.instance;
   }
 
-  playClickSound() {
-    if (!this.clickAudio) {
-      this.clickAudio = new Audio('/sounds/music-click.mp3');
-      this.clickAudio.volume = 0.5;
+  public playButtonClick(): void {
+    if (!this.buttonClickAudio || !this.soundEnabled) return;
+    
+    try {
+      // Reset audio to beginning and play
+      this.buttonClickAudio.currentTime = 0;
+      this.buttonClickAudio.play().catch(() => {
+        // Ignore errors (user might not have interacted with page yet)
+      });
+    } catch (error) {
+      // Ignore errors
     }
+  }
 
-    // Reset audio to beginning and play
-    this.clickAudio.currentTime = 0;
-    this.clickAudio.play().catch(() => {
-      // Ignore autoplay restrictions
-    });
+  public setSoundEnabled(enabled: boolean): void {
+    this.soundEnabled = enabled;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('soundEnabled', enabled.toString());
+    }
+  }
+
+  public isSoundEnabled(): boolean {
+    return this.soundEnabled;
   }
 }
 

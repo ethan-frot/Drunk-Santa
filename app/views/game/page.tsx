@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import GameCanvas from '../../components/GameCanvas';
+import ImageModal from '@/app/components/ImageModal';
+import { renderAlternating } from '@/app/utils/renderAlternating';
 import { AbilityUpgradeView } from '../abilities/AbilityUpgradeView';
 import MusicManager from '../../utils/musicManager';
-import SoundManager from '../../utils/soundManager';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 // Prevent static prerender to avoid SSR touching browser APIs
 export const dynamic = 'force-dynamic';
@@ -16,6 +18,7 @@ export default function DisplayGamePage() {
     const [gameResults, setGameResults] = useState<{snowflakesEarned: number, totalScore: number} | null>(null);
     const [runId, setRunId] = useState(0); // forces GameCanvas remount
     const [showEndModal, setShowEndModal] = useState(false);
+    const [buttonsEnabled, setButtonsEnabled] = useState(false);
     
     // Stop menu music when entering game
     useEffect(() => {
@@ -29,6 +32,13 @@ export default function DisplayGamePage() {
         setGameResults({ snowflakesEarned, totalScore });
         // Open choice modal (game will be paused automatically)
         setShowEndModal(true);
+        // Disable buttons initially
+        setButtonsEnabled(false);
+        
+        // Enable buttons after 2 seconds
+        setTimeout(() => {
+            setButtonsEnabled(true);
+        }, 2000);
 
         // Immediately persist absolute total from server current value to avoid cross-user mixing
         (async () => {
@@ -93,81 +103,59 @@ export default function DisplayGamePage() {
 
         {showEndModal && gameResults && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4, padding: '16px' }}>
-            <div style={{ position: 'relative', width: '540px', maxWidth: '92vw' }}>
-              <img src="/assets/ui/scoreboard/scoreboard-title-background.png" alt="support" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }} />
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8%' }}>
-                <div style={{ textAlign: 'center', fontFamily: 'November, sans-serif', fontWeight: 700, fontSize: 'clamp(14px, 2.2vw, 20px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)', lineHeight: 1.8, color: '#b20c0f', transform: 'translateY(-60px)' }}>
-                  Partie terminee !<br/>
-                  Score: <strong>{gameResults.totalScore}</strong> — Flocons gagnes: <strong>+{gameResults.snowflakesEarned}</strong><br/>
-                  Voulez-vous continuer avec des ameliorations ou voir votre score ?
+            <ImageModal
+              backgroundSrc="/assets/ui/scoreboard/scoreboard-title-background.png"
+              offsetTopPercent={32}
+              content={
+                <div style={{ 
+                  textAlign: 'center', 
+                  fontFamily: 'November, sans-serif', 
+                  fontWeight: 700, 
+                  fontSize: 'clamp(14px, 2.2vw, 20px)', 
+                  textShadow: '0 2px 0 rgba(0,0,0,0.25)', 
+                  lineHeight: 1.8,
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none'
+                }}>
+                  <div style={{ color: '#b20c0f', marginBottom: '6px' }}>Partie terminee !</div>
+                  <div>
+                    {renderAlternating(`Score: ${gameResults.totalScore}`, true)}
+                    <span style={{ color: '#b20c0f' }}> — </span>
+                    {renderAlternating(`Flocons gagnes: +${gameResults.snowflakesEarned}`, false)}
+                  </div>
+                  <div style={{ color: '#b20c0f', marginTop: '6px' }}>Voulez-vous continuer avec des ameliorations ou voir votre score ?</div>
                 </div>
-              </div>
-              {/* Buttons row under the image */}
-              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px' }}>
-                <button
-                  onClick={() => {
-                    SoundManager.getInstance().playClickSound();
-                    handleStop();
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    transition: 'transform 0.12s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                  onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-                  onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                >
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <img
-                      src="/assets/ui/buttons/button-red-up.png"
-                      alt="Arrêter"
-                      style={{ height: '110px', width: 'auto', display: 'block' }}
-                      onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-down.png'; }}
-                      onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-red-up.png'; }}
-                    />
-                    <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-2px)' }}>Arreter</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    SoundManager.getInstance().playClickSound();
-                    handleContinue();
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    transition: 'transform 0.12s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                  onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-                  onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                >
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <img
-                      src="/assets/ui/buttons/button-green-up.png"
-                      alt="Continuer"
-                      style={{ height: '110px', width: 'auto', display: 'block' }}
-                      onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-down.png'; }}
-                      onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/button-green-up.png'; }}
-                    />
-                    <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-2px)' }}>Continuer</span>
-                  </div>
-                </button>
-              </div>
-            </div>
+              }
+              buttons={[
+                {
+                  imageUpSrc: '/assets/ui/buttons/button-red-up.png',
+                  imageDownSrc: '/assets/ui/buttons/button-red-down.png',
+                  label: 'Arreter',
+                  heightPx: 160,
+                  onClick: buttonsEnabled ? handleStop : () => {},
+                  disabled: !buttonsEnabled,
+                  ariaLabel: 'Arreter',
+                },
+                {
+                  imageUpSrc: '/assets/ui/buttons/button-green-up.png',
+                  imageDownSrc: '/assets/ui/buttons/button-green-down.png',
+                  label: 'Continuer avec ameliorations',
+                  heightPx: 110,
+                  onClick: buttonsEnabled ? handleContinue : () => {},
+                  disabled: !buttonsEnabled,
+                  ariaLabel: 'Continuer',
+                },
+              ]}
+            />
           </div>
         )}
+        
+        {/* Sound toggle button */}
+        <SoundToggleButton />
       </main>
     );
-}
+  }
 
 

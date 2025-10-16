@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeButton from '@/app/components/HomeButton';
 import TitleBanner from '@/app/components/TitleBanner';
+import MusicManager from '@/app/utils/musicManager';
+import SoundToggleButton from '@/app/components/SoundToggleButton';
 
 export default function HowToPlayPage() {
   const router = useRouter();
@@ -136,6 +138,9 @@ export default function HowToPlayPage() {
           </div>
         </div>
       </div>
+      
+      {/* Sound toggle button */}
+      <SoundToggleButton />
     </main>
   );
 }

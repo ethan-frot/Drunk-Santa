@@ -21,7 +21,7 @@ export default function Page() {
   }, []);
 
   const handleContinue = () => {
-    SoundManager.getInstance().playClickSound();
+    SoundManager.getInstance().playButtonClick();
     router.push('/views/game');
   };
 
