@@ -18,6 +18,7 @@ export default function DisplayGamePage() {
     const [gameResults, setGameResults] = useState<{snowflakesEarned: number, totalScore: number} | null>(null);
     const [runId, setRunId] = useState(0); // forces GameCanvas remount
     const [showEndModal, setShowEndModal] = useState(false);
+    const [buttonsEnabled, setButtonsEnabled] = useState(false);
     
     // Stop menu music when entering game
     useEffect(() => {
@@ -31,6 +32,13 @@ export default function DisplayGamePage() {
         setGameResults({ snowflakesEarned, totalScore });
         // Open choice modal (game will be paused automatically)
         setShowEndModal(true);
+        // Disable buttons initially
+        setButtonsEnabled(false);
+        
+        // Enable buttons after 2 seconds
+        setTimeout(() => {
+            setButtonsEnabled(true);
+        }, 2000);
 
         // Immediately persist absolute total from server current value to avoid cross-user mixing
         (async () => {
@@ -99,7 +107,18 @@ export default function DisplayGamePage() {
               backgroundSrc="/assets/ui/scoreboard/scoreboard-title-background.png"
               offsetTopPercent={32}
               content={
-                <div style={{ textAlign: 'center', fontFamily: 'November, sans-serif', fontWeight: 700, fontSize: 'clamp(14px, 2.2vw, 20px)', textShadow: '0 2px 0 rgba(0,0,0,0.25)', lineHeight: 1.8 }}>
+                <div style={{ 
+                  textAlign: 'center', 
+                  fontFamily: 'November, sans-serif', 
+                  fontWeight: 700, 
+                  fontSize: 'clamp(14px, 2.2vw, 20px)', 
+                  textShadow: '0 2px 0 rgba(0,0,0,0.25)', 
+                  lineHeight: 1.8,
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none'
+                }}>
                   <div style={{ color: '#b20c0f', marginBottom: '6px' }}>Partie terminee !</div>
                   <div>
                     {renderAlternating(`Score: ${gameResults.totalScore}`, true)}
@@ -115,7 +134,8 @@ export default function DisplayGamePage() {
                   imageDownSrc: '/assets/ui/buttons/button-red-down.png',
                   label: 'Arreter',
                   heightPx: 160,
-                  onClick: handleStop,
+                  onClick: buttonsEnabled ? handleStop : () => {},
+                  disabled: !buttonsEnabled,
                   ariaLabel: 'Arreter',
                 },
                 {
@@ -123,7 +143,8 @@ export default function DisplayGamePage() {
                   imageDownSrc: '/assets/ui/buttons/button-green-down.png',
                   label: 'Continuer avec ameliorations',
                   heightPx: 110,
-                  onClick: handleContinue,
+                  onClick: buttonsEnabled ? handleContinue : () => {},
+                  disabled: !buttonsEnabled,
                   ariaLabel: 'Continuer',
                 },
               ]}

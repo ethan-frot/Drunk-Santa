@@ -8,6 +8,8 @@ import { renderAlternating } from '@/app/utils/renderAlternating';
 import MusicManager from '@/app/utils/musicManager';
 import SoundToggleButton from '@/app/components/SoundToggleButton';
 import SoundManager from '@/app/utils/soundManager';
+import { useFakeLoading } from '@/app/hooks/useFakeLoading';
+import { LoadingCard } from '@/app/components/LoadingCard';
 
 function ScoreView() {
   const router = useRouter();
@@ -19,6 +21,7 @@ function ScoreView() {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const { isLoading, dots, startLoading, finishLoading } = useFakeLoading();
 
   const StarIcon = ({ active }: { active: boolean }) => {
     const [frame, setFrame] = useState<1 | 2 | 3>(active ? 1 : 3);
@@ -99,6 +102,8 @@ function ScoreView() {
   // Load current bestScore when we know the pseudo (independent of the current game score)
   useEffect(() => {
     if (!pseudo) return;
+    
+    startLoading();
     let aborted = false;
     fetch(`/api/score?name=${encodeURIComponent(pseudo)}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('failed'))))
@@ -107,9 +112,12 @@ function ScoreView() {
         const value = typeof data?.bestScore === 'number' ? data.bestScore : 0;
         setBestScore(value);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        finishLoading();
+      });
     return () => { aborted = true; };
-  }, [pseudo]);
+  }, [pseudo, startLoading, finishLoading]);
 
   useEffect(() => {
     if (!pseudo) return;
@@ -193,7 +201,16 @@ function ScoreView() {
       position: 'relative'
     }}>
       <HomeButton />
-      <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      
+      {isLoading ? (
+        <LoadingCard
+          isLoading={isLoading}
+          dots={dots}
+          title="Chargement du score"
+          subtitle="Synchronisation avec le serveur..."
+        />
+      ) : (
+        <div style={{ width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <TitleBanner text="Partie finie" backgroundSrc="/assets/ui/main-menu/title-background.png" />
         <div style={{ height: '180px' }} />
 
@@ -321,6 +338,7 @@ function ScoreView() {
           </div>
         </div>
       </div>
+      )}
       
       {/* Sound toggle button */}
       <SoundToggleButton />

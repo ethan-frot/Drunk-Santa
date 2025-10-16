@@ -10,6 +10,7 @@ type ModalButton = {
   heightPx: number;
   onClick: () => void;
   ariaLabel?: string;
+  disabled?: boolean;
 };
 
 type ImageModalProps = {
@@ -51,6 +52,7 @@ export default function ImageModal({
             heightPx={b.heightPx}
             onClick={b.onClick}
             ariaLabel={b.ariaLabel}
+            disabled={b.disabled}
           />
         ))}
       </div>
