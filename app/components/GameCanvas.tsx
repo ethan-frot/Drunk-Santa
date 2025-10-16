@@ -70,6 +70,11 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.load.image('gift1', '/assets/items/gift1.png'); // double points 10s
           this.load.image('gift2', '/assets/items/gift2.png'); // +150 points
           this.load.image('gift3', '/assets/items/gift3.png'); // golden snowballs 10s
+          // Load animated snowflake frames
+          this.load.image('snow1', '/assets/items/snowflakes/snow1.png');
+          this.load.image('snow2', '/assets/items/snowflakes/snow2.png');
+          this.load.image('snow3', '/assets/items/snowflakes/snow3.png');
+          this.load.image('snow4', '/assets/items/snowflakes/snow4.png');
           // Load vodka sprite
           this.load.image('vodka', '/assets/items/vodka.png');
           // Load anti-boost sprite
@@ -257,6 +262,20 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               key: 'monster4_anim',
               frames: this.anims.generateFrameNumbers('monster4', { start: 0, end: 3 }),
               frameRate: 10,
+              repeat: -1
+            });
+          }
+          // Snowflake animation (loops through snow1 -> snow4)
+          if (!this.anims.exists('snowflake_anim')) {
+            this.anims.create({
+              key: 'snowflake_anim',
+              frames: [
+                { key: 'snow1' },
+                { key: 'snow2' },
+                { key: 'snow3' },
+                { key: 'snow4' }
+              ],
+              frameRate: 2,
               repeat: -1
             });
           }
