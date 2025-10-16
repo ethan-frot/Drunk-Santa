@@ -299,9 +299,22 @@ export default function Home() {
               transition: 'transform 0.12s ease',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { 
+              e.currentTarget.style.transform = 'scale(1)'; 
+              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+              if (label) label.style.transform = 'translateY(-6px)';
+            }}
+            onMouseDown={(e) => { 
+              e.currentTarget.style.transform = 'scale(0.98)'; 
+              sprintRef.current?.();
+              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+              if (label) label.style.transform = 'translate(-12px, 6px)';
+            }}
+            onMouseUp={(e) => { 
+              e.currentTarget.style.transform = 'scale(1.05)'; 
+              const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+              if (label) label.style.transform = 'translateY(-6px)';
+            }}
           >
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <img
@@ -363,9 +376,21 @@ export default function Home() {
                 
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { 
+                e.currentTarget.style.transform = 'scale(1)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translateY(-6px)';
+              }}
+              onMouseDown={(e) => { 
+                e.currentTarget.style.transform = 'scale(0.98)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translate(-12px, 6px)';
+              }}
+              onMouseUp={(e) => { 
+                e.currentTarget.style.transform = 'scale(1.05)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translateY(-6px)';
+              }}
             >
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <img
@@ -392,9 +417,21 @@ export default function Home() {
                 
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { 
+                e.currentTarget.style.transform = 'scale(1)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translateY(-6px)';
+              }}
+              onMouseDown={(e) => { 
+                e.currentTarget.style.transform = 'scale(0.98)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translate(-12px, 6px)';
+              }}
+              onMouseUp={(e) => { 
+                e.currentTarget.style.transform = 'scale(1.05)'; 
+                const label = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
+                if (label) label.style.transform = 'translateY(-6px)';
+              }}
             >
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <img
