@@ -89,7 +89,7 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
           WebkitTextFillColor: 'transparent',
           
         }}        >
-          🎁 Améliorations d'Abilités
+          🎁 Ameliorations des Abilites
         </h1>
         <div
           style={{
@@ -107,7 +107,7 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', transform: 'translateY(-14px)' }}>
             <div style={{ fontSize: '24px', color: '#ED1C24' }}>
-            Flocons gagnés : <span style={{ color: '#ED1C24', fontWeight: 'bold' }}>+{snowflakesEarned}</span>
+            Flocons gagnes : <span style={{ color: '#ED1C24', fontWeight: 'bold' }}>+{snowflakesEarned}</span>
             </div>
             <div style={{ fontSize: '20px', color: '#ED1C24' }}>
             Total : <span style={{ fontWeight: 'bold' }}>{totalSnowflakes}</span>
@@ -119,9 +119,9 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
       {/* Abilities Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '15px',
-        maxWidth: '1000px',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '20px',
+        maxWidth: '800px',
         width: '100%',
         marginBottom: '20px'
       }}>

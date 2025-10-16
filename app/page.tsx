@@ -219,7 +219,7 @@ export default function Home() {
             backgroundPosition: 'center',
             backgroundColor: 'transparent',
             color: '#ffffff',
-            fontSize: '1.3rem',
+            fontSize: '1rem',
             fontWeight: 'bold',
             fontFamily: 'November, sans-serif',
             textTransform: 'uppercase',
