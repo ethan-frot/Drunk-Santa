@@ -65,12 +65,21 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.load.image('background', '/assets/ui/game/game-background.png');
           // Load snowflake sprite
           this.load.image('snowflake', '/assets/items/snowflake.png');
-          // Load gift sprite
-          this.load.image('cadeau', '/assets/items/gift.png');
+          // Load gift sprites (three types)
+          this.load.image('cadeau', '/assets/items/gift.png'); // legacy/fallback
+          this.load.image('gift1', '/assets/items/gift1.png'); // double points 10s
+          this.load.image('gift2', '/assets/items/gift2.png'); // +150 points
+          this.load.image('gift3', '/assets/items/gift3.png'); // golden snowballs 10s
           // Load vodka sprite
           this.load.image('vodka', '/assets/items/vodka.png');
           // Load anti-boost sprite
           this.load.image('antiboost', '/assets/items/freeze-bottle.png');
+          // Load snowball sprites (two frames for animation)
+          this.load.image('snowball1', '/assets/items/snowball1.png');
+          this.load.image('snowball2', '/assets/items/snowball2.png');
+          // Load golden snowball sprites (two frames for animation)
+          this.load.image('goldball1', '/assets/items/goldball1.png');
+          this.load.image('goldball2', '/assets/items/goldball2.png');
           // Load ice overlay as spritesheet (single strip animation 32x32 frames)
           this.load.spritesheet('ice', '/assets/abilities/freezing.png', {
             frameWidth: 32,
@@ -132,6 +141,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private nextThrowTime: number = 0;
         private throwCooldownMs: number = 400;
         private throwSprite: any = null;
+        private nextSnowballFrame: 1 | 2 = 1;
 
         // Monster B (monster4)
         private monsterB: any = null;
@@ -160,6 +170,16 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private dashHudContainer: any;
         private dashImage: any;
         private dashHudSize: number = 96;
+        // Power-up states
+        private scoreMultiplier: number = 1;
+        private multiplierEndTime: number = 0;
+        private goldenSnowballActive: boolean = false;
+        private goldenEndTime: number = 0;
+        // Power-up HUD (top-right, under dash)
+        private powerupHudContainer: any;
+        private doubleIcon: any;
+        private goldenIcon: any;
+        private vodkaIcon: any;
         constructor() { 
           super('Game'); 
           this.snowflakeManager = new SnowflakeManager(this);
@@ -359,6 +379,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           });
           // Create Dash Cooldown HUD
           this.createDashHud();
+          // Create Power-up HUD
+          this.createPowerupHud();
           // Create timer text
           this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
             fontSize: '48px',
@@ -393,6 +415,11 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             if (this.dashHudContainer) {
               this.dashHudContainer.setPosition(gameSize.width - (this.dashHudSize / 2 + 20), 20 + this.dashHudSize / 2);
             }
+            if (this.powerupHudContainer) {
+              const baseX = gameSize.width - (this.dashHudSize / 2 + 20);
+              // Place just below dash HUD, with spacing
+              this.powerupHudContainer.setPosition(baseX, 20 + this.dashHudSize + 20);
+            }
           });
         }
 
@@ -421,9 +448,10 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           const snowflakeValue = this.abilityManager.getCurrentValue('snowflake_value');
           this.snowflakeManager.setSnowflakeValue(snowflakeValue);
           
-          // Apply gift size upgrade
-          const giftSize = this.abilityManager.getCurrentValue('gift_size');
-          this.giftManager.setGiftSize(giftSize);
+          // Apply bonus size progress to gifts and vodka
+          const bonusProgress = this.abilityManager.getCurrentValue('bonus_size');
+          this.giftManager.setGiftSize(bonusProgress);
+          this.vodkaManager.setBonusSizeProgress?.(bonusProgress);
           
           // Apply dash cooldown upgrade
           const dashCooldown = this.abilityManager.getCurrentValue('dash_cooldown');
@@ -520,6 +548,36 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           if (this.dashImage) this.dashImage.setVisible(false);
         }
 
+        private createPowerupHud() {
+          const baseX = this.scale.width - (this.dashHudSize / 2 + 20);
+          const baseY = 20 + this.dashHudSize + 20; // below dash icon
+          this.powerupHudContainer = this.add.container(baseX, baseY).setScrollFactor(0);
+          this.powerupHudContainer.setDepth(10000);
+
+          // Icons start hidden; we reuse textures as icons
+          const iconSize = 64;
+          const vodkaIconSize = 88; // larger vodka icon
+          this.doubleIcon = this.add.image(0, 0, 'gift1');
+          this.doubleIcon.setDisplaySize(iconSize, iconSize);
+          this.doubleIcon.setVisible(false);
+          this.doubleIcon.setDepth(10001);
+          this.powerupHudContainer.add(this.doubleIcon);
+
+          this.goldenIcon = this.add.image(0, iconSize + 10, 'gift3');
+          this.goldenIcon.setDisplaySize(iconSize, iconSize);
+          this.goldenIcon.setVisible(false);
+          this.goldenIcon.setDepth(10001);
+          this.powerupHudContainer.add(this.goldenIcon);
+
+          // Position vodka below others with adjusted offset for larger size
+          const vodkaY = (iconSize + 10) * 2 + (vodkaIconSize - iconSize) / 2;
+          this.vodkaIcon = this.add.image(0, vodkaY, 'vodka');
+          this.vodkaIcon.setDisplaySize(vodkaIconSize, vodkaIconSize);
+          this.vodkaIcon.setVisible(false);
+          this.vodkaIcon.setDepth(10001);
+          this.powerupHudContainer.add(this.vodkaIcon);
+        }
+
         private updateDashHud() {
           if (!this.dashHudContainer) return;
           const remaining = Math.max(0, this.dashCooldown);
@@ -574,6 +632,62 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           }
           // Update dash HUD progression every frame
           this.updateDashHud();
+
+          // Handle power-up expirations and icon flashing
+          if (this.scoreMultiplier > 1) {
+            const remaining = this.multiplierEndTime - this.time.now;
+            if (remaining <= 0) {
+              this.scoreMultiplier = 1;
+              this.multiplierEndTime = 0;
+              if (this.doubleIcon) this.doubleIcon.setVisible(false);
+            } else {
+              // Flash faster in last 2s
+              if (this.doubleIcon && this.doubleIcon.visible) {
+                const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
+                if (hz > 0) {
+                  const t = this.time.now / 1000;
+                  const alpha = 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t);
+                  this.doubleIcon.setAlpha(alpha);
+                } else {
+                  this.doubleIcon.setAlpha(1);
+                }
+              }
+            }
+          }
+          if (this.goldenSnowballActive) {
+            const remaining = this.goldenEndTime - this.time.now;
+            if (remaining <= 0) {
+              this.goldenSnowballActive = false;
+              this.goldenEndTime = 0;
+              if (this.goldenIcon) this.goldenIcon.setVisible(false);
+            } else {
+              if (this.goldenIcon && this.goldenIcon.visible) {
+                const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
+                const t = this.time.now / 1000;
+                const alpha = hz > 0 ? 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t) : 1;
+                this.goldenIcon.setAlpha(alpha);
+              }
+            }
+          }
+
+          // Vodka boost HUD flashing based on boostEndTime
+          if (this.boostEndTime > this.time.now) {
+            if (this.vodkaIcon && !this.vodkaIcon.visible) {
+              this.vodkaIcon.setVisible(true);
+              this.vodkaIcon.setAlpha(1);
+            }
+            const remaining = this.boostEndTime - this.time.now;
+            const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
+            if (this.vodkaIcon) {
+              const t = this.time.now / 1000;
+              const alpha = hz > 0 ? 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t) : 1;
+              this.vodkaIcon.setAlpha(alpha);
+            }
+          } else {
+            if (this.vodkaIcon && this.vodkaIcon.visible) {
+              this.vodkaIcon.setVisible(false);
+            }
+          }
 
            // Handle dash mechanic (disabled while stunned)
            if (!this.isStunned && this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
@@ -791,11 +905,17 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             }
           });
 
-          // Spawn a snowball and launch toward slime
+          // Spawn a snowball sprite and launch toward target
           const startX = this.character.x + (this.character.flipX ? -10 : 10);
           const startY = this.character.y - this.character.displayHeight * 0.65;
-          const snowball = this.add.circle(startX, startY, 7, 0xffffff) as any;
-          (snowball as any).setDepth?.(5);
+          const isGolden = this.goldenSnowballActive;
+          const frame = this.nextSnowballFrame; // alternate 1 and 2 each throw
+          this.nextSnowballFrame = frame === 1 ? 2 : 1;
+          const baseKey = isGolden ? 'goldball' : 'snowball';
+          const snowball = this.add.sprite(startX, startY, `${baseKey}${frame}`) as any;
+          snowball.setDepth?.(5);
+          // Double visual size
+          snowball.setScale(isGolden ? 2.0 : 1.8);
           this.physics.add.existing(snowball);
           const body = (snowball as any).body as Phaser.Physics.Arcade.Body;
           body.setAllowGravity(false);
@@ -804,9 +924,18 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           const dx = (target.x) - startX;
           const dy = (target.y - target.displayHeight * 0.5) - startY;
           const len = Math.max(1, Math.hypot(dx, dy));
-          const speed = 480;
+          const speed = isGolden ? 560 : 480;
           body.setVelocity((dx / len) * speed, (dy / len) * speed);
 
+          // Per-snowball small animation: toggle texture every 80ms
+          const toggle = () => {
+            if (!snowball || !snowball.active) return;
+            const current = snowball.texture?.key || `${baseKey}${frame}`;
+            const next = current.endsWith('1') ? `${baseKey}2` : `${baseKey}1`;
+            snowball.setTexture(next);
+          };
+          const timer = this.time.addEvent({ delay: 80, callback: toggle, callbackScope: this, loop: true });
+          (snowball as any).__animTimer = timer;
           this.snowballs.push(snowball as any);
         }
 
@@ -816,6 +945,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             if (!ball || !ball.active) return;
             // Remove off-screen
             if (ball.x < -50 || ball.x > this.scale.width + 50 || ball.y < -50 || ball.y > this.scale.height + 50) {
+              try { (ball as any).__animTimer?.remove?.(); } catch {}
               ball.destroy();
               this.snowballs.splice(index, 1);
               return;
@@ -826,6 +956,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               const hitDist = 28; // fairly generous hitbox
               const d = Phaser.Math.Distance.Between(ball.x, ball.y, this.slime.x, this.slime.y - this.slime.displayHeight * 0.5);
               if (d < hitDist) {
+                try { (ball as any).__animTimer?.remove?.(); } catch {}
                 ball.destroy();
                 this.snowballs.splice(index, 1);
                 this.onSnowballHitMonsterA();
@@ -837,6 +968,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               const hitDistB = 28;
               const dB = Phaser.Math.Distance.Between(ball.x, ball.y, this.monsterB.x, this.monsterB.y - this.monsterB.displayHeight * 0.5);
               if (dB < hitDistB) {
+                try { (ball as any).__animTimer?.remove?.(); } catch {}
                 ball.destroy();
                 this.snowballs.splice(index, 1);
                 this.onSnowballHitMonsterB();
@@ -847,6 +979,23 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
         private onSnowballHitMonsterA() {
           if (!this.slime || !this.slime.active) return;
+          if (this.goldenSnowballActive) {
+            // Oneshoot: destroy immediately
+            this.tweens.add({
+              targets: this.slime,
+              scaleX: 0,
+              scaleY: 0,
+              duration: 120,
+              ease: 'Back.easeIn',
+              onComplete: () => {
+                this.slime?.destroy();
+                // Schedule Monster B spawns if not already scheduled
+                this.monsterBSpawnsLeft = 2;
+                this.time.delayedCall(30000, () => this.trySpawnMonsterBSequence());
+              }
+            });
+            return;
+          }
           this.slimeHitsTaken += 1;
           // small hit flash
           try {
@@ -883,6 +1032,21 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
         private onSnowballHitMonsterB() {
           if (!this.monsterB || !this.monsterB.active) return;
+          if (this.goldenSnowballActive) {
+            this.tweens.add({
+              targets: this.monsterB,
+              scaleX: 0,
+              scaleY: 0,
+              duration: 120,
+              ease: 'Back.easeIn',
+              onComplete: () => {
+                this.monsterB?.destroy();
+                this.monsterB = null;
+                this.monsterBHitsTaken = 0;
+              }
+            });
+            return;
+          }
           this.monsterBHitsTaken += 1;
           try {
             this.monsterB.setTint(0xaaffff);
@@ -932,26 +1096,46 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           const snowflakeValue = this.snowflakeManager.getSnowflakeValue();
           
           // Add score
-          this.score += snowflakeValue;
+          const earned = snowflakeValue * this.scoreMultiplier;
+          this.score += earned;
           this.snowflakesEarned += 1; // Track for ability system
           this.scoreText.setText(`Score: ${this.score}`);
           
           // Create catch effect with dynamic value
-          this.createCatchEffect(snowflake.x, snowflake.y, snowflakeValue);
+          this.createCatchEffect(snowflake.x, snowflake.y, earned);
           
           // Destroy the snowflake
           snowflake.destroy();
         }
 
         private catchGift(gift: Phaser.GameObjects.Sprite, index: number) {
-          // Add bonus score for gifts
-          this.score += 50;
-          this.scoreText.setText(`Score: ${this.score}`);
-          
-          // Create bonus catch effect
-          this.createBonusCatchEffect(gift.x, gift.y);
-          
-          // Destroy the gift
+          const type = (gift as any).giftType as string | undefined;
+          if (type === 'gift1') {
+            // Double points for 10 seconds
+            this.scoreMultiplier = 2;
+            this.multiplierEndTime = this.time.now + 10000;
+            if (this.doubleIcon) {
+              this.doubleIcon.setVisible(true);
+              this.doubleIcon.setAlpha(1);
+            }
+            // No points awarded, no +text display
+          } else if (type === 'gift2') {
+            // Instant +150 points
+            this.score += 150;
+            this.scoreText.setText(`Score: ${this.score}`);
+            this.createBonusCatchEffect(gift.x, gift.y, '+150');
+          } else if (type === 'gift3') {
+            // Golden snowballs for 10 seconds
+            this.goldenSnowballActive = true;
+            this.goldenEndTime = this.time.now + 10000;
+            if (this.goldenIcon) {
+              this.goldenIcon.setVisible(true);
+              this.goldenIcon.setAlpha(1);
+            }
+            // No points awarded, no +text display
+          } else {
+            // Fallback: no points, no display
+          }
           gift.destroy();
         }
 
@@ -1066,13 +1250,19 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.score += 5;
           this.scoreText.setText(`Score: ${this.score}`);
           bottle.destroy();
+
+          // Show vodka HUD icon when boost starts
+          if (this.vodkaIcon) {
+            this.vodkaIcon.setVisible(true);
+            this.vodkaIcon.setAlpha(1);
+          }
         }
 
         // no ghost trail function
 
-        private createBonusCatchEffect(x: number, y: number) {
-          // Create a special bonus effect for gifts
-          const effect = this.add.text(x, y, '+50 BONUS!', {
+        private createBonusCatchEffect(x: number, y: number, text: string) {
+          // Create a special bonus effect text for gifts
+          const effect = this.add.text(x, y, text, {
             fontSize: '28px',
             fontFamily: 'November, sans-serif',
             color: '#ffd700',

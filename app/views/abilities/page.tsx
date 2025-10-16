@@ -52,8 +52,8 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
     switch (abilityId) {
       case 'movement_speed':
         return `${value} px/s`;
-      case 'gift_size':
-        return `${(value * 100).toFixed(0)}%`;
+      case 'bonus_size':
+        return `${Math.round(value * 100)}%`;
       case 'dash_cooldown':
         return `${value / 1000}s`;
       case 'snowflake_value':

@@ -6,18 +6,19 @@ export class GiftManager {
   private fallSpeed: number = 80; // Slightly slower than snowflakes
   private spawnTimer: any;
   private spawnDelay: number = 8000; // Spawn every 8 seconds initially
-  private giftSize: number = 0.15; // Base size, will be upgraded
+  // bonus size progress 0..1 mapped to visual scale
+  private bonusSizeProgress: number = 0; 
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
   }
 
-  public setGiftSize(size: number) {
-    this.giftSize = size;
+  public setGiftSize(progress: number) {
+    this.bonusSizeProgress = Phaser.Math.Clamp(progress, 0, 1);
   }
 
   public getGiftSize(): number {
-    return this.giftSize;
+    return this.bonusSizeProgress;
   }
 
   public start() {
@@ -63,11 +64,24 @@ export class GiftManager {
     // Start above the screen
     const y = -30;
     
-    // Create gift sprite
-    const gift = this.scene.add.sprite(x, y, 'cadeau');
+    // Randomly choose a gift type: 1 (double points), 2 (+150), 3 (golden snowball)
+    const roll = Phaser.Math.Between(1, 3);
+    const type = roll === 1 ? 'gift1' : roll === 2 ? 'gift2' : 'gift3';
+
+    // Create gift sprite with selected texture
+    const gift = this.scene.add.sprite(x, y, type);
+    // Store type on the sprite for catch handling
+    (gift as any).giftType = type;
     
-    // Use current gift size (upgradeable)
-    gift.setScale(this.giftSize);
+    // Map bonus progress to scale: start smaller and grow to target at 1.0
+    // Base target size for gifts (previously 0.15), we divided by 4 -> 0.0375
+    const baseFinalScale = 0.0375;
+    // At max upgrade, make gifts a bit larger for extra reward
+    const finalScale = this.bonusSizeProgress >= 1 ? baseFinalScale * 1.35 : baseFinalScale;
+    const minScale = baseFinalScale * 0.6; // reduced at start
+    const t = Phaser.Math.Clamp(this.bonusSizeProgress, 0, 1);
+    const scale = minScale + (finalScale - minScale) * t;
+    gift.setScale(scale);
     
     // Random rotation
     const rotation = Phaser.Math.Between(0, 360) * Math.PI / 180;
