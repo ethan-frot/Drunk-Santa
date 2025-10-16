@@ -59,6 +59,15 @@ export class AntiBoostManager {
     this.scene.physics.add.existing(jar);
     const body = jar.body as Phaser.Physics.Arcade.Body;
     if (body) {
+      // Set physics body to 95% of displayed sprite size for tighter hitbox
+      try {
+        const width = jar.displayWidth * 0.95;
+        const height = jar.displayHeight * 0.95;
+        const offsetX = (jar.displayWidth - width) / 2;
+        const offsetY = (jar.displayHeight - height) / 2;
+        body.setSize(width, height, false);
+        body.setOffset(offsetX, offsetY);
+      } catch {}
       body.setVelocityY(this.fallSpeed);
       body.setVelocityX(Phaser.Math.FloatBetween(-12, 12));
       body.setAllowGravity(false);

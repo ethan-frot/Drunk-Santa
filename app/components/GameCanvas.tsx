@@ -5,7 +5,7 @@ import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
-import { AntiBoostManager } from '../utils/antiboost';
+import { AntiBoostManager } from '../utils/freeze';
 
 
 export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void; isPaused?: boolean }) {
@@ -56,44 +56,49 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         constructor() { super('Preload'); }
         preload() {
           // Load character sprite sheet (6 frames, 32x32)
-          this.load.spritesheet('character', '/assets/run_player.png', {
+          this.load.spritesheet('character', '/assets/characters/santa-walk.png', {
             frameWidth: 32,
             frameHeight: 32,
             margin: 0,
             spacing: 0
           });
-          this.load.image('background', '/assets/background-image.png');
+          this.load.image('background', '/assets/ui/game/game-background.png');
           // Load snowflake sprite
-          this.load.image('snowflake', '/assets/snowflake.png');
+          this.load.image('snowflake', '/assets/items/snowflake.png');
+          // Load animated snowflake frames
+          this.load.image('snow1', '/assets/items/snowflakes/snow1.png');
+          this.load.image('snow2', '/assets/items/snowflakes/snow2.png');
+          this.load.image('snow3', '/assets/items/snowflakes/snow3.png');
+          this.load.image('snow4', '/assets/items/snowflakes/snow4.png');
           // Load gift sprite
-          this.load.image('cadeau', '/assets/gifts.png');
+          this.load.image('cadeau', '/assets/items/gift.png');
           // Load vodka sprite
-          this.load.image('vodka', '/assets/vodka.png');
+          this.load.image('vodka', '/assets/items/vodka.png');
           // Load anti-boost sprite
-          this.load.image('antiboost', '/assets/anti-boost-slowly.png');
+          this.load.image('antiboost', '/assets/items/freeze-bottle.png');
           // Load ice overlay as spritesheet (single strip animation 32x32 frames)
-          this.load.spritesheet('ice', '/assets/Ice.png', {
+          this.load.spritesheet('ice', '/assets/abilities/freezing.png', {
             frameWidth: 32,
             frameHeight: 32,
             margin: 0,
             spacing: 0
           });
           // Load throw animation sheet (character throwing snowball)
-          this.load.spritesheet('throw', '/assets/throw_sheet.png', {
+          this.load.spritesheet('throw', '/assets/characters/santa-throw.png', {
             frameWidth: 32,
             frameHeight: 32,
             margin: 0,
             spacing: 0
           });
-          // Load monster walk spritesheet (Monster5Walk.png). Sheet is 4x2 frames.
-          this.load.spritesheet('monster5', '/assets/Monster5Walk.png', {
+          // Load monster walk spritesheet (demon-walk.png). Sheet is 4x2 frames.
+          this.load.spritesheet('monster5', '/assets/characters/demon-walk.png', {
             frameWidth: 80, // adjust to avoid cropping (w/ 4 columns on 320px width)
             frameHeight: 100, // adjust to full frame height (2 rows on 200px height)
             margin: 0,
             spacing: 0
           });
-          // Load second monster (Monster4Walk.png) - 2x2 frames (80x100 each)
-          this.load.spritesheet('monster4', '/assets/Monster4Walk.png', {
+          // Load second monster (skeleton-walk.png) - 2x2 frames (80x100 each)
+          this.load.spritesheet('monster4', '/assets/characters/skeleton-walk.png', {
             frameWidth: 80,
             frameHeight: 100,
             margin: 0,
@@ -101,16 +106,16 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           });
 
           // Dash icon assets (use user's images)
-          this.load.image('dash_full', '/assets/dash_full.png');
-          this.load.image('dash_empty', '/assets/dash_empty.png');
-          this.load.image('dash1', '/assets/dash1.png');
-          this.load.image('dash2', '/assets/dash2.png');
-          this.load.image('dash3', '/assets/dash3.png');
+          this.load.image('dash_full', '/assets/abilities/dash/dash-full.png');
+          this.load.image('dash_empty', '/assets/abilities/dash/dash-empty.png');
+          this.load.image('dash1', '/assets/abilities/dash/dash1.png');
+          this.load.image('dash2', '/assets/abilities/dash/dash2.png');
+          this.load.image('dash3', '/assets/abilities/dash/dash3.png');
 
           //music
-          this.load.audio('music', '/assets/background-music.mp3');
+          this.load.audio('music', '/sounds/game-music.mp3');
           // dash sound effect
-          this.load.audio('dash_sfx', '/assets/Quick Fart Sound Effect.mp3');
+          this.load.audio('dash_sfx', '/sounds/dash-sound.mp3');
         }
         create() { this.scene.start('Game'); }
       }
@@ -189,7 +194,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Scale ~x5 total (0.7 * 5 = 3.5)
           this.character.setScale(3.5);
           this.character.setOrigin(0.5, 1);
-          this.character.setCollideWorldBounds(true);
+          this.character.setCollideWorldBounds(false);
 
           // Create animations
           if (!this.anims.exists('run')) {
@@ -236,6 +241,20 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               repeat: -1
             });
           }
+          // Snowflake animation (loops through snow1 -> snow4)
+          if (!this.anims.exists('snowflake_anim')) {
+            this.anims.create({
+              key: 'snowflake_anim',
+              frames: [
+                { key: 'snow1' },
+                { key: 'snow2' },
+                { key: 'snow3' },
+                { key: 'snow4' }
+              ],
+              frameRate: 2,
+              repeat: -1
+            });
+          }
           // Throw animation (separate spritesheet like run/idle)
           if (!this.anims.exists('throw_anim')) {
             this.anims.create({
@@ -263,6 +282,18 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           
           // Initial placement centered at bottom
           this.positionCharacterAtBottomCenter();
+          // Now that position is set, size the physics body to 95% and align to bottom
+          try {
+            const body = this.character.body as Phaser.Physics.Arcade.Body;
+            const width = this.character.displayWidth * 0.95;
+            const height = this.character.displayHeight * 0.95;
+            const offsetX = (this.character.displayWidth - width) / 2;
+            const offsetY = this.character.displayHeight - height;
+            body.setSize(width, height, false);
+            body.setOffset(offsetX, offsetY);
+            body.setAllowGravity(false);
+            body.setImmovable(true);
+          } catch {}
 
           // Reposition and resize bounds when the game resizes
           this.scale.on('resize', (gameSize: any) => {
@@ -320,6 +351,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create score text
           this.scoreText = this.add.text(16, 16, 'Score: 0', {
             fontSize: '32px',
+            fontFamily: 'November, sans-serif',
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 4
@@ -349,7 +381,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create timer text
           this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
             fontSize: '48px',
-            fontFamily: 'Arial',
+            fontFamily: 'November, sans-serif',
             color: '#e7e9ff',
             fontStyle: 'bold'
           }).setOrigin(0.5);
@@ -644,6 +676,21 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.updateSnowballs();
         }
 
+        private getShrinkBounds(obj: Phaser.GameObjects.Sprite, shrinkFactor: number = 0.95) {
+          const width = (obj.displayWidth || 0) * shrinkFactor;
+          const height = (obj.displayHeight || 0) * shrinkFactor;
+          const originX = (obj.originX ?? 0.5);
+          const originY = (obj.originY ?? 0.5);
+          // Compute top-left relative to display size and origin
+          const left = obj.x - width * originX;
+          const top = obj.y - height * originY;
+          return { left, top, right: left + width, bottom: top + height };
+        }
+
+        private rectsOverlap(a: {left:number;top:number;right:number;bottom:number}, b: {left:number;top:number;right:number;bottom:number}) {
+          return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+        }
+
         private spawnMonsterA() {
           // Decide spawn side
           const fromLeft = Math.random() < 0.5;
@@ -878,53 +925,23 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private checkGiftCollisions() {
+          const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.giftManager.getGifts().forEach((gift, index) => {
-            if (gift && gift.active) {
-              // Calculate catch hitbox at the top of the character sprite
-              const topPortion = 0.3; // top 30% of character counts as catch zone
-              const horizontalOffsetFactor = 0.4; // offset left from center by 40% width (hand area)
-              const radiusFactor = 0.45; // catch radius is 45% of character size
-
-              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
-              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
-              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
-              
-              // Check if gift is close enough to the character's catch zone to be "caught"
-              const distance = Phaser.Math.Distance.Between(
-                this.character.x - offsetX, catchY,
-                gift.x, gift.y
-              );
-              
-              // If gift is close enough, catch it
-              if (distance < catchRadius) {
-                this.catchGift(gift, index);
-              }
+            if (!gift || !gift.active) return;
+            const giftBounds = this.getShrinkBounds(gift, 0.95);
+            if (this.rectsOverlap(charBounds, giftBounds)) {
+              this.catchGift(gift, index);
             }
           });
         }
 
         private checkSnowflakeCollisions() {
+          const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.snowflakeManager.getSnowflakes().forEach((snowflake, index) => {
-            if (snowflake && snowflake.active) {
-              // Calculate catch hitbox at the top of the character sprite
-              const topPortion = 0.3; // top 30% of character counts as catch zone
-              const horizontalOffsetFactor = 0.4; // offset left from center by 40% width (hand area)
-              const radiusFactor = 0.45; // catch radius is 45% of character size
-
-              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
-              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
-              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
-              
-              // Check if snowflake is close enough to the character's catch zone to be "caught"
-              const distance = Phaser.Math.Distance.Between(
-                this.character.x - offsetX, catchY,
-                snowflake.x, snowflake.y
-              );
-              
-              // If snowflake is close enough, catch it
-              if (distance < catchRadius) {
-                this.catchSnowflake(snowflake, index);
-              }
+            if (!snowflake || !snowflake.active) return;
+            const flakeBounds = this.getShrinkBounds(snowflake, 0.95);
+            if (this.rectsOverlap(charBounds, flakeBounds)) {
+              this.catchSnowflake(snowflake, index);
             }
           });
         }
@@ -961,6 +978,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create a temporary particle effect showing earned value
           const effect = this.add.text(x, y, `+${value}` , {
             fontSize: '24px',
+            fontFamily: 'November, sans-serif',
             color: '#00ff00',
             stroke: '#000000',
             strokeThickness: 2
@@ -977,47 +995,24 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private checkVodkaCollisions() {
+          const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.vodkaManager.getBottles().forEach((bottle, index) => {
-            if (bottle && bottle.active) {
-              const topPortion = 0.3;
-              const horizontalOffsetFactor = 0.4;
-              const radiusFactor = 0.45;
-
-              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
-              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
-              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
-
-              const distance = Phaser.Math.Distance.Between(
-                this.character.x - offsetX, catchY,
-                bottle.x, bottle.y
-              );
-
-              if (distance < catchRadius) {
-                this.catchVodka(bottle, index);
-              }
+            if (!bottle || !bottle.active) return;
+            const bottleBounds = this.getShrinkBounds(bottle, 0.95);
+            if (this.rectsOverlap(charBounds, bottleBounds)) {
+              this.catchVodka(bottle, index);
             }
           });
         }
 
         private checkAntiBoostCollisions() {
+          const charBounds = this.getShrinkBounds(this.character, 0.95);
           this.antiBoostManager.getJars().forEach((jar, index) => {
-            if (jar && jar.active) {
-              const topPortion = 0.3;
-              const horizontalOffsetFactor = 0.4;
-              const radiusFactor = 0.45;
-
-              const catchY = this.character.y - (this.character.displayHeight - this.character.displayHeight * topPortion);
-              const offsetX = this.character.displayWidth * horizontalOffsetFactor;
-              const catchRadius = Math.min(this.character.displayWidth, this.character.displayHeight) * radiusFactor;
-
-              const distance = Phaser.Math.Distance.Between(
-                this.character.x - offsetX, catchY,
-                jar.x, jar.y
-              );
-
-              if (distance < catchRadius) {
-                this.catchAntiBoost(jar, index);
-              }
+            if (!jar || !jar.active) return;
+            // Use an even tighter hitbox for freeze jars so they don't hit from too far
+            const jarBounds = this.getShrinkBounds(jar, 0.5);
+            if (this.rectsOverlap(charBounds, jarBounds)) {
+              this.catchAntiBoost(jar, index);
             }
           });
         }
@@ -1098,6 +1093,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create a special bonus effect for gifts
           const effect = this.add.text(x, y, '+50 BONUS!', {
             fontSize: '28px',
+            fontFamily: 'November, sans-serif',
             color: '#ffd700',
             stroke: '#000000',
             strokeThickness: 3
@@ -1136,7 +1132,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           if (this.bgMusic) {
             this.bgMusic.stop();
           }
-          
+
           // call callback (if passed through game.registry)
           // call onGameEnd with snowflakes earned and total score
           const onGameEnd = this.game.registry.get('onGameEnd');

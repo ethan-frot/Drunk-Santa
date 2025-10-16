@@ -56,6 +56,15 @@ export class VodkaManager {
 
     this.scene.physics.add.existing(bottle);
     const body = bottle.body as Phaser.Physics.Arcade.Body;
+    // Set physics body to 95% of displayed sprite size for tighter hitbox
+    try {
+      const width = bottle.displayWidth * 0.95;
+      const height = bottle.displayHeight * 0.95;
+      const offsetX = (bottle.displayWidth - width) / 2;
+      const offsetY = (bottle.displayHeight - height) / 2;
+      body.setSize(width, height, false);
+      body.setOffset(offsetX, offsetY);
+    } catch {}
     body.setVelocityY(this.fallSpeed);
     body.setVelocityX(Phaser.Math.FloatBetween(-12, 12));
 
