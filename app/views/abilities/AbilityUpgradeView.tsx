@@ -29,6 +29,10 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
     const load = async () => {
       try {
         if (!pseudo) return;
+        
+        // Wait before loading abilities to avoid race conditions
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         const res = await fetch(`/api/abilities?name=${encodeURIComponent(pseudo)}`, { 
           cache: 'no-store' 
         });
