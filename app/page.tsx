@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import TitleBanner from '@/app/components/TitleBanner';
 import HomeButton from '@/app/components/HomeButton';
-import UiImageButton from '@/app/components/UiImageButton';
+import UiImageButton, { UiImageButtonHandle } from '@/app/components/UiImageButton';
 import ImageModal from '@/app/components/ImageModal';
 import { renderAlternating } from '@/app/utils/renderAlternating';
 
@@ -18,20 +18,10 @@ export default function Home() {
   const [showWarning, setShowWarning] = useState(false);
   const [matchedExistingName, setMatchedExistingName] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  const playButtonRef = useRef<HTMLButtonElement | null>(null);
-  const playImageRef = useRef<HTMLImageElement | null>(null);
+  const playUiRef = useRef<UiImageButtonHandle | null>(null);
 
   const animatePlayButton = () => {
-    const btn = playButtonRef.current as HTMLButtonElement | null;
-    const img = playImageRef.current as HTMLImageElement | null;
-    try {
-      if (btn) btn.style.transform = 'scale(0.98)';
-      if (img) img.src = '/assets/ui/buttons/play-button-down.png';
-      setTimeout(() => {
-        if (btn) btn.style.transform = 'scale(1.05)';
-        if (img) img.src = '/assets/ui/buttons/play-button-up.png';
-      }, 150);
-    } catch {}
+    playUiRef.current?.triggerPress(150);
   };
 
   const submitName = async () => {
@@ -284,6 +274,7 @@ export default function Home() {
             onPressDown={() => sprintRef.current?.()}
             ariaLabel="Jouer"
             style={{ paddingTop: '150px', marginLeft: '-15px' }}
+            ref={playUiRef}
           />
         )}
 

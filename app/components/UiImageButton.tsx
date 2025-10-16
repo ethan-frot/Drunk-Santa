@@ -1,6 +1,6 @@
 'use client';
 
-import React, { CSSProperties, useMemo, useRef, useState } from 'react';
+import React, { CSSProperties, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
 type UiImageButtonProps = {
   imageUpSrc: string;
@@ -15,7 +15,11 @@ type UiImageButtonProps = {
   style?: CSSProperties; // allow positioning overrides
 };
 
-export default function UiImageButton({
+export type UiImageButtonHandle = {
+  triggerPress: (durationMs?: number) => void;
+};
+
+function UiImageButtonInner({
   imageUpSrc,
   imageDownSrc,
   label,
@@ -26,7 +30,7 @@ export default function UiImageButton({
   labelStyle,
   delayMs = 50,
   style,
-}: UiImageButtonProps) {
+}: UiImageButtonProps, ref: React.Ref<UiImageButtonHandle>) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const rootRef = useRef<HTMLButtonElement | null>(null);
   const labelRef = useRef<HTMLSpanElement | null>(null);
@@ -126,6 +130,22 @@ export default function UiImageButton({
     }, Math.max(0, delayMs));
   };
 
+  useImperativeHandle(ref, () => ({
+    triggerPress: (durationMs = 150) => {
+      const root = rootRef.current;
+      const img = imgRef.current;
+      const labelEl = labelRef.current;
+      if (root) root.style.transform = 'scale(0.98)';
+      if (img) img.src = imageDownSrc;
+      if (label && labelEl) labelEl.style.transform = 'translate(-12px, 6px)';
+      setTimeout(() => {
+        if (root) root.style.transform = 'scale(1.05)';
+        if (img) img.src = imageUpSrc;
+        if (label && labelEl) labelEl.style.transform = 'translateY(-6px)';
+      }, Math.max(60, durationMs));
+    }
+  }), [imageDownSrc, imageUpSrc, label]);
+
   return (
     <button
       ref={rootRef}
@@ -154,5 +174,8 @@ export default function UiImageButton({
     </button>
   );
 }
+
+const UiImageButton = forwardRef<UiImageButtonHandle, UiImageButtonProps>(UiImageButtonInner);
+export default UiImageButton;
 
 
