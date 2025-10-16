@@ -16,24 +16,93 @@ export default function AbilityUpgradePage({ onContinue, snowflakesEarned, total
   const [showUpgradeEffect, setShowUpgradeEffect] = useState<string | null>(null);
 
   useEffect(() => {
-    // Add earned snowflakes to the manager
-    abilityManager.addSnowflakes(snowflakesEarned);
-    abilityManager.addGamePlayed(totalScore);
-    
-    // Update state
-    setAbilities(abilityManager.getAbilities());
-    setTotalSnowflakes(abilityManager.getTotalSnowflakes());
+    let aborted = false;
+    const pseudo = (typeof window !== 'undefined' ? localStorage.getItem('playerPseudo') : '') || '';
+
+    // 1) Credit earned snowflakes on server, then 2) fetch abilities state
+    const credit = async () => {
+      try {
+        const alreadySynced = (typeof window !== 'undefined' ? localStorage.getItem('snowflakesSyncPending') : '0') === '0';
+        if (pseudo && snowflakesEarned > 0 && !alreadySynced) {
+          await fetch('/api/snowflakes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: pseudo, delta: Math.trunc(snowflakesEarned) })
+          }).catch(() => {});
+        }
+      } catch {}
+    };
+
+    const load = async () => {
+      try {
+        if (!pseudo) return;
+        const res = await fetch(`/api/abilities?name=${encodeURIComponent(pseudo)}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (aborted) return;
+        // Sync client with server state
+        abilityManager.setTotalSnowflakesFromServer(data?.totalSnowflakes || 0);
+        abilityManager.setAllStagesFromServer(data?.abilities || {});
+        // Cache server total for next run's absolute PUT baseline
+        if (typeof window !== 'undefined') {
+          const serverTotal = Number(data?.totalSnowflakes || 0);
+          if (Number.isFinite(serverTotal)) {
+            localStorage.setItem('prevTotalSnowflakes', String(serverTotal));
+          }
+        }
+      } catch {}
+    };
+
+    const init = async () => {
+      try {
+        // update local stats for gameplay history
+        abilityManager.addGamePlayed(totalScore);
+        // perform server sync
+        await credit();
+        await load();
+        // Clear pending flag after we ensured state is consistent
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('snowflakesSyncPending', '0');
+        }
+      } finally {
+        if (!aborted) {
+          setAbilities(abilityManager.getAbilities());
+          setTotalSnowflakes(abilityManager.getTotalSnowflakes());
+        }
+      }
+    };
+
+    init();
+    return () => { aborted = true; };
   }, [abilityManager, snowflakesEarned, totalScore]);
 
-  const handleUpgrade = (abilityId: string) => {
-    if (abilityManager.upgradeAbility(abilityId)) {
-      setAbilities([...abilityManager.getAbilities()]);
-      setTotalSnowflakes(abilityManager.getTotalSnowflakes());
-      
-      // Show upgrade effect
-      setShowUpgradeEffect(abilityId);
-      setTimeout(() => setShowUpgradeEffect(null), 1000);
+  const handleUpgrade = async (abilityId: string) => {
+    const pseudo = (typeof window !== 'undefined' ? localStorage.getItem('playerPseudo') : '') || '';
+    if (!pseudo) return;
+
+    // Request server to purchase the upgrade
+    const res = await fetch('/api/abilities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: pseudo, abilityId })
+    }).catch(() => null);
+
+    if (!res || !res.ok) {
+      // optionally show an error toast later
+      return;
     }
+    const data = await res.json().catch(() => null);
+    if (!data || !data.ok) return;
+
+    // Reflect new stage and snowflakes locally
+    abilityManager.setAbilityStageFromServer(abilityId, data.newStage);
+    abilityManager.setTotalSnowflakesFromServer(data.totalSnowflakes);
+    setAbilities([...abilityManager.getAbilities()]);
+    setTotalSnowflakes(abilityManager.getTotalSnowflakes());
+
+    // Show upgrade effect
+    setShowUpgradeEffect(abilityId);
+    setTimeout(() => setShowUpgradeEffect(null), 1000);
   };
 
   const getCurrentValue = (ability: AbilityUpgrade): number => {

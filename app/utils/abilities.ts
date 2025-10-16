@@ -137,6 +137,28 @@ export class AbilityManager {
     return this.gameStats.totalSnowflakes;
   }
 
+  // --- Server sync helpers ---
+  public setTotalSnowflakesFromServer(total: number) {
+    if (Number.isFinite(total) && total >= 0) {
+      this.gameStats.totalSnowflakes = Math.trunc(total);
+      this.saveToStorage();
+    }
+  }
+
+  public setAbilityStageFromServer(abilityId: string, stage: number) {
+    const ability = this.getAbility(abilityId);
+    if (!ability) return;
+    const normalized = Math.max(0, Math.trunc(stage));
+    ability.currentStage = normalized;
+    this.saveToStorage();
+  }
+
+  public setAllStagesFromServer(stages: Record<string, number>) {
+    Object.keys(stages || {}).forEach((id) => {
+      this.setAbilityStageFromServer(id, stages[id]);
+    });
+  }
+
   private saveToStorage() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('gameAbilities', JSON.stringify(this.abilities));
