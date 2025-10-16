@@ -257,7 +257,7 @@ export default function DisplayScorePage() {
         width: '100%',
         maxWidth: '800px',
         padding: '4rem 3rem',
-        backgroundImage: "url('/assets/ui/score/scoreboard/endgame-background.png')",
+        backgroundImage: "url('/assets/ui/score/scoreboard/engame-background.png')",
         backgroundRepeat: 'no-repeat',
         backgroundSize: '100% 100%',
         backgroundPosition: 'center',
