@@ -143,10 +143,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private throwSprite: any = null;
         private nextSnowballFrame: 1 | 2 = 1;
 
-        // Monster B (monster4)
-        private monsterB: any = null;
-        private monsterBHitsTaken: number = 0;
-        private monsterBSpawnsLeft: number = 0;
+        // Monster B (monster4) - allow multiple concurrent instances
+        private monstersB: any[] = [];
   
         private score: number = 0;
         private scoreText: any;
@@ -158,9 +156,12 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private isStunned: boolean = false;
         private hasEnded: boolean = false;
         private isDashing: boolean = false;
+        private isThrowing: boolean = false;
         private dashCooldown: number = 0; // remaining ms
         private dashCooldownTotal: number = 0; // total ms for current cooldown
         private spaceKey: any;
+        private keyQ: any;
+        private keyD: any;
         private snowflakesEarned: number = 0;
         private abilityManager: any;
         private baseMoveSpeed: number = 200;
@@ -180,6 +181,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private doubleIcon: any;
         private goldenIcon: any;
         private vodkaIcon: any;
+        // Enemy hit cooldown
+        private lastEnemyHitTime: number = 0;
+        private enemyHitCooldownMs: number = 800;
         constructor() { 
           super('Game'); 
           this.snowflakeManager = new SnowflakeManager(this);
@@ -327,6 +331,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           }
           // Set up keyboard controls (fresh bindings each scene create)
           this.cursors = this.input.keyboard?.createCursorKeys();
+          this.keyQ = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+          this.keyD = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 
           // Ensure canvas keeps focus for reliable keyboard input
           const canvas: any = this.game.canvas as any;
@@ -372,6 +378,20 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.antiBoostManager.start();
           // Spawn monster A once after short delay
           this.time.delayedCall(1500, () => this.spawnMonsterA());
+
+          // Periodic spawner for Monster B to increase pressure
+          // Attempts spawn every ~4s up to 3 simultaneous Monster B (plus Slime)
+          this.time.addEvent({
+            delay: 4000,
+            callback: () => {
+              const maxB = 3;
+              const activeB = this.monstersB.filter(m => m && m.active).length;
+              if (activeB < maxB) {
+                this.spawnMonsterB();
+              }
+            },
+            loop: true
+          });
 
           // Mouse click to throw snowball (only if slime exists)
           this.input.on('pointerdown', () => {
@@ -689,27 +709,27 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             }
           }
 
-           // Handle dash mechanic (disabled while stunned)
-           if (!this.isStunned && this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
-            if (this.cursors?.left.isDown) {
+           // Handle dash mechanic (disabled while stunned or throwing)
+           if (!this.isStunned && !this.isThrowing && this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
+            if (this.cursors?.left.isDown || this.keyQ?.isDown) {
               this.performDash(-1); // Dash left
-            } else if (this.cursors?.right.isDown) {
+            } else if (this.cursors?.right.isDown || this.keyD?.isDown) {
               this.performDash(1); // Dash right
             }
           }
 
-           // Handle normal horizontal movement (only if not dashing or stunned)
-           if (!this.isDashing && !this.isStunned) {
+           // Handle normal horizontal movement (only if not dashing, stunned, or throwing)
+           if (!this.isDashing && !this.isStunned && !this.isThrowing) {
             // Use base speed scaled by current multiplier
             const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
 
-            if (this.cursors?.left.isDown) {
+            if (this.cursors?.left.isDown || this.keyQ?.isDown) {
               this.character.setVelocityX(-moveSpeed);
               this.character.setFlipX(true);
               if (this.character.anims?.currentAnim?.key !== 'run') {
                 this.character.play('run');
               }
-            } else if (this.cursors?.right.isDown) {
+            } else if (this.cursors?.right.isDown || this.keyD?.isDown) {
               this.character.setVelocityX(moveSpeed);
               this.character.setFlipX(false);
               if (this.character.anims?.currentAnim?.key !== 'run') {
@@ -769,6 +789,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
           // Update snowballs and collisions
           this.updateSnowballs();
+          // Enemy collisions (score damage)
+          this.checkEnemyCollisions();
         }
 
         private getShrinkBounds(obj: Phaser.GameObjects.Sprite, shrinkFactor: number = 0.95) {
@@ -834,48 +856,53 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           const fromLeft = Math.random() < 0.5;
           const y = this.getBottomY();
           const x = fromLeft ? -40 : this.scale.width + 40;
-          if (this.monsterB) {
-            this.monsterB.destroy();
-          }
-          this.monsterB = this.physics.add.sprite(x, y, 'monster4');
-          this.monsterB.setOrigin(0.5, 1);
-          this.monsterB.setScale(1.0);
-          this.monsterB.play('monster4_anim');
-          this.monsterB.setDepth(6);
-          this.monsterB.setAlpha(1);
-          this.monsterBHitsTaken = 0;
+          const mob = this.physics.add.sprite(x, y, 'monster4');
+          mob.setOrigin(0.5, 1);
+          mob.setScale(1.0);
+          mob.play('monster4_anim');
+          mob.setDepth(6);
+          mob.setAlpha(1);
+          (mob as any).__hitsTaken = 0;
+          this.monstersB.push(mob);
         }
 
         private updateMonsterB() {
-          if (!this.monsterB || !this.monsterB.active) return;
-          this.monsterB.y = this.getBottomY();
-          const targetX = this.character.x + (this.character.flipX ? 1 : -1) * this.slimeTargetOffset;
-          const distance = Math.abs(targetX - this.monsterB.x);
-          if (distance <= 6) {
-            this.monsterB.setVelocityX(0);
-            return;
-          }
-          const dir = targetX > this.monsterB.x ? 1 : -1;
-          this.monsterB.setVelocityX(dir * this.slimeSpeed);
-          this.monsterB.setFlipX(dir > 0);
-          if (this.monsterB.x < -120 || this.monsterB.x > this.scale.width + 120) {
-            this.monsterB.destroy();
-          }
+          if (!this.monstersB || this.monstersB.length === 0) return;
+          this.monstersB = this.monstersB.filter((mob) => {
+            if (!mob || !mob.active) return false;
+            mob.y = this.getBottomY();
+            const targetX = this.character.x + (this.character.flipX ? 1 : -1) * this.slimeTargetOffset;
+            const distance = Math.abs(targetX - mob.x);
+            if (distance <= 6) {
+              mob.setVelocityX(0);
+            } else {
+              const dir = targetX > mob.x ? 1 : -1;
+              mob.setVelocityX(dir * this.slimeSpeed);
+              mob.setFlipX(dir > 0);
+            }
+            if (mob.x < -120 || mob.x > this.scale.width + 120) {
+              mob.destroy();
+              return false;
+            }
+            return true;
+          });
         }
 
         private tryThrowSnowball() {
           const hasA = this.slime && this.slime.active;
-          const hasB = this.monsterB && this.monsterB.active;
+          const hasB = (this.monstersB && this.monstersB.some(m => m && m.active));
           if (this.isStunned) return;
+          if (this.isThrowing) return;
           if (this.time.now < this.nextThrowTime) return;
           this.nextThrowTime = this.time.now + this.throwCooldownMs;
 
           // Play throw animation once, then restore run/idle
+          this.isThrowing = true;
+          this.isDashing = false;
+          this.character.setVelocityX(0);
           const wasRunning = this.character.anims?.currentAnim?.key === 'run';
-          // Face toward pointer if available, otherwise keep current
-          const pointer = this.input.activePointer as any;
-          const faceRight = pointer ? (pointer.x > this.character.x) : !this.character.flipX;
-          this.character.setFlipX(!faceRight);
+          // Use current sprite facing for throw direction (no pointer aim)
+          const faceRight = !this.character.flipX;
           // Create a temporary throw sprite over the character
           if (this.throwSprite) { this.throwSprite.destroy(); this.throwSprite = null; this.character.setAlpha(1); }
           this.throwSprite = this.add.sprite(this.character.x, this.character.y, 'throw');
@@ -887,9 +914,57 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           const prevAlpha = this.character.alpha;
           this.character.setAlpha(0);
           this.throwSprite.play('throw_anim');
+
+          // Prepare to spawn snowball timed to animation (around frame 3 of 0..5)
+          let hasSpawned = false;
+          const spawnSnowball = () => {
+            if (hasSpawned) return;
+            hasSpawned = true;
+            // Spawn a snowball sprite and launch in facing direction
+            const startX = this.character.x + (this.character.flipX ? -10 : 10);
+            const startY = this.character.y - this.character.displayHeight * 0.65;
+            const isGolden = this.goldenSnowballActive;
+            const frame = this.nextSnowballFrame; // alternate 1 and 2 each throw
+            this.nextSnowballFrame = frame === 1 ? 2 : 1;
+            const baseKey = isGolden ? 'goldball' : 'snowball';
+            const snowball = this.add.sprite(startX, startY, `${baseKey}${frame}`) as any;
+            snowball.setDepth?.(5);
+            // Double visual size
+            snowball.setScale(isGolden ? 2.0 : 1.8);
+            this.physics.add.existing(snowball);
+            const body = (snowball as any).body as Phaser.Physics.Arcade.Body;
+            body.setAllowGravity(false);
+            // Straight horizontal velocity based on facing direction
+            const speed = isGolden ? 560 : 480;
+            const dirX = faceRight ? 1 : -1;
+            body.setVelocity(speed * dirX, 0);
+
+            // Per-snowball small animation: toggle texture every 80ms
+            const toggle = () => {
+              if (!snowball || !snowball.active) return;
+              const current = snowball.texture?.key || `${baseKey}${frame}`;
+              const next = current.endsWith('1') ? `${baseKey}2` : `${baseKey}1`;
+              snowball.setTexture(next);
+            };
+            const timer = this.time.addEvent({ delay: 80, callback: toggle, callbackScope: this, loop: true });
+            (snowball as any).__animTimer = timer;
+            this.snowballs.push(snowball as any);
+          };
+
+          // Spawn when animation passes the release frame
+          this.throwSprite.on(Phaser.Animations.Events.ANIMATION_UPDATE, (_anim: any, frame: any) => {
+            try {
+              if (!hasSpawned && typeof frame?.index === 'number' && frame.index >= 3) {
+                spawnSnowball();
+              }
+            } catch {}
+          });
           this.throwSprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
             this.throwSprite?.destroy();
             this.throwSprite = null;
+            this.isThrowing = false;
+            // Ensure snowball exists even if update event was missed
+            if (!hasSpawned) spawnSnowball();
             this.character.setAlpha(prevAlpha);
             if (wasRunning) {
               this.character.play('run');
@@ -901,60 +976,15 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.time.delayedCall(600, () => {
             if (!this.throwSprite && this.character.alpha === 0) {
               this.character.setAlpha(prevAlpha);
+              this.isThrowing = false;
             }
           });
-
-          // Spawn a snowball sprite and launch toward target
-          const startX = this.character.x + (this.character.flipX ? -10 : 10);
-          const startY = this.character.y - this.character.displayHeight * 0.65;
-          const isGolden = this.goldenSnowballActive;
-          const frame = this.nextSnowballFrame; // alternate 1 and 2 each throw
-          this.nextSnowballFrame = frame === 1 ? 2 : 1;
-          const baseKey = isGolden ? 'goldball' : 'snowball';
-          const snowball = this.add.sprite(startX, startY, `${baseKey}${frame}`) as any;
-          snowball.setDepth?.(5);
-          // Double visual size
-          snowball.setScale(isGolden ? 2.0 : 1.8);
-          this.physics.add.existing(snowball);
-          const body = (snowball as any).body as Phaser.Physics.Arcade.Body;
-          body.setAllowGravity(false);
-
-          // Straight horizontal velocity based on facing/pointer direction
-          const speed = isGolden ? 560 : 480;
-          const dirX = faceRight ? 1 : -1;
-          body.setVelocity(speed * dirX, 0);
-
-          // Track travel range (half the map width)
-          (snowball as any).__startX = startX;
-          (snowball as any).__maxRange = this.scale.width * 0.5;
-
-          // Per-snowball small animation: toggle texture every 80ms
-          const toggle = () => {
-            if (!snowball || !snowball.active) return;
-            const current = snowball.texture?.key || `${baseKey}${frame}`;
-            const next = current.endsWith('1') ? `${baseKey}2` : `${baseKey}1`;
-            snowball.setTexture(next);
-          };
-          const timer = this.time.addEvent({ delay: 80, callback: toggle, callbackScope: this, loop: true });
-          (snowball as any).__animTimer = timer;
-          this.snowballs.push(snowball as any);
         }
 
         private updateSnowballs() {
           if (this.snowballs.length === 0) return;
           this.snowballs.forEach((ball, index) => {
             if (!ball || !ball.active) return;
-            // Remove by range (half-map) if no hit
-            const startX = (ball as any).__startX as number | undefined;
-            const maxRange = (ball as any).__maxRange as number | undefined;
-            if (startX !== undefined && maxRange !== undefined) {
-              if (Math.abs(ball.x - startX) >= maxRange) {
-                try { (ball as any).__animTimer?.remove?.(); } catch {}
-                ball.destroy();
-                this.snowballs.splice(index, 1);
-                return;
-              }
-            }
             // Remove off-screen
             if (ball.x < -50 || ball.x > this.scale.width + 50 || ball.y < -50 || ball.y > this.scale.height + 50) {
               try { (ball as any).__animTimer?.remove?.(); } catch {}
@@ -975,15 +1005,20 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
                 return;
               }
             }
-            // Collision with monster B
-            if (this.monsterB && this.monsterB.active) {
+            // Collision with monster B (any)
+            if (this.monstersB && this.monstersB.length > 0) {
               const hitDistB = 28;
-              const dB = Phaser.Math.Distance.Between(ball.x, ball.y, this.monsterB.x, this.monsterB.y - this.monsterB.displayHeight * 0.5);
-              if (dB < hitDistB) {
-                try { (ball as any).__animTimer?.remove?.(); } catch {}
-                ball.destroy();
-                this.snowballs.splice(index, 1);
-                this.onSnowballHitMonsterB();
+              for (let i = 0; i < this.monstersB.length; i++) {
+                const mob = this.monstersB[i];
+                if (!mob || !mob.active) continue;
+                const dB = Phaser.Math.Distance.Between(ball.x, ball.y, mob.x, mob.y - mob.displayHeight * 0.5);
+                if (dB < hitDistB) {
+                  try { (ball as any).__animTimer?.remove?.(); } catch {}
+                  ball.destroy();
+                  this.snowballs.splice(index, 1);
+                  this.onSnowballHitMonsterB(mob, i);
+                  break;
+                }
               }
             }
           });
@@ -1001,9 +1036,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               ease: 'Back.easeIn',
               onComplete: () => {
                 this.slime?.destroy();
-                // Schedule Monster B spawns if not already scheduled
-                this.monsterBSpawnsLeft = 2;
-                this.time.delayedCall(30000, () => this.trySpawnMonsterBSequence());
+                // Spawns handled by periodic spawner
               }
             });
             return;
@@ -1025,57 +1058,50 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               ease: 'Back.easeIn',
               onComplete: () => {
                 this.slime?.destroy();
-                // Start schedule for monster B spawns: 2 times with 30s pause
-                this.monsterBSpawnsLeft = 2;
-                this.time.delayedCall(30000, () => this.trySpawnMonsterBSequence());
+                // Spawns handled by periodic spawner
               }
             });
           }
         }
 
         private trySpawnMonsterBSequence() {
-          if (this.monsterBSpawnsLeft <= 0) return;
-          this.spawnMonsterB();
-          this.monsterBSpawnsLeft -= 1;
-          if (this.monsterBSpawnsLeft > 0) {
-            this.time.delayedCall(30000, () => this.trySpawnMonsterBSequence());
-          }
+          // Deprecated: replaced by periodic spawner
+          // Keep no-op to avoid runtime errors if called elsewhere
+          return;
         }
 
-        private onSnowballHitMonsterB() {
-          if (!this.monsterB || !this.monsterB.active) return;
+        private onSnowballHitMonsterB(mob: any, index: number) {
+          if (!mob || !mob.active) return;
           if (this.goldenSnowballActive) {
             this.tweens.add({
-              targets: this.monsterB,
+              targets: mob,
               scaleX: 0,
               scaleY: 0,
               duration: 120,
               ease: 'Back.easeIn',
               onComplete: () => {
-                this.monsterB?.destroy();
-                this.monsterB = null;
-                this.monsterBHitsTaken = 0;
+                mob?.destroy();
+                this.monstersB.splice(index, 1);
               }
             });
             return;
           }
-          this.monsterBHitsTaken += 1;
+          (mob as any).__hitsTaken = ((mob as any).__hitsTaken || 0) + 1;
           try {
-            this.monsterB.setTint(0xaaffff);
-            this.time.delayedCall(100, () => this.monsterB?.clearTint?.());
+            mob.setTint(0xaaffff);
+            this.time.delayedCall(100, () => mob?.clearTint?.());
           } catch {}
 
-          if (this.monsterBHitsTaken >= 3) {
+          if ((mob as any).__hitsTaken >= 3) {
             this.tweens.add({
-              targets: this.monsterB,
+              targets: mob,
               scaleX: 0,
               scaleY: 0,
               duration: 200,
               ease: 'Back.easeIn',
               onComplete: () => {
-                this.monsterB?.destroy();
-                this.monsterB = null;
-                this.monsterBHitsTaken = 0;
+                mob?.destroy();
+                this.monstersB.splice(index, 1);
               }
             });
           }
@@ -1104,17 +1130,17 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchSnowflake(snowflake: Phaser.GameObjects.Sprite, index: number) {
-          // Get snowflake value from manager
-          const snowflakeValue = this.snowflakeManager.getSnowflakeValue();
-          
-          // Add score
-          const earned = snowflakeValue * this.scoreMultiplier;
-          this.score += earned;
-          this.snowflakesEarned += 1; // Track for ability system
+          // Currency (shop/upgrade) uses upgrade value; score is fixed per flake (10) and doubled by gift
+          const currencyPerFlake = this.abilityManager.getCurrentValue('snowflake_value');
+          this.snowflakesEarned += currencyPerFlake;
+
+          // In-game score: fixed 10 per flake, affected by scoreMultiplier (double points gift)
+          const scorePerFlake = 10 * this.scoreMultiplier;
+          this.score += scorePerFlake;
           this.scoreText.setText(`Score: ${this.score}`);
-          
-          // Create catch effect with dynamic value
-          this.createCatchEffect(snowflake.x, snowflake.y, earned);
+
+          // Show +score effect (not currency)
+          this.createCatchEffect(snowflake.x, snowflake.y, scorePerFlake);
           
           // Destroy the snowflake
           snowflake.destroy();
@@ -1295,6 +1321,60 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               effect.destroy();
             }
           });
+        }
+
+        private createDamageEffect(x: number, y: number, text: string) {
+          // Red damage text for enemy hits
+          const effect = this.add.text(x, y, text, {
+            fontSize: '28px',
+            fontFamily: 'November, sans-serif',
+            color: '#ff3b3b',
+            stroke: '#000000',
+            strokeThickness: 3
+          });
+          this.tweens.add({
+            targets: effect,
+            y: y - 60,
+            alpha: 0,
+            duration: 900,
+            ease: 'Power2',
+            onComplete: () => effect.destroy()
+          });
+        }
+
+        private checkEnemyCollisions() {
+          const now = this.time.now;
+          if (now - this.lastEnemyHitTime < this.enemyHitCooldownMs) return;
+          const charBounds = this.getShrinkBounds(this.character, 0.85);
+          // Slime
+          if (this.slime && this.slime.active) {
+            const slimeBounds = this.getShrinkBounds(this.slime, 0.85);
+            if (this.rectsOverlap(charBounds, slimeBounds)) {
+              this.applyEnemyHit();
+              return;
+            }
+          }
+          // Monster B (any)
+          if (this.monstersB && this.monstersB.length > 0) {
+            for (let i = 0; i < this.monstersB.length; i++) {
+              const mob = this.monstersB[i];
+              if (!mob || !mob.active) continue;
+              const mBounds = this.getShrinkBounds(mob, 0.85);
+              if (this.rectsOverlap(charBounds, mBounds)) {
+                this.applyEnemyHit();
+                return;
+              }
+            }
+          }
+        }
+
+        private applyEnemyHit() {
+          this.lastEnemyHitTime = this.time.now;
+          // Reduce score by 100, not affecting snowflakesEarned (currency)
+          this.score = Math.max(0, this.score - 100);
+          this.scoreText.setText(`Score: ${this.score}`);
+          // Show damage effect above character
+          this.createDamageEffect(this.character.x, this.character.y - this.character.displayHeight, '-100');
         }
 
         gameOver() {
