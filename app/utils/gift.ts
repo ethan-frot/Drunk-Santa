@@ -76,8 +76,8 @@ export class GiftManager {
     // Map bonus progress to scale: start smaller and grow to target at 1.0
     // Base target size for gifts (previously 0.15), we divided by 4 -> 0.0375
     const baseFinalScale = 0.0375;
-    // At max upgrade, make gifts a bit larger for extra reward
-    const finalScale = this.bonusSizeProgress >= 1 ? baseFinalScale * 1.35 : baseFinalScale;
+    // At max upgrade, make gifts larger for extra reward
+    const finalScale = this.bonusSizeProgress >= 1 ? baseFinalScale * 1.7 : baseFinalScale;
     const minScale = baseFinalScale * 0.6; // reduced at start
     const t = Phaser.Math.Clamp(this.bonusSizeProgress, 0, 1);
     const scale = minScale + (finalScale - minScale) * t;

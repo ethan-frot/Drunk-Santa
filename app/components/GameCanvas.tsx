@@ -556,7 +556,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
           // Icons start hidden; we reuse textures as icons
           const iconSize = 64;
-          const vodkaIconSize = 88; // larger vodka icon
+          const vodkaIconSize = 108; // larger vodka icon
           this.doubleIcon = this.add.image(0, 0, 'gift1');
           this.doubleIcon.setDisplaySize(iconSize, iconSize);
           this.doubleIcon.setVisible(false);
@@ -1184,7 +1184,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
         private catchAntiBoost(jar: Phaser.GameObjects.Sprite, index: number) {
           // Apply 4-second stun: stop movement and ignore input/dash
-          const stunDurationMs = 4000;
+          const stunDurationMs = 2000;
           this.isStunned = true;
           this.isDashing = false;
           this.character.setVelocityX(0);
@@ -1236,7 +1236,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
        
         private catchVodka(bottle: Phaser.GameObjects.Sprite, index: number) {
           // Speed boost for a short duration with ghost trail
-          const boostDurationMs = 5000;
+          const boostDurationMs = 2500;
           this.speedMultiplier = 2;
           this.boostEndTime = this.time.now + boostDurationMs;
 

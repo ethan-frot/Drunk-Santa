@@ -57,7 +57,7 @@ export class VodkaManager {
 
     const bottle = this.scene.add.sprite(x, y, 'vodka');
     // Map bonus progress to scale: start smaller and grow to target at 1.0
-    const finalScale = 0.16; // previous size at full upgrade
+    const finalScale = 0.14; // average between 0.16 and 0.12
     const minScale = finalScale * 0.6; // reduced at start
     const scale = minScale + (finalScale - minScale) * this.bonusSizeProgress;
     bottle.setScale(scale);
