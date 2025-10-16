@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import MusicManager from '../../utils/musicManager';
 
 function ScoreView() {
   const router = useRouter();
@@ -72,6 +73,16 @@ function ScoreView() {
       />
     );
   };
+
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
 
   useEffect(() => {
     const playerPseudo = localStorage.getItem('playerPseudo') || 'Joueur';

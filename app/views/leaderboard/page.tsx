@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import MusicManager from '../../utils/musicManager';
 
 type TopRow = { rank: number; name: string; bestScore: number };
 type PlayerRow = { name: string; bestScore: number; rank: number; inTop: boolean };
@@ -12,6 +13,16 @@ function LeaderboardView() {
   const [pseudo, setPseudo] = useState('');
   const [leaderboard, setLeaderboard] = useState<{ top: TopRow[]; player: PlayerRow | null }>({ top: [], player: null });
   const abortRef = useRef<AbortController | null>(null);
+
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
 
   useEffect(() => {
     const playerPseudo = localStorage.getItem('playerPseudo') || 'Joueur';

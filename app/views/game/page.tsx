@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import GameCanvas from '../../components/GameCanvas';
 import { AbilityUpgradeView } from '../abilities/AbilityUpgradeView';
+import MusicManager from '../../utils/musicManager';
 
 // Prevent static prerender to avoid SSR touching browser APIs
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,11 @@ export default function DisplayGamePage() {
     const [gameResults, setGameResults] = useState<{snowflakesEarned: number, totalScore: number} | null>(null);
     const [runId, setRunId] = useState(0); // forces GameCanvas remount
     const [showEndModal, setShowEndModal] = useState(false);
+    
+    // Stop menu music when entering game
+    useEffect(() => {
+        MusicManager.getInstance().stop();
+    }, []);
     
     const handleGameEnd = (snowflakesEarned: number, totalScore: number) => {
         // Save results
@@ -58,6 +64,8 @@ export default function DisplayGamePage() {
     const handleStop = () => {
         // From modal, go to score page
         setShowEndModal(false);
+        // Resume menu music when going to score page
+        MusicManager.getInstance().playMenuMusic();
         router.push('/views/score');
     };
 
