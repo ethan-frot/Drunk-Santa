@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 type TopRow = { rank: number; name: string; bestScore: number };
 type PlayerRow = { name: string; bestScore: number; rank: number; inTop: boolean };
 
-export default function LeaderboardPage() {
+function LeaderboardView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pseudo, setPseudo] = useState('');
@@ -143,6 +143,14 @@ export default function LeaderboardPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LeaderboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <LeaderboardView />
+    </Suspense>
   );
 }
 
