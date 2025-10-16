@@ -54,6 +54,8 @@ export default function Home() {
       return; // Do not proceed to game when verification failed
     }
     localStorage.setItem('playerPseudo', entered);
+    // Stop menu music before going to game
+    MusicManager.getInstance().stop();
     router.push('/views/game');
   };
 
@@ -62,8 +64,28 @@ export default function Home() {
     if (!nameToUse) return;
     localStorage.setItem('playerPseudo', nameToUse);
     setShowWarning(false);
+    // Stop menu music before going to game
+    MusicManager.getInstance().stop();
     router.push('/views/game');
   };
+
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+
+    return () => {
+      // Only stop music if we're going to game, not to other menu pages
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/views/game')) {
+        musicManager.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;

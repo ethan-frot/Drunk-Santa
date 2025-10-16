@@ -13,6 +13,16 @@ function LeaderboardView() {
   const [top, setTop] = useState<TopRow[]>([]);
   const { isLoading, dots, startLoading, finishLoading } = useFakeLoading();
 
+  // Menu music effect
+  useEffect(() => {
+    const musicManager = MusicManager.getInstance();
+    
+    // Only start music if it's not already playing
+    if (!musicManager.isCurrentlyPlaying()) {
+      musicManager.playMenuMusic();
+    }
+  }, []);
+
   useEffect(() => {
     startLoading();
     fetch(`/api/leaderboard`, { cache: 'no-store' })
