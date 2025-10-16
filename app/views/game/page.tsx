@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import GameCanvas from '../../components/GameCanvas';
 import { AbilityUpgradeView } from '../abilities/AbilityUpgradeView';
 import MusicManager from '../../utils/musicManager';
+import SoundManager from '../../utils/soundManager';
 
 // Prevent static prerender to avoid SSR touching browser APIs
 export const dynamic = 'force-dynamic';
@@ -104,7 +105,10 @@ export default function DisplayGamePage() {
               {/* Buttons row under the image */}
               <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px' }}>
                 <button
-                  onClick={handleStop}
+                  onClick={() => {
+                    SoundManager.getInstance().playClickSound();
+                    handleStop();
+                  }}
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -130,7 +134,10 @@ export default function DisplayGamePage() {
                   </div>
                 </button>
                 <button
-                  onClick={handleContinue}
+                  onClick={() => {
+                    SoundManager.getInstance().playClickSound();
+                    handleContinue();
+                  }}
                   style={{
                     background: 'transparent',
                     border: 'none',

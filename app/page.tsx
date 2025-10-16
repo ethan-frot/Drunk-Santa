@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import MusicManager from './utils/musicManager';
+import SoundManager from './utils/soundManager';
 
 export default function Home() {
   const router = useRouter();
@@ -311,6 +312,7 @@ export default function Home() {
         {!showNameOverlay ? (
           <button
             onClick={() => { 
+              SoundManager.getInstance().playClickSound();
               sprintRef.current?.(); 
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
@@ -354,6 +356,7 @@ export default function Home() {
         ) : (
           <button
             onClick={() => { 
+              SoundManager.getInstance().playClickSound();
               sprintRef.current?.(); 
               setTimeout(() => submitName(), 150);
             }}
@@ -389,7 +392,10 @@ export default function Home() {
           <>
             {/* Secondary button below the red one (Comment jouer) */}
             <button
-              onClick={() => router.push('/views/how-to-play')}
+              onClick={() => {
+                SoundManager.getInstance().playClickSound();
+                router.push('/views/how-to-play');
+              }}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -430,7 +436,10 @@ export default function Home() {
 
             {/* Third green button below the white one */}
             <button
-              onClick={() => router.push('/views/leaderboard')}
+              onClick={() => {
+                SoundManager.getInstance().playClickSound();
+                router.push('/views/leaderboard');
+              }}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -479,7 +488,10 @@ export default function Home() {
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 3, paddingTop: '80px', pointerEvents: 'none' }}>
           {/* Back button like leaderboard */}
           <button
-            onClick={() => setShowNameOverlay(false)}
+            onClick={() => {
+              SoundManager.getInstance().playClickSound();
+              setShowNameOverlay(false);
+            }}
             aria-label="Retour"
             style={{
               position: 'absolute',
@@ -550,7 +562,10 @@ export default function Home() {
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px' }}>
               {/* Red continue */}
               <button
-                onClick={confirmUseExisting}
+                onClick={() => {
+                  SoundManager.getInstance().playClickSound();
+                  confirmUseExisting();
+                }}
                 style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.12s ease' }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -572,7 +587,10 @@ export default function Home() {
 
               {/* Green modify */}
               <button
-                onClick={() => setShowWarning(false)}
+                onClick={() => {
+                  SoundManager.getInstance().playClickSound();
+                  setShowWarning(false);
+                }}
                 style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.12s ease' }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
