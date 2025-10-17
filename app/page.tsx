@@ -213,12 +213,22 @@ export default function Home() {
           } else {
             // Four phases: jump onto dog (0-0.15), run on back (0.15-0.40), stop on dog (0.40-0.60), jump off (0.60-1.0)
             if (jumpProgress < 0.15) {
-              // Phase 1: Jump onto the dog (very short)
+              // Phase 1: One clear jump onto the dog - land directly on dog level
               const phaseProgress = jumpProgress / 0.15;
-              const jumpPhase = phaseProgress * Math.PI; // 0 to π
+              const jumpPhase = phaseProgress * Math.PI; // 0 to π for smooth arc
               const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
-              this.y = this.originalY - jumpOffset;
-              this.frame = 6; // Jump start frame
+              // Start from floor level, jump up, and land directly on dog level
+              // Slightly adjust the trajectory for smoother jump
+              this.y = this.originalY - (this.jumpHeight - jumpOffset * 0.8);
+              
+              // Use jump animation frames based on jump progress
+              if (phaseProgress < 0.3) {
+                this.frame = 6; // Jump start frame
+              } else if (phaseProgress < 0.7) {
+                this.frame = 7; // High jump frame (at the peak)
+              } else {
+                this.frame = 6; // Landing frame
+              }
             } else if (jumpProgress < 0.40) {
               // Phase 2: Run on the dog's back
               this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
