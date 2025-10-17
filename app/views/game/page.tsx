@@ -12,6 +12,7 @@ export default function DisplayGamePage() {
     const [runId, setRunId] = useState(0); // forces GameCanvas remount
     const [showEndModal, setShowEndModal] = useState(false);
     
+    
     const handleGameEnd = (snowflakesEarned: number, totalScore: number) => {
         // Save results
         localStorage.setItem('gameScore', totalScore.toString());
@@ -145,6 +146,8 @@ export default function DisplayGamePage() {
             </div>
           </div>
         )}
+
+        
       </main>
     );
 }

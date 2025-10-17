@@ -85,6 +85,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Load golden snowball sprites (two frames for animation)
           this.load.image('goldball1', '/assets/items/goldball1.png');
           this.load.image('goldball2', '/assets/items/goldball2.png');
+          // Load bonus background for power-up icons
+          this.load.image('bonus_bg', '/assets/items/bonus-background.png');
           // Load ice overlay as spritesheet (single strip animation 32x32 frames)
           this.load.spritesheet('ice', '/assets/abilities/freezing.png', {
             frameWidth: 32,
@@ -156,7 +158,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private bgMusic: any;
         private timerText: any;
         private timerEvent: any;
-        private timeLeft: number = 120;
+        private timeLeft: number = 60;
         private gameActive: boolean = true;
         private isStunned: boolean = false;
         private hasEnded: boolean = false;
@@ -186,6 +188,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private doubleIcon: any;
         private goldenIcon: any;
         private vodkaIcon: any;
+        private doubleBg: any;
+        private goldenBg: any;
+        private vodkaBg: any;
         // Enemy hit cooldown
         private lastEnemyHitTime: number = 0;
         private enemyHitCooldownMs: number = 800;
@@ -202,7 +207,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         create() {
           // Reset game state
 
-          this.timeLeft = 120;
+          this.timeLeft = 60;
           this.gameActive = true;
           this.hasEnded = false;
 
@@ -421,7 +426,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create Power-up HUD
           this.createPowerupHud();
           // Create timer text
-          this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
+          this.timerText = this.add.text(this.scale.width / 2, 50, '60', {
             fontSize: '48px',
             fontFamily: 'November, sans-serif',
             color: '#e7e9ff',
@@ -596,20 +601,41 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Icons start hidden; we reuse textures as icons
           const iconSize = 64;
           const vodkaIconSize = 108; // larger vodka icon
+          const bgSize = vodkaIconSize + 18; // normalize all backgrounds to vodka background size
+          const rowGap = 10;
+          // Backgrounds behind each icon
+          this.doubleBg = this.add.image(0, 0, 'bonus_bg');
+          this.doubleBg.setDisplaySize(bgSize, bgSize);
+          this.doubleBg.setVisible(false);
+          this.doubleBg.setDepth(10000);
+          this.powerupHudContainer.add(this.doubleBg);
+
           this.doubleIcon = this.add.image(0, 0, 'gift1');
           this.doubleIcon.setDisplaySize(iconSize, iconSize);
           this.doubleIcon.setVisible(false);
           this.doubleIcon.setDepth(10001);
           this.powerupHudContainer.add(this.doubleIcon);
 
-          this.goldenIcon = this.add.image(0, iconSize + 10, 'gift3');
+          this.goldenBg = this.add.image(0, bgSize + rowGap, 'bonus_bg');
+          this.goldenBg.setDisplaySize(bgSize, bgSize);
+          this.goldenBg.setVisible(false);
+          this.goldenBg.setDepth(10000);
+          this.powerupHudContainer.add(this.goldenBg);
+
+          this.goldenIcon = this.add.image(0, bgSize + rowGap, 'gift3');
           this.goldenIcon.setDisplaySize(iconSize, iconSize);
           this.goldenIcon.setVisible(false);
           this.goldenIcon.setDepth(10001);
           this.powerupHudContainer.add(this.goldenIcon);
 
           // Position vodka below others with adjusted offset for larger size
-          const vodkaY = (iconSize + 10) * 2 + (vodkaIconSize - iconSize) / 2;
+          const vodkaY = (bgSize + rowGap) * 2;
+          this.vodkaBg = this.add.image(0, vodkaY, 'bonus_bg');
+          this.vodkaBg.setDisplaySize(bgSize, bgSize);
+          this.vodkaBg.setVisible(false);
+          this.vodkaBg.setDepth(10000);
+          this.powerupHudContainer.add(this.vodkaBg);
+
           this.vodkaIcon = this.add.image(0, vodkaY, 'vodka');
           this.vodkaIcon.setDisplaySize(vodkaIconSize, vodkaIconSize);
           this.vodkaIcon.setVisible(false);
@@ -679,6 +705,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               this.scoreMultiplier = 1;
               this.multiplierEndTime = 0;
               if (this.doubleIcon) this.doubleIcon.setVisible(false);
+              if (this.doubleBg) this.doubleBg.setVisible(false);
             } else {
               // Flash faster in last 2s
               if (this.doubleIcon && this.doubleIcon.visible) {
@@ -691,6 +718,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
                   this.doubleIcon.setAlpha(1);
                 }
               }
+              if (this.doubleBg) this.doubleBg.setVisible(true).setAlpha(this.doubleIcon?.alpha ?? 1);
             }
           }
           if (this.goldenSnowballActive) {
@@ -699,6 +727,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               this.goldenSnowballActive = false;
               this.goldenEndTime = 0;
               if (this.goldenIcon) this.goldenIcon.setVisible(false);
+              if (this.goldenBg) this.goldenBg.setVisible(false);
             } else {
               if (this.goldenIcon && this.goldenIcon.visible) {
                 const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
@@ -706,6 +735,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
                 const alpha = hz > 0 ? 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t) : 1;
                 this.goldenIcon.setAlpha(alpha);
               }
+              if (this.goldenBg) this.goldenBg.setVisible(true).setAlpha(this.goldenIcon?.alpha ?? 1);
             }
           }
 
@@ -722,10 +752,13 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               const alpha = hz > 0 ? 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t) : 1;
               this.vodkaIcon.setAlpha(alpha);
             }
-          } else {
-            if (this.vodkaIcon && this.vodkaIcon.visible) {
-              this.vodkaIcon.setVisible(false);
+            if (this.vodkaBg) {
+              this.vodkaBg.setVisible(true);
+              this.vodkaBg.setAlpha(this.vodkaIcon?.alpha ?? 1);
             }
+          } else {
+            if (this.vodkaIcon && this.vodkaIcon.visible) this.vodkaIcon.setVisible(false);
+            if (this.vodkaBg && this.vodkaBg.visible) this.vodkaBg.setVisible(false);
           }
 
            // Handle dash mechanic (disabled while stunned or throwing)
@@ -1389,11 +1422,11 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
         private applyEnemyHit() {
           this.lastEnemyHitTime = this.time.now;
-          // Reduce score by 100, not affecting snowflakesEarned (currency)
-          this.score = Math.max(0, this.score - 100);
+          // Reduce score by 50, not affecting snowflakesEarned (currency)
+          this.score = Math.max(0, this.score - 50);
           this.scoreText.setText(`Score: ${this.score}`);
           // Show damage effect above character
-          this.createDamageEffect(this.character.x, this.character.y - this.character.displayHeight, '-100');
+          this.createDamageEffect(this.character.x, this.character.y - this.character.displayHeight, '-50');
         }
 
         gameOver() {
@@ -1487,7 +1520,14 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         const gameScene = gameRef.current.scene.getScene('Game');
         if (gameScene && gameScene.snowflakeManager) {
           gameScene.snowflakeManager.cleanup();
-        }
+  }
+
+  // Keep isPaused in sync when prop changes
+  useEffect(() => {
+    const game = gameRef.current;
+    if (!game) return;
+    try { game.registry.set('isPaused', isPaused); } catch {}
+  }, [isPaused]);
         if (gameScene && gameScene.giftManager) {
           gameScene.giftManager.cleanup();
         }

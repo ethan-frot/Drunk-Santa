@@ -15,6 +15,8 @@ export default function Home() {
   const [apiError, setApiError] = useState<string | null>(null);
   const playButtonRef = useRef<HTMLButtonElement | null>(null);
   const playImageRef = useRef<HTMLImageElement | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [loadingDots, setLoadingDots] = useState(0);
 
   const animatePlayButton = () => {
     const btn = playButtonRef.current as HTMLButtonElement | null;
@@ -33,6 +35,7 @@ export default function Home() {
     const entered = (pseudo || '').trim();
     if (!entered) return;
     try {
+      setIsStarting(true);
       const res = await fetch('/api/players', { cache: 'no-store' });
       if (!res.ok) throw new Error('players endpoint returned non-OK');
       const names: string[] = await res.json();
@@ -41,6 +44,7 @@ export default function Home() {
       if (match) {
         setMatchedExistingName(match);
         setShowWarning(true);
+        setIsStarting(false);
         return;
       }
     } catch (err: any) {
@@ -56,6 +60,7 @@ export default function Home() {
           })
         });
       } catch {}
+      setIsStarting(false);
       return; // Do not proceed to game when verification failed
     }
     localStorage.setItem('playerPseudo', entered);
@@ -67,8 +72,17 @@ export default function Home() {
     if (!nameToUse) return;
     localStorage.setItem('playerPseudo', nameToUse);
     setShowWarning(false);
+    setIsStarting(true);
     router.push('/views/game');
   };
+
+  useEffect(() => {
+    if (!isStarting) return;
+    const id = setInterval(() => {
+      setLoadingDots((d) => (d + 1) % 4);
+    }, 350);
+    return () => clearInterval(id);
+  }, [isStarting]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -317,34 +331,40 @@ export default function Home() {
           </button>
         ) : (
           <button
-            onClick={() => { 
-              sprintRef.current?.(); 
+            onClick={() => {
+              if (isStarting) return;
+              sprintRef.current?.();
               setTimeout(() => submitName(), 150);
             }}
             style={{
               background: 'transparent',
               border: 'none',
               padding: 0,
-              cursor: 'pointer',
+              cursor: isStarting ? 'wait' : 'pointer',
               transition: 'transform 0.12s ease',
               marginLeft: '-20px',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseEnter={(e) => { if (!isStarting) e.currentTarget.style.transform = 'scale(1.05)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseDown={(e) => { if (!isStarting) { e.currentTarget.style.transform = 'scale(0.98)'; sprintRef.current?.(); } }}
+            onMouseUp={(e) => { if (!isStarting) e.currentTarget.style.transform = 'scale(1.05)'; }}
             ref={playButtonRef}
           >
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <img
                 src="/assets/ui/buttons/play-button-up.png"
                 alt="Jouer"
-                style={{ height: '130px', width: 'auto', display: 'block' }}
-                onMouseDown={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-down.png'; }}
+                style={{ height: '130px', width: 'auto', display: 'block', visibility: isStarting ? 'hidden' : 'visible' }}
+                onMouseDown={(e) => { if (!isStarting) (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-down.png'; }}
                 onMouseUp={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/ui/buttons/play-button-up.png'; }}
                 ref={playImageRef}
               />
+              {isStarting && (
+                <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: '#ffffff', fontSize: '1rem', fontWeight: 'bold', fontFamily: 'November, sans-serif', textTransform: 'uppercase', transform: 'translateY(-6px)' }}>
+                  {`Loading${'.'.repeat(loadingDots)}`}
+                </span>
+              )}
             </div>
           </button>
         )}
