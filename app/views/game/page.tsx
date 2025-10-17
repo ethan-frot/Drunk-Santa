@@ -153,7 +153,39 @@ export default function DisplayGamePage() {
         )}
         
         {/* Sound toggle button */}
-        <SoundToggleButton />
+        <SoundToggleButton
+          onToggled={(enabled) => {
+            try {
+              if (!enabled) {
+                // If turning sound off in-game, stop any menu music just in case
+                MusicManager.getInstance().stop();
+                // Also stop in-scene bg music if running
+                const w: any = typeof window !== 'undefined' ? window : {};
+                const game: any = w.__CATCH_GAME_INSTANCE__;
+                const scene: any = game?.scene?.keys?.Game;
+                if (scene && scene.bgMusic && scene.bgMusic.stop) scene.bgMusic.stop();
+              } else {
+                // If turning sound on in-game, prefer playing the in-game music, not menu music
+                const w: any = typeof window !== 'undefined' ? window : {};
+                const game: any = w.__CATCH_GAME_INSTANCE__;
+                const scene: any = game?.scene?.keys?.Game;
+                if (scene && scene.sound) {
+                  try {
+                    // Respect settings already enforced in GameCanvas for musicEnabled/soundEnabled
+                    const soundEnabled = localStorage.getItem('soundEnabled');
+                    const musicEnabled = localStorage.getItem('musicEnabled');
+                    if (soundEnabled !== 'false' && musicEnabled !== 'false') {
+                      if (scene.bgMusic) { try { scene.bgMusic.stop(); } catch {}
+                      }
+                      scene.bgMusic = scene.sound.add('music', { loop: true, volume: 0.5 });
+                      scene.bgMusic.play();
+                    }
+                  } catch {}
+                }
+              }
+            } catch {}
+          }}
+        />
       </main>
     );
   }

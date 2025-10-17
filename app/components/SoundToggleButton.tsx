@@ -9,12 +9,14 @@ type SoundToggleButtonProps = {
   topPx?: number;
   rightPx?: number;
   zIndex?: number;
+  onToggled?: (enabled: boolean) => void; // optional callback for page-specific behavior
 };
 
 export default function SoundToggleButton({ 
   topPx = 16, 
   rightPx = 16, 
-  zIndex = 5 
+  zIndex = 5,
+  onToggled
 }: SoundToggleButtonProps) {
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
@@ -48,6 +50,9 @@ export default function SoundToggleButton({
       // If enabling sound, resume music if it was enabled
       MusicManager.getInstance().resumeMusicIfEnabled();
     }
+
+    // Notify parent/page for context-specific handling (e.g., game music)
+    try { onToggled?.(newState); } catch {}
   };
 
   return (
