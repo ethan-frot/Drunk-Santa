@@ -1598,14 +1598,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         const gameScene = gameRef.current.scene.getScene('Game');
         if (gameScene && gameScene.snowflakeManager) {
           gameScene.snowflakeManager.cleanup();
-  }
-
-  // Keep isPaused in sync when prop changes
-  useEffect(() => {
-    const game = gameRef.current;
-    if (!game) return;
-    try { game.registry.set('isPaused', isPaused); } catch {}
-  }, [isPaused]);
+        }
         if (gameScene && gameScene.giftManager) {
           gameScene.giftManager.cleanup();
         }
