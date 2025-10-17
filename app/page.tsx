@@ -23,6 +23,10 @@ export default function Home() {
   const [showWarning, setShowWarning] = useState(false);
   const [matchedExistingName, setMatchedExistingName] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const playButtonRef = useRef<HTMLButtonElement | null>(null);
+  const playImageRef = useRef<HTMLImageElement | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [loadingDots, setLoadingDots] = useState(0);
   const playUiRef = useRef<UiImageButtonHandle | null>(null);
 
   const animatePlayButton = () => {
@@ -39,6 +43,7 @@ export default function Home() {
     MusicManager.getInstance().startMusicOnInteraction();
     
     try {
+      setIsStarting(true);
       const res = await fetch('/api/players', { cache: 'no-store' });
       if (!res.ok) throw new Error('players endpoint returned non-OK');
       const names: string[] = await res.json();
@@ -47,6 +52,7 @@ export default function Home() {
       if (match) {
         setMatchedExistingName(match);
         setShowWarning(true);
+        setIsStarting(false);
         return;
       }
     } catch (err: any) {
@@ -62,6 +68,7 @@ export default function Home() {
           })
         });
       } catch {}
+      setIsStarting(false);
       return; // Do not proceed to game when verification failed
     }
     localStorage.setItem('playerPseudo', entered);
@@ -75,6 +82,7 @@ export default function Home() {
     if (!nameToUse) return;
     localStorage.setItem('playerPseudo', nameToUse);
     setShowWarning(false);
+    setIsStarting(true);
     // Stop menu music before going to game
     MusicManager.getInstance().stop();
     router.push('/views/game');
@@ -108,6 +116,14 @@ export default function Home() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isStarting) return;
+    const id = setInterval(() => {
+      setLoadingDots((d) => (d + 1) % 4);
+    }, 350);
+    return () => clearInterval(id);
+  }, [isStarting]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
