@@ -7,6 +7,7 @@ import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
 import { AntiBoostManager } from '../utils/freeze';
 import SoundManager from '../utils/soundManager';
+import GamepadManager from '@/app/utils/gamepadManager';
 
 
 export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void; isPaused?: boolean }) {
@@ -166,6 +167,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private spaceKey: any;
         private keyQ: any;
         private keyD: any;
+        private gpLeft: boolean = false;
+        private gpRight: boolean = false;
+        private removeGpListener: (() => void) | null = null;
         private snowflakesEarned: number = 0;
         private abilityManager: any;
         private baseMoveSpeed: number = 200;
@@ -201,7 +205,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         create() {
           // Reset game state
 
-          this.timeLeft = 60;
+          this.timeLeft = 10;
           this.gameActive = true;
           this.hasEnded = false;
 
@@ -375,9 +379,33 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
               try { this.input.off('pointerdown', focusCanvas); } catch {}
               document.removeEventListener('visibilitychange', onVisibility);
+              try { this.removeGpListener?.(); } catch {}
             });
           }
           this.spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+          // Gamepad listeners (A=throw, B=dash, Dpad Left/Right for movement)
+          try {
+            this.removeGpListener = GamepadManager.getInstance().addListener((btn) => {
+              if (!this.gameActive) return;
+              if (this.isStunned) return;
+              if (btn === 'A') {
+                this.tryThrowSnowball();
+                return;
+              }
+              if (btn === 'B') {
+                if (!this.isDashing && this.dashCooldown <= 0 && !this.isThrowing) {
+                  // Dash in last intended or facing direction
+                  const dir = this.gpLeft ? -1 : (this.gpRight ? 1 : (this.character?.flipX ? -1 : 1));
+                  this.performDash(dir);
+                }
+                return;
+              }
+            });
+            GamepadManager.getInstance().addConnectionListener((connected) => {
+              if (!connected) { this.gpLeft = false; this.gpRight = false; }
+            });
+          } catch {}
 
           // Create score text
           this.scoreText = this.add.text(16, 16, 'Score: 0', {
@@ -680,6 +708,12 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Update dash HUD progression every frame
           this.updateDashHud();
 
+          // Update held direction from gamepad each frame (no latching)
+          try {
+            this.gpLeft = GamepadManager.getInstance().isHeld('Left' as any);
+            this.gpRight = GamepadManager.getInstance().isHeld('Right' as any);
+          } catch {}
+
           // Handle power-up expirations and icon flashing
           if (this.scoreMultiplier > 1) {
             const remaining = this.multiplierEndTime - this.time.now;
@@ -750,13 +784,13 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             // Use base speed scaled by current multiplier
             const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
 
-            if (this.cursors?.left.isDown || this.keyQ?.isDown) {
+            if (this.cursors?.left.isDown || this.keyQ?.isDown || this.gpLeft) {
               this.character.setVelocityX(-moveSpeed);
               this.character.setFlipX(true);
               if (this.character.anims?.currentAnim?.key !== 'run') {
                 this.character.play('run');
               }
-            } else if (this.cursors?.right.isDown || this.keyD?.isDown) {
+            } else if (this.cursors?.right.isDown || this.keyD?.isDown || this.gpRight) {
               this.character.setVelocityX(moveSpeed);
               this.character.setFlipX(false);
               if (this.character.anims?.currentAnim?.key !== 'run') {

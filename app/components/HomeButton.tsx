@@ -23,6 +23,7 @@ export default function HomeButton({ topPx = 16, leftPx = 16, zIndex = 5, ariaLa
       ariaLabel={ariaLabel}
       onClick={onClick || (() => router.push('/'))}
       delayMs={delayMs}
+      gamepadButtons={["Select"]}
       style={{ position: 'absolute', top: `${topPx}px`, left: `${leftPx}px`, width: '140px', height: '70px', background: 'transparent', zIndex, pointerEvents: 'auto' }}
     />
   );

@@ -302,6 +302,7 @@ export function AbilityUpgradeView({ onContinue, snowflakesEarned, totalScore }:
         label="Continuer"
         heightPx={160}
         onClick={onContinue}
+        gamepadButtons={["A"]}
         ariaLabel="Continuer"
         style={{
           position: 'fixed',

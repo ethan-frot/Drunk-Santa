@@ -1,8 +1,9 @@
 'use client';
 
-import React, { CSSProperties, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { CSSProperties, useMemo, useRef, useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import SoundManager from '@/app/utils/soundManager';
 import MusicManager from '@/app/utils/musicManager';
+import GamepadManager, { GamepadLogicalButton } from '@/app/utils/gamepadManager';
 
 type UiImageButtonProps = {
   imageUpSrc: string;
@@ -18,6 +19,7 @@ type UiImageButtonProps = {
   disabled?: boolean; // externally controlled disabled state
   cooldownAfterClickMs?: number; // additional cooldown after click where button stays disabled
   disableAnimationsWhenDisabled?: boolean; // when disabled, suppress hover/press animations
+  gamepadButtons?: GamepadLogicalButton[]; // optional list of gamepad buttons that activate this UI button
 };
 
 export type UiImageButtonHandle = {
@@ -36,8 +38,9 @@ function UiImageButtonInner({
   delayMs = 50,
   style,
   disabled = false,
-  cooldownAfterClickMs = 0,
+  cooldownAfterClickMs = 250,
   disableAnimationsWhenDisabled = true,
+  gamepadButtons,
 }: UiImageButtonProps, ref: React.Ref<UiImageButtonHandle>) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const rootRef = useRef<HTMLButtonElement | null>(null);
@@ -45,6 +48,7 @@ function UiImageButtonInner({
   const animRef = useRef<HTMLDivElement | null>(null); // layer used for scale animations to avoid clobbering parent transforms
   const [isWaiting, setIsWaiting] = useState(false);
   const [cooldownUntilTs, setCooldownUntilTs] = useState<number>(0);
+  // no sprite hints anymore
 
   const rootStyle: CSSProperties = useMemo(() => ({
     background: 'transparent',
@@ -180,6 +184,32 @@ function UiImageButtonInner({
       }, Math.max(60, durationMs));
     }
   }), [imageDownSrc, imageUpSrc, label]);
+
+  // Gamepad integration: trigger the same animation and click when mapped buttons are pressed
+  useEffect(() => {
+    if (!gamepadButtons || gamepadButtons.length === 0) return;
+    const set = new Set(gamepadButtons);
+    const unsubscribe = GamepadManager.getInstance().addListener((btn) => {
+      if (!set.has(btn)) return;
+      if (isDisabled) return;
+      // Animate press and trigger click
+      try {
+        const layer = animRef.current;
+        const img = imgRef.current;
+        const labelEl = labelRef.current;
+        if (layer) layer.style.transform = 'scale(0.98)';
+        if (img) img.src = imageDownSrc;
+        if (label && labelEl) labelEl.style.transform = 'translate(-12px, 6px)';
+        setTimeout(() => {
+          if (layer) layer.style.transform = 'scale(1.05)';
+          if (img) img.src = imageUpSrc;
+          if (label && labelEl) labelEl.style.transform = 'translateY(-6px)';
+        }, 150);
+      } catch {}
+      handleClick();
+    });
+    return unsubscribe;
+  }, [gamepadButtons, isDisabled, imageDownSrc, imageUpSrc, label, delayMs, cooldownAfterClickMs, onClick]);
 
   return (
     <button
