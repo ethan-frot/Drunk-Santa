@@ -211,7 +211,7 @@ export default function Home() {
             this.dogRunFrameCount = 0;
             this.isStoppedOnDog = false; // Reset stop flag
           } else {
-            // Four phases: jump onto dog (0-0.15), run on back (0.15-0.50), stop on dog (0.50-0.75), jump off (0.75-1.0)
+            // Four phases: jump onto dog (0-0.15), run on back (0.15-0.40), stop on dog (0.40-0.60), jump off (0.60-1.0)
             if (jumpProgress < 0.15) {
               // Phase 1: Jump onto the dog (very short)
               const phaseProgress = jumpProgress / 0.15;
@@ -219,25 +219,39 @@ export default function Home() {
               const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
               this.y = this.originalY - jumpOffset;
               this.frame = 6; // Jump start frame
-            } else if (jumpProgress < 0.50) {
+            } else if (jumpProgress < 0.40) {
               // Phase 2: Run on the dog's back
               this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
               // Use special running animation while on the dog's back
               this.dogRunFrameCount += this.dogRunFrameSpeed;
               this.dogRunFrame = Math.floor(this.dogRunFrameCount) % 6; // Walking frames 0-5
               this.frame = this.dogRunFrame; // Use the dog running frame
-            } else if (jumpProgress < 0.75) {
-              // Phase 3: Stop on the dog for 0.5 seconds (realistic pause)
+            } else if (jumpProgress < 0.60) {
+              // Phase 3: Stop on the dog for 0.4 seconds (realistic pause)
               this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
               this.frame = 0; // Standing frame - Santa stops running
               this.isStoppedOnDog = true; // Mark that Santa is stopped
             } else {
-              // Phase 4: Jump off the dog (after stopping)
-              const phaseProgress = (jumpProgress - 0.75) / 0.25;
-              const jumpPhase = phaseProgress * Math.PI; // 0 to π
+              // Phase 4: Jump off the dog - start from dog level, jump up, then land down
+              const phaseProgress = (jumpProgress - 0.60) / 0.40;
+              
+              // Create smooth parabolic trajectory starting from dog level
+              const jumpPhase = phaseProgress * Math.PI; // 0 to π for smooth arc
               const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
-              this.y = this.originalY - jumpOffset;
-              this.frame = 7; // High jump frame for jumping off
+              // Start from dog level (originalY - jumpHeight) and jump up
+              this.y = (this.originalY - this.jumpHeight) - jumpOffset;
+              
+              // Use jump animation frames based on jump progress
+              if (phaseProgress < 0.3) {
+                this.frame = 6; // Jump start frame
+              } else if (phaseProgress < 0.7) {
+                this.frame = 7; // High jump frame (at the peak)
+              } else {
+                this.frame = 6; // Landing frame
+              }
+              
+              // Move forward while jumping to jump further
+              this.x += this.speed * 1.5; // Jump 1.5x faster forward
             }
           }
         } else {
