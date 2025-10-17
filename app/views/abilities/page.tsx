@@ -21,10 +21,27 @@ export default function Page() {
     } catch {}
   }, []);
 
+  // Ensure abilities page behaves like a menu page for music control
+  useEffect(() => {
+    // Pause any in-game bg music if a Phaser instance is lingering
+    try {
+      const w: any = typeof window !== 'undefined' ? window : {};
+      const game: any = w.__CATCH_GAME_INSTANCE__;
+      const scene: any = game?.scene?.keys?.Game;
+      const bgMusic: any = scene?.bgMusic;
+      if (bgMusic && typeof bgMusic.pause === 'function') {
+        bgMusic.pause();
+      }
+    } catch {}
+
+    // Resume menu music if enabled so the toggle can pause/unpause it
+    try { MusicManager.getInstance().resumeMusicIfEnabled(); } catch {}
+  }, []);
+
   const handleContinue = () => {
     SoundManager.getInstance().playButtonClick();
     // Stop menu music before starting the game to avoid overlap
-    try { MusicManager.getInstance().stop(); } catch {}
+    try { MusicManager.getInstance().pause(); } catch {}
     router.push('/views/game');
   };
 

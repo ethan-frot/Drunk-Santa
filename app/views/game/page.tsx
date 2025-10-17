@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import GameCanvas from '../../components/GameCanvas';
 import ImageModal from '@/app/components/ImageModal';
 import { renderAlternating } from '@/app/utils/renderAlternating';
-import { AbilityUpgradeView } from '../abilities/AbilityUpgradeView';
 import MusicManager from '../../utils/musicManager';
 import SoundToggleButton from '@/app/components/SoundToggleButton';
 
@@ -14,7 +13,6 @@ export const dynamic = 'force-dynamic';
 
 export default function DisplayGamePage() {
     const router = useRouter();
-    const [showAbilityPage, setShowAbilityPage] = useState(false);
     const [gameResults, setGameResults] = useState<{snowflakesEarned: number, totalScore: number} | null>(null);
     const [runId, setRunId] = useState(0); // forces GameCanvas remount
     const [showEndModal, setShowEndModal] = useState(false);
@@ -67,9 +65,9 @@ export default function DisplayGamePage() {
     };
 
     const handleContinue = () => {
-        // From modal, go to ability upgrade screen
+        // From modal, go to ability upgrade screen (standalone route)
         setShowEndModal(false);
-        setShowAbilityPage(true);
+        router.push('/views/abilities');
     };
 
     const handleStop = () => {
@@ -80,22 +78,7 @@ export default function DisplayGamePage() {
         router.push('/views/score');
     };
 
-    const handleUpgradesContinueToGame = () => {
-        // After upgrades, return to the game
-        setShowAbilityPage(false);
-        // Start a fresh game
-        setRunId((id) => id + 1);
-    };
-    
-    if (showAbilityPage && gameResults) {
-        return (
-            <AbilityUpgradeView 
-                onContinue={handleUpgradesContinueToGame}
-                snowflakesEarned={gameResults.snowflakesEarned}
-                totalScore={gameResults.totalScore}
-            />
-        );
-    }
+    // When returning from abilities, a fresh game will mount via this page's normal flow
     
     return (
       <main style={{ minHeight: '100vh', height: '100vh', background: '#040218' }}>
@@ -156,29 +139,28 @@ export default function DisplayGamePage() {
         <SoundToggleButton
           onToggled={(enabled) => {
             try {
+              const w: any = typeof window !== 'undefined' ? window : {};
+              const game: any = w.__CATCH_GAME_INSTANCE__;
+              const scene: any = game?.scene?.keys?.Game;
               if (!enabled) {
-                // If turning sound off in-game, stop any menu music just in case
-                MusicManager.getInstance().stop();
-                // Also stop in-scene bg music if running
-                const w: any = typeof window !== 'undefined' ? window : {};
-                const game: any = w.__CATCH_GAME_INSTANCE__;
-                const scene: any = game?.scene?.keys?.Game;
-                if (scene && scene.bgMusic && scene.bgMusic.stop) scene.bgMusic.stop();
+                // If turning sound off in-game, pause any menu music just in case
+                try { MusicManager.getInstance().pause(); } catch {}
+                // Pause in-scene bg music if running
+                if (scene && scene.bgMusic && scene.bgMusic.pause) scene.bgMusic.pause();
               } else {
-                // If turning sound on in-game, prefer playing the in-game music, not menu music
-                const w: any = typeof window !== 'undefined' ? window : {};
-                const game: any = w.__CATCH_GAME_INSTANCE__;
-                const scene: any = game?.scene?.keys?.Game;
+                // If turning sound on in-game, resume ONLY the in-game music
                 if (scene && scene.sound) {
                   try {
-                    // Respect settings already enforced in GameCanvas for musicEnabled/soundEnabled
                     const soundEnabled = localStorage.getItem('soundEnabled');
                     const musicEnabled = localStorage.getItem('musicEnabled');
                     if (soundEnabled !== 'false' && musicEnabled !== 'false') {
-                      if (scene.bgMusic) { try { scene.bgMusic.stop(); } catch {}
+                      if (scene.bgMusic && scene.bgMusic.resume) {
+                        scene.bgMusic.resume();
+                      } else if (scene.sound.add) {
+                        // No existing instance (e.g., started game with sound off): create fresh once
+                        scene.bgMusic = scene.sound.add('music', { loop: true, volume: 0.5 });
+                        scene.bgMusic.play();
                       }
-                      scene.bgMusic = scene.sound.add('music', { loop: true, volume: 0.5 });
-                      scene.bgMusic.play();
                     }
                   } catch {}
                 }
