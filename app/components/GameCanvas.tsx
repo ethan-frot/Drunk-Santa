@@ -194,6 +194,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         // Enemy hit cooldown
         private lastEnemyHitTime: number = 0;
         private enemyHitCooldownMs: number = 800;
+        private hopOffset: number = 0;
         constructor() { 
           super('Game'); 
           this.snowflakeManager = new SnowflakeManager(this);
@@ -469,12 +470,19 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
         private getBottomY() {
           const paddingFromBottom = 12;
+          // Base ground Y (no hop). Used by enemies and world.
           return this.scale.height - paddingFromBottom;
         }
 
+        private getCharacterBottomY() {
+          const paddingFromBottom = 12;
+          // Character-only hop offset
+          return this.scale.height - paddingFromBottom - (this.hopOffset || 0);
+        }
+
         private keepCharacterAtBottom() {
-          // Lock only Y to the bottom, do not modify X
-          this.character.y = this.getBottomY();
+          // Lock only Y to the bottom for the character (with hop), do not modify X
+          this.character.y = this.getCharacterBottomY();
           // Clamp X inside bounds in case of resize
           const halfWidth = (this.character.displayWidth || 0) / 2;
           const minX = halfWidth;
@@ -484,7 +492,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private positionCharacterAtBottomCenter() {
-          this.character.setPosition(this.scale.width / 2, this.getBottomY());
+          this.character.setPosition(this.scale.width / 2, this.getCharacterBottomY());
         }
 
         private applyAbilityUpgrades() {
@@ -1402,7 +1410,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           if (this.slime && this.slime.active) {
             const slimeBounds = this.getShrinkBounds(this.slime, 0.85);
             if (this.rectsOverlap(charBounds, slimeBounds)) {
-              this.applyEnemyHit();
+              const dir = this.character.x < this.slime.x ? -1 : 1; // push away from slime
+              this.applyEnemyHit(dir);
               return;
             }
           }
@@ -1413,20 +1422,56 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               if (!mob || !mob.active) continue;
               const mBounds = this.getShrinkBounds(mob, 0.85);
               if (this.rectsOverlap(charBounds, mBounds)) {
-                this.applyEnemyHit();
+                const dir = this.character.x < mob.x ? -1 : 1; // push away from mob
+                this.applyEnemyHit(dir);
                 return;
               }
             }
           }
         }
 
-        private applyEnemyHit() {
+        private applyEnemyHit(direction: number) {
           this.lastEnemyHitTime = this.time.now;
           // Reduce score by 50, not affecting snowflakesEarned (currency)
           this.score = Math.max(0, this.score - 50);
           this.scoreText.setText(`Score: ${this.score}`);
           // Show damage effect above character
           this.createDamageEffect(this.character.x, this.character.y - this.character.displayHeight, '-50');
+          
+          // Brief red tint feedback
+          try { (this.character as any).setTint?.(0xff5555); } catch {}
+          this.time.delayedCall(120, () => {
+            try { (this.character as any).clearTint?.(); } catch {}
+          });
+
+          // Apply short hit-stun and horizontal knockback
+          const knockbackDurationMs = 250;
+          const knockbackSpeed = 480; // horizontal velocity
+          this.isStunned = true;
+          this.isDashing = false;
+          // ensure animation not running uncontrollably
+          if (this.character?.anims) {
+            this.character.play('idle');
+          }
+          // set knockback velocity away from enemy and clamp inside bounds
+          const dir = Math.sign(direction) || 1;
+          this.character.setVelocityX(knockbackSpeed * dir);
+
+          // Small vertical hop during hit
+          const hopHeight = 18;
+          this.hopOffset = hopHeight;
+          this.tweens.add({
+            targets: this,
+            hopOffset: 0,
+            duration: 220,
+            ease: 'Quad.easeOut'
+          });
+
+          // Stop knockback after duration
+          this.time.delayedCall(knockbackDurationMs, () => {
+            this.character.setVelocityX(0);
+            this.isStunned = false;
+          });
         }
 
         gameOver() {
