@@ -23,6 +23,10 @@ export default function Home() {
   const [showWarning, setShowWarning] = useState(false);
   const [matchedExistingName, setMatchedExistingName] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const playButtonRef = useRef<HTMLButtonElement | null>(null);
+  const playImageRef = useRef<HTMLImageElement | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [loadingDots, setLoadingDots] = useState(0);
   const playUiRef = useRef<UiImageButtonHandle | null>(null);
 
   const animatePlayButton = () => {
@@ -39,6 +43,7 @@ export default function Home() {
     MusicManager.getInstance().startMusicOnInteraction();
     
     try {
+      setIsStarting(true);
       const res = await fetch('/api/players', { cache: 'no-store' });
       if (!res.ok) throw new Error('players endpoint returned non-OK');
       const names: string[] = await res.json();
@@ -47,6 +52,7 @@ export default function Home() {
       if (match) {
         setMatchedExistingName(match);
         setShowWarning(true);
+        setIsStarting(false);
         return;
       }
     } catch (err: any) {
@@ -62,6 +68,7 @@ export default function Home() {
           })
         });
       } catch {}
+      setIsStarting(false);
       return; // Do not proceed to game when verification failed
     }
     localStorage.setItem('playerPseudo', entered);
@@ -75,6 +82,7 @@ export default function Home() {
     if (!nameToUse) return;
     localStorage.setItem('playerPseudo', nameToUse);
     setShowWarning(false);
+    setIsStarting(true);
     // Stop menu music before going to game
     MusicManager.getInstance().stop();
     router.push('/views/game');
@@ -110,6 +118,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!isStarting) return;
+    const id = setInterval(() => {
+      setLoadingDots((d) => (d + 1) % 4);
+    }, 350);
+    return () => clearInterval(id);
+  }, [isStarting]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -128,9 +144,18 @@ export default function Home() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Load player sprite
+    // Load player sprites
     const playerSprite = new Image();
     playerSprite.src = '/assets/characters/santa-walk.png';
+    
+    const jumpSprite = new Image();
+    jumpSprite.src = '/assets/characters/santa-jump.png';
+    
+  const upSprite = new Image();
+  upSprite.src = '/assets/characters/santa_up_sheet.png';
+  
+  const downSprite = new Image();
+  downSprite.src = '/assets/characters/jump_down_sheet.png';
     
     // Player class
     class Player {
@@ -142,22 +167,133 @@ export default function Home() {
       speed: number;
       startTime: number;
       sprintEndAt: number | null;
+      isJumping: boolean;
+      jumpStartTime: number | null;
+      jumpDuration: number;
+      originalY: number;
+      jumpHeight: number;
+      dogX: number;
+      fireplaceX: number;
+      dogRunFrame: number;
+      dogRunFrameCount: number;
+      dogRunFrameSpeed: number;
+      isStoppedOnDog: boolean;
 
       constructor() {
         this.x = -50; // Start off-screen left
         this.y = (canvas?.height || window.innerHeight) - 80; // Floor level
+        this.originalY = this.y;
         this.frame = 0;
         this.frameSpeed = 0.2;
         this.frameCount = 0;
         this.speed = 3;
         this.startTime = Date.now();
         this.sprintEndAt = null;
+        this.isJumping = false;
+        this.jumpStartTime = null;
+        this.jumpDuration = 2000; // 2 seconds total duration for running on dog's back
+        this.jumpHeight = 80; // Higher jump height for more dramatic effect
+        this.dogX = 0; // Will be set when canvas resizes
+        this.fireplaceX = 0; // Will be set when canvas resizes
+        this.dogRunFrame = 0; // Frame for running on dog
+        this.dogRunFrameCount = 0; // Frame counter for dog running
+        this.dogRunFrameSpeed = 0.3; // Faster animation when on dog
+        this.isStoppedOnDog = false; // Track if Santa is stopped on dog
       }
 
       update() {
         const currentTime = Date.now();
         const elapsed = currentTime - this.startTime;
+        const screenWidth = canvas?.width || window.innerWidth;
+        const screenHeight = canvas?.height || window.innerHeight;
+        const floorY = screenHeight - 80;
 
+        // Update dog and fireplace positions (adjust these based on your GIF background)
+        this.dogX = screenWidth * 0.55; // Moved even more left to match the dog position in your GIF
+        this.fireplaceX = screenWidth * 0.5; // Moved even more left to match the fireplace position in your GIF
+
+        // Check if Santa should jump (when he gets close to the dog) with ~0.5s delay
+        const halfSecondOffset = this.speed * 30; // ~30 frames at 60fps
+        if (!this.isJumping && this.x >= (this.dogX - 80 + halfSecondOffset) && this.x <= (this.dogX + 80 + halfSecondOffset)) {
+          this.startJump();
+        }
+
+        // Handle jumping animation (jump onto dog, run on back, jump off)
+        if (this.isJumping && this.jumpStartTime) {
+          const jumpProgress = (currentTime - this.jumpStartTime) / this.jumpDuration;
+          
+          if (jumpProgress >= 1) {
+            // Jump finished
+            this.isJumping = false;
+            this.jumpStartTime = null;
+            this.y = this.originalY;
+            this.frame = 0; // Reset to walking frame
+            // Reset dog running animation
+            this.dogRunFrame = 0;
+            this.dogRunFrameCount = 0;
+            this.isStoppedOnDog = false; // Reset stop flag
+          } else {
+            // Six phases: stop (0-0.05), prepare (0.05-0.15), jump onto dog (0.15-0.30), stop on dog (0.30-0.50), run on back (0.50-0.70), jump off (0.70-1.0)
+            if (jumpProgress < 0.05) {
+              // Phase 1: Stop before jumping on the dog
+              this.y = this.originalY; // Stay at floor level
+              this.frame = 0; // Standing frame - Santa stops running
+              this.isStoppedOnDog = true; // Mark that Santa is stopped
+            } else if (jumpProgress < 0.15) {
+              // Phase 2: Prepare for jump - crouch/anticipate
+              this.y = this.originalY; // Stay at floor level
+              this.frame = 1; // Crouch/preparation frame
+              this.isStoppedOnDog = true; // Mark that Santa is stopped
+            } else if (jumpProgress < 0.30) {
+              // Phase 3: Simple jump up to dog level - no landing animation
+              const phaseProgress = (jumpProgress - 0.15) / 0.15;
+              
+              // Simple upward movement - no parabolic arc
+              const jumpOffset = phaseProgress * this.jumpHeight;
+              // Move up from floor level to dog level
+              this.y = this.originalY - jumpOffset;
+              
+              // Move forward during the jump for natural trajectory
+              this.x += this.speed * 1.2; // Move forward while jumping
+              
+              // Use only upSprite for simple upward movement (2 frames)
+              this.frame = Math.floor(phaseProgress * 2); // 0, 1
+            } else if (jumpProgress < 0.50) {
+              // Phase 4: Stop on the dog for 1 second (realistic pause)
+              this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
+              this.frame = 0; // Standing frame - Santa stops running
+              this.isStoppedOnDog = true; // Mark that Santa is stopped
+            } else if (jumpProgress < 0.70) {
+              // Phase 5: Run on the dog's back
+              this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
+              // Use special running animation while on the dog's back
+              this.dogRunFrameCount += this.dogRunFrameSpeed;
+              this.dogRunFrame = Math.floor(this.dogRunFrameCount) % 6; // Walking frames 0-5
+              this.frame = this.dogRunFrame; // Use the dog running frame
+            } else {
+              // Phase 6: Jump off the dog - start from dog level, jump up, then land down
+              const phaseProgress = (jumpProgress - 0.70) / 0.30;
+              
+              // Smoother parabolic trajectory with gentler landing
+              const jumpPhase = phaseProgress * Math.PI; // 0 to π for smooth arc
+              const jumpOffset = Math.sin(jumpPhase) * (this.jumpHeight * 0.6); // Further reduced height for softer jump
+              // Start from dog level and create smoother arc
+              this.y = (this.originalY - this.jumpHeight) - jumpOffset;
+              
+              // Use downSprite frames for smooth landing animation
+              // Start with frame 0 and gradually move to frame 1 for smooth transition
+              if (phaseProgress < 0.3) {
+                this.frame = 0; // Start with first frame
+              } else {
+                this.frame = 1; // Move to second frame for landing
+              }
+              
+              // Move forward while jumping to jump further - more to the right for softer landing
+              this.x += this.speed * 1.8; // Increased forward speed for softer, more natural jump
+            }
+          }
+        } else {
+          // Normal walking animation
         // Sprint logic
         if (this.sprintEndAt && currentTime < this.sprintEndAt) {
           this.speed = 6;
@@ -168,30 +304,56 @@ export default function Home() {
           this.sprintEndAt = null;
         }
 
-        // Update animation frame
+          // Update animation frame (only for walking frames 0-5)
         this.frameCount += this.frameSpeed;
-        this.frame = Math.floor(this.frameCount) % 6; // 6 frames in the sprite
+          this.frame = Math.floor(this.frameCount) % 6; // 6 walking frames
+        }
         
-        // Move right across screen with trajectory
+        // Move right across screen (but not when stopped on dog)
+        if (!this.isStoppedOnDog) {
         this.x += this.speed;
+        }
         
-        // Calculate trajectory Y position - stay on floor level
-        const screenWidth = canvas?.width || window.innerWidth;
-        const screenHeight = canvas?.height || window.innerHeight;
-        
-        // Keep character on floor level (bottom of screen)
-        const floorY = screenHeight - 80; // Floor level
+        // Keep character on floor level when not jumping
+        if (!this.isJumping) {
         this.y = floorY;
+        }
         
         // Reset when off screen
         if (this.x > screenWidth + 50) {
           this.x = -50;
-          this.y = floorY; // start at floor level
+          this.y = floorY;
+          this.isJumping = false;
+          this.jumpStartTime = null;
+          this.isStoppedOnDog = false; // Reset stop flag
         }
       }
 
+      startJump() {
+        this.isJumping = true;
+        this.jumpStartTime = Date.now();
+        // Play jump sound if you want
+        // SoundManager.getInstance().playJumpSound();
+      }
+
       draw() {
-        if (!ctx || !playerSprite.complete) return;
+        // Choose the correct sprite based on state
+        let currentSprite;
+        if (this.isJumping && this.jumpStartTime) {
+          const jumpProgress = (Date.now() - this.jumpStartTime) / this.jumpDuration;
+          // Use upSprite for first jump phase (10-30%), jumpSprite for running (30-70%), downSprite for second jump (70-100%)
+          if (jumpProgress >= 0.10 && jumpProgress < 0.30) {
+            currentSprite = upSprite;
+          } else if (jumpProgress >= 0.70) {
+            currentSprite = downSprite; // Use downSprite for second jump
+          } else {
+            currentSprite = jumpSprite; // Use jumpSprite for running on dog
+          }
+        } else {
+          currentSprite = playerSprite;
+        }
+        
+        if (!ctx || !currentSprite.complete) return;
         
         ctx.save();
         ctx.translate(this.x, this.y);
@@ -204,7 +366,7 @@ export default function Home() {
         const sourceY = 0; // Only one row in the sprite
         
         ctx.drawImage(
-          playerSprite,
+          currentSprite,
           sourceX, sourceY, frameWidth, frameHeight,
           -frameWidth/2, -frameHeight/2, frameWidth, frameHeight
         );
@@ -232,10 +394,19 @@ export default function Home() {
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // Start animation when sprite is loaded
-    playerSprite.onload = () => {
+    // Start animation when all sprites are loaded
+    let spritesLoaded = 0;
+    const onSpriteLoad = () => {
+      spritesLoaded++;
+      if (spritesLoaded === 3) {
       animate();
+      }
     };
+    
+    playerSprite.onload = onSpriteLoad;
+    jumpSprite.onload = onSpriteLoad;
+    upSprite.onload = onSpriteLoad;
+    downSprite.onload = onSpriteLoad;
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
@@ -303,9 +474,12 @@ export default function Home() {
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
             ariaLabel="Commencer"
+            gamepadButtons={["A"]}
           />
         ) : (
-          <UiImageButton
+          <>
+            {!isStarting ? (
+              <UiImageButton
             imageUpSrc="/assets/ui/buttons/play-button-up.png"
             imageDownSrc="/assets/ui/buttons/play-button-down.png"
             heightPx={130}
@@ -315,7 +489,24 @@ export default function Home() {
             ariaLabel="Jouer"
             style={{ paddingTop: '150px', marginLeft: '-15px' }}
             ref={playUiRef}
+            gamepadButtons={["A"]}
+            gamepadHintRightPx={15}
           />
+            ) : (
+              <div style={{ paddingTop: '170px', marginLeft: '-15px', textAlign: 'center' }}>
+                <div style={{
+                  color: '#e7e9ff',
+                  fontFamily: 'November, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 'clamp(18px, 2.4vw, 24px)',
+                  textShadow: '0 2px 0 rgba(0,0,0,0.25)'
+                }}>
+                  {/* Alternating colored text with animated dots */}
+                  {renderAlternating(`Chargement${'.'.repeat((loadingDots % 3) + 1)}`, true)}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {!showNameOverlay && (
@@ -328,6 +519,7 @@ export default function Home() {
               heightPx={160}
               onClick={() => router.push('/views/how-to-play')}
               ariaLabel="Comment jouer"
+              gamepadButtons={["B"]}
             />
 
             {/* Third green button below the white one */}
@@ -338,6 +530,7 @@ export default function Home() {
               heightPx={110}
               onClick={() => router.push('/views/leaderboard')}
               ariaLabel="Classement"
+              gamepadButtons={["Y"]}
             />
           </>
         )}
@@ -346,7 +539,7 @@ export default function Home() {
 
       </div>
 
-        {showNameOverlay && (
+      {showNameOverlay && (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 3, paddingTop: '80px', pointerEvents: 'none' }}>
           <HomeButton onClick={() => setShowNameOverlay(false)} delayMs={150} />
           <div style={{ position: 'relative', width: '280px', maxWidth: '70vw', aspectRatio: '5 / 2', pointerEvents: 'auto' }}>
@@ -427,6 +620,6 @@ export default function Home() {
 
         {/* Sound toggle button */}
         <SoundToggleButton />
-      </main>
-    );
-  }
+    </main>
+  );
+}

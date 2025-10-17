@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { renderAlternating } from '../utils/renderAlternating';
 import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
 import { AntiBoostManager } from '../utils/freeze';
+import SoundManager from '../utils/soundManager';
+import GamepadManager from '@/app/utils/gamepadManager';
 
 
 export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void; isPaused?: boolean }) {
@@ -13,12 +16,20 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
   const gameRef = useRef<any>(null);
   const creatingRef = useRef(false);
   const [ready, setReady] = useState(false);
+  const [loadingDots, setLoadingDots] = useState(1);
   const reportedRef = useRef(false);
   const [abilityManager] = useState(() => AbilityManager.getInstance());
   const onGameEndRef = useRef(onGameEnd);
   
   // Keep the ref updated
   onGameEndRef.current = onGameEnd;
+
+  // Animate dots while loading
+  useEffect(() => {
+    if (ready) return;
+    const id = setInterval(() => setLoadingDots((d) => (d % 3) + 1), 420);
+    return () => clearInterval(id);
+  }, [ready]);
 
   useEffect(() => {
     // Global focus helper and listeners to restore keyboard after overlays
@@ -83,6 +94,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Load golden snowball sprites (two frames for animation)
           this.load.image('goldball1', '/assets/items/goldball1.png');
           this.load.image('goldball2', '/assets/items/goldball2.png');
+          // Load bonus background for power-up icons
+          this.load.image('bonus_bg', '/assets/items/bonus-background.png');
           // Load ice overlay as spritesheet (single strip animation 32x32 frames)
           this.load.spritesheet('ice', '/assets/abilities/freezing.png', {
             frameWidth: 32,
@@ -112,12 +125,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             spacing: 0
           });
 
-          // Dash icon assets (use user's images)
-          this.load.image('dash_full', '/assets/abilities/dash/dash-full.png');
-          this.load.image('dash_empty', '/assets/abilities/dash/dash-empty.png');
-          this.load.image('dash1', '/assets/abilities/dash/dash1.png');
-          this.load.image('dash2', '/assets/abilities/dash/dash2.png');
-          this.load.image('dash3', '/assets/abilities/dash/dash3.png');
+          // Dash HUD icon
+          this.load.image('dash_ui', '/assets/ui/game/dash.png');
 
           //music
           this.load.audio('music', '/sounds/game-music.mp3');
@@ -154,7 +163,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private bgMusic: any;
         private timerText: any;
         private timerEvent: any;
-        private timeLeft: number = 120;
+        private timeLeft: number = 60;
         private gameActive: boolean = true;
         private isStunned: boolean = false;
         private hasEnded: boolean = false;
@@ -165,6 +174,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private spaceKey: any;
         private keyQ: any;
         private keyD: any;
+        private gpLeft: boolean = false;
+        private gpRight: boolean = false;
+        private removeGpListener: (() => void) | null = null;
         private snowflakesEarned: number = 0;
         private abilityManager: any;
         private baseMoveSpeed: number = 200;
@@ -181,12 +193,11 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private goldenEndTime: number = 0;
         // Power-up HUD (top-right, under dash)
         private powerupHudContainer: any;
-        private doubleIcon: any;
-        private goldenIcon: any;
-        private vodkaIcon: any;
+        private powerupHudItems: any[] = [];
         // Enemy hit cooldown
         private lastEnemyHitTime: number = 0;
         private enemyHitCooldownMs: number = 800;
+        private hopOffset: number = 0;
         constructor() { 
           super('Game'); 
           this.snowflakeManager = new SnowflakeManager(this);
@@ -200,7 +211,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         create() {
           // Reset game state
 
-          this.timeLeft = 10;
+          this.timeLeft = 60;
           this.gameActive = true;
           this.hasEnded = false;
 
@@ -374,9 +385,33 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
               try { this.input.off('pointerdown', focusCanvas); } catch {}
               document.removeEventListener('visibilitychange', onVisibility);
+              try { this.removeGpListener?.(); } catch {}
             });
           }
           this.spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+          // Gamepad listeners (A=throw, B=dash, Dpad Left/Right for movement)
+          try {
+            this.removeGpListener = GamepadManager.getInstance().addListener((btn) => {
+              if (!this.gameActive) return;
+              if (this.isStunned) return;
+              if (btn === 'A') {
+                this.tryThrowSnowball();
+                return;
+              }
+              if (btn === 'B') {
+                if (!this.isDashing && this.dashCooldown <= 0 && !this.isThrowing) {
+                  // Dash in last intended or facing direction
+                  const dir = this.gpLeft ? -1 : (this.gpRight ? 1 : (this.character?.flipX ? -1 : 1));
+                  this.performDash(dir);
+                }
+                return;
+              }
+            });
+            GamepadManager.getInstance().addConnectionListener((connected) => {
+              if (!connected) { this.gpLeft = false; this.gpRight = false; }
+            });
+          } catch {}
 
           // Create score text
           this.scoreText = this.add.text(16, 16, 'Score: 0', {
@@ -425,7 +460,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Create Power-up HUD
           this.createPowerupHud();
           // Create timer text
-          this.timerText = this.add.text(this.scale.width / 2, 50, '120', {
+          this.timerText = this.add.text(this.scale.width / 2, 50, '60', {
             fontSize: '48px',
             fontFamily: 'November, sans-serif',
             color: '#e7e9ff',
@@ -468,12 +503,19 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
         private getBottomY() {
           const paddingFromBottom = 12;
+          // Base ground Y (no hop). Used by enemies and world.
           return this.scale.height - paddingFromBottom;
         }
 
+        private getCharacterBottomY() {
+          const paddingFromBottom = 12;
+          // Character-only hop offset
+          return this.scale.height - paddingFromBottom - (this.hopOffset || 0);
+        }
+
         private keepCharacterAtBottom() {
-          // Lock only Y to the bottom, do not modify X
-          this.character.y = this.getBottomY();
+          // Lock only Y to the bottom for the character (with hop), do not modify X
+          this.character.y = this.getCharacterBottomY();
           // Clamp X inside bounds in case of resize
           const halfWidth = (this.character.displayWidth || 0) / 2;
           const minX = halfWidth;
@@ -483,7 +525,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private positionCharacterAtBottomCenter() {
-          this.character.setPosition(this.scale.width / 2, this.getBottomY());
+          this.character.setPosition(this.scale.width / 2, this.getCharacterBottomY());
         }
 
         private applyAbilityUpgrades() {
@@ -540,35 +582,53 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private createAfterimageTrail() {
-          const afterimageCount = 5; // Number of afterimages
-          const afterimageDelay = 50; // Delay between each afterimage
-          
+          const afterimageCount = 7; // more pronounced trail
+          const afterimageDelay = 35; // quicker spawn cadence
+
+          // Determine facing direction (right = 1, left = -1)
+          const dirX = this.character.flipX ? -1 : 1;
+          // Try to capture current animation frame index for visual coherence
+          const currentFrameIndex = (() => {
+            try {
+              const f: any = this.character.anims?.currentFrame;
+              const idx = typeof f?.index === 'number' ? f.index : undefined;
+              return typeof idx === 'number' ? idx : undefined;
+            } catch { return undefined; }
+          })();
+
           for (let i = 0; i < afterimageCount; i++) {
             this.time.delayedCall(i * afterimageDelay, () => {
-              // Create afterimage sprite at current character position
+              // Position slightly behind the character along dash direction
+              const offset = 8 * i * -dirX;
               const afterimage = this.add.sprite(
-                this.character.x, 
-                this.character.y, 
+                this.character.x + offset,
+                this.character.y,
                 'character'
               );
-              
-              // Set afterimage properties
-              afterimage.setScale(0.7);
+
+              // Match frame and flip for cohesion
+              try { if (typeof currentFrameIndex === 'number') afterimage.setFrame(currentFrameIndex); } catch {}
+              afterimage.setFlipX(this.character.flipX);
+
+              // Visuals
+              afterimage.setScale(3.5); // match character scale for consistency
               afterimage.setOrigin(0.5, 1);
-              afterimage.setAlpha(0.3 - (i * 0.05)); // Fade out progressively
-              afterimage.setTint(0x00ffff); // Cyan tint for afterimage
-              
-              // Animate the afterimage
+              // Ensure trail renders above background but just behind the player
+              const baseDepth = (typeof this.character.depth === 'number') ? this.character.depth : 6;
+              afterimage.setDepth(Math.max(1, baseDepth - 1));
+              const startAlpha = Math.max(0.15, 0.5 - i * 0.05);
+              afterimage.setAlpha(startAlpha);
+              afterimage.setTint(0x66e0ff); // soft cyan
+
+              // Fade and shrink slightly
               this.tweens.add({
                 targets: afterimage,
                 alpha: 0,
-                scaleX: 0.5,
-                scaleY: 0.5,
-                duration: 400,
-                ease: 'Power2',
-                onComplete: () => {
-                  afterimage.destroy();
-                }
+                scaleX: 3.3,
+                scaleY: 3.3,
+                duration: 280 + i * 20,
+                ease: 'Quadratic.Out',
+                onComplete: () => { afterimage.destroy(); }
               });
             });
           }
@@ -577,69 +637,90 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private createDashHud() {
           const size = this.dashHudSize; // 96
           const hudX = this.scale.width - (size / 2 + 20);
-          const hudY = 20 + size / 2; // top-right
-          
+          const hudY = 88 + size / 2; // even more top margin
+
           this.dashHudContainer = this.add.container(hudX, hudY).setScrollFactor(0);
-          // Ensure HUD is always on top of everything
           this.dashHudContainer.setDepth(10000);
-          
-          // Single image that we swap based on stage
-          this.dashImage = this.add.image(0, 0, 'dash_full');
+
+          this.dashImage = this.add.image(0, 0, 'dash_ui');
           this.dashImage.setDisplaySize(size, size);
           this.dashImage.setDepth(10001);
           this.dashHudContainer.add(this.dashImage);
 
-          // Initial state
-          // Start hidden until first dash triggers animation
-          if (this.dashImage) this.dashImage.setVisible(false);
+          // Dash icon is always visible; flashes only during cooldown
+          if (this.dashImage) { this.dashImage.setVisible(true); this.dashImage.setAlpha(1); }
         }
 
         private createPowerupHud() {
           const baseX = this.scale.width - (this.dashHudSize / 2 + 20);
-          const baseY = 20 + this.dashHudSize + 20; // below dash icon
+          const baseY = 88 + this.dashHudSize + 56; // even larger margin below dash icon
           this.powerupHudContainer = this.add.container(baseX, baseY).setScrollFactor(0);
           this.powerupHudContainer.setDepth(10000);
+          this.powerupHudItems = [];
+        }
 
-          // Icons start hidden; we reuse textures as icons
-          const iconSize = 64;
-          const vodkaIconSize = 108; // larger vodka icon
-          this.doubleIcon = this.add.image(0, 0, 'gift1');
-          this.doubleIcon.setDisplaySize(iconSize, iconSize);
-          this.doubleIcon.setVisible(false);
-          this.doubleIcon.setDepth(10001);
-          this.powerupHudContainer.add(this.doubleIcon);
+        private refreshPowerupHud() {
+          if (!this.powerupHudContainer) return;
+          // Clear existing
+          this.powerupHudItems.forEach((it) => { try { it.bg?.destroy(); it.icon?.destroy(); } catch {} });
+          this.powerupHudItems = [];
 
-          this.goldenIcon = this.add.image(0, iconSize + 10, 'gift3');
-          this.goldenIcon.setDisplaySize(iconSize, iconSize);
-          this.goldenIcon.setVisible(false);
-          this.goldenIcon.setDepth(10001);
-          this.powerupHudContainer.add(this.goldenIcon);
+          // Determine active bonuses (order: double, golden, vodka)
+          const now = this.time?.now || 0;
+          const active: { key: 'gift1' | 'gift3' | 'vodka'; remaining: number }[] = [];
+          if (this.scoreMultiplier > 1 && this.multiplierEndTime > now) active.push({ key: 'gift1', remaining: this.multiplierEndTime - now });
+          if (this.goldenSnowballActive && this.goldenEndTime > now) active.push({ key: 'gift3', remaining: this.goldenEndTime - now });
+          if (this.boostEndTime > now) active.push({ key: 'vodka', remaining: this.boostEndTime - now });
 
-          // Position vodka below others with adjusted offset for larger size
-          const vodkaY = (iconSize + 10) * 2 + (vodkaIconSize - iconSize) / 2;
-          this.vodkaIcon = this.add.image(0, vodkaY, 'vodka');
-          this.vodkaIcon.setDisplaySize(vodkaIconSize, vodkaIconSize);
-          this.vodkaIcon.setVisible(false);
-          this.vodkaIcon.setDepth(10001);
-          this.powerupHudContainer.add(this.vodkaIcon);
+          if (active.length === 0) return;
+
+          // Normalized sizing and vertical layout
+          const bgSize = 96; // consistent background size
+          const gap = 22; // even more spacing between stacked bonus icons
+          let y = 0;
+          active.forEach((a) => {
+            const icon = this.add.image(0, y, a.key);
+            // Slightly reduce gift icons so they don't overflow the background edges
+            const iconSize = a.key === 'vodka' ? 72 : 64;
+            icon.setDisplaySize(iconSize, iconSize);
+            icon.setDepth(10001);
+            const bg = this.add.image(0, y, 'bonus_bg');
+            bg.setDisplaySize(bgSize, bgSize);
+            bg.setDepth(10000);
+            this.powerupHudContainer.add(bg);
+            this.powerupHudContainer.add(icon);
+            // Flashing based on remaining
+            const rem = a.remaining;
+            const hz = rem < 500 ? 10 : rem < 1000 ? 6 : rem < 2000 ? 3 : 0;
+            if (hz > 0) {
+              const t = this.time.now / 1000;
+              const alpha = 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t);
+              icon.setAlpha(alpha);
+              bg.setAlpha(alpha);
+            } else {
+              icon.setAlpha(1);
+              bg.setAlpha(1);
+            }
+            this.powerupHudItems.push({ bg, icon });
+            y += bgSize + gap;
+          });
         }
 
         private updateDashHud() {
           if (!this.dashHudContainer) return;
           const remaining = Math.max(0, this.dashCooldown);
-          if (remaining <= 0) {
-            // Cooldown finished: hide icon until next dash
-            if (this.dashImage) this.dashImage.setVisible(false);
-            return;
+          if (this.dashImage) {
+            if (remaining <= 0) {
+              // Ready: visible, no flashing
+              this.dashImage.setVisible(true);
+              this.dashImage.setAlpha(1);
+            } else {
+              // Cooldown: flash
+              const t = this.time.now / 1000;
+              const alpha = 0.5 + 0.5 * Math.sin(2 * Math.PI * 6 * t); // 6Hz flash
+              this.dashImage.setAlpha(alpha);
+            }
           }
-          // Ensure icon is visible while animating cooldown
-          if (this.dashImage && !this.dashImage.visible) this.dashImage.setVisible(true);
-          const ratio = Phaser.Math.Clamp(remaining / this.dashCooldownTotal, 0, 1);
-          // Determine stage from ratio: 0 (empty) .. 4 (full)
-          const stage = 4 - Math.ceil(ratio * 4);
-          const key = stage <= 0 ? 'dash_empty' : stage === 1 ? 'dash1' : stage === 2 ? 'dash2' : stage === 3 ? 'dash3' : 'dash_full';
-          if (this.dashImage) this.dashImage.setTexture(key);
-          // No pulse animation during cooldown
         }
 
         update() {
@@ -679,25 +760,18 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           // Update dash HUD progression every frame
           this.updateDashHud();
 
+          // Update held direction from gamepad each frame (no latching)
+          try {
+            this.gpLeft = GamepadManager.getInstance().isHeld('Left' as any);
+            this.gpRight = GamepadManager.getInstance().isHeld('Right' as any);
+          } catch {}
+
           // Handle power-up expirations and icon flashing
           if (this.scoreMultiplier > 1) {
             const remaining = this.multiplierEndTime - this.time.now;
             if (remaining <= 0) {
               this.scoreMultiplier = 1;
               this.multiplierEndTime = 0;
-              if (this.doubleIcon) this.doubleIcon.setVisible(false);
-            } else {
-              // Flash faster in last 2s
-              if (this.doubleIcon && this.doubleIcon.visible) {
-                const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
-                if (hz > 0) {
-                  const t = this.time.now / 1000;
-                  const alpha = 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t);
-                  this.doubleIcon.setAlpha(alpha);
-                } else {
-                  this.doubleIcon.setAlpha(1);
-                }
-              }
             }
           }
           if (this.goldenSnowballActive) {
@@ -705,35 +779,11 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             if (remaining <= 0) {
               this.goldenSnowballActive = false;
               this.goldenEndTime = 0;
-              if (this.goldenIcon) this.goldenIcon.setVisible(false);
-            } else {
-              if (this.goldenIcon && this.goldenIcon.visible) {
-                const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
-                const t = this.time.now / 1000;
-                const alpha = hz > 0 ? 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t) : 1;
-                this.goldenIcon.setAlpha(alpha);
-              }
             }
           }
 
-          // Vodka boost HUD flashing based on boostEndTime
-          if (this.boostEndTime > this.time.now) {
-            if (this.vodkaIcon && !this.vodkaIcon.visible) {
-              this.vodkaIcon.setVisible(true);
-              this.vodkaIcon.setAlpha(1);
-            }
-            const remaining = this.boostEndTime - this.time.now;
-            const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
-            if (this.vodkaIcon) {
-              const t = this.time.now / 1000;
-              const alpha = hz > 0 ? 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t) : 1;
-              this.vodkaIcon.setAlpha(alpha);
-            }
-          } else {
-            if (this.vodkaIcon && this.vodkaIcon.visible) {
-              this.vodkaIcon.setVisible(false);
-            }
-          }
+          // Refresh stacked Power-up HUD under dash icon
+          this.refreshPowerupHud();
 
            // Handle dash mechanic (disabled while stunned or throwing)
            if (!this.isStunned && !this.isThrowing && this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
@@ -749,13 +799,13 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             // Use base speed scaled by current multiplier
             const moveSpeed = this.baseMoveSpeed * this.speedMultiplier;
 
-            if (this.cursors?.left.isDown || this.keyQ?.isDown) {
+            if (this.cursors?.left.isDown || this.keyQ?.isDown || this.gpLeft) {
               this.character.setVelocityX(-moveSpeed);
               this.character.setFlipX(true);
               if (this.character.anims?.currentAnim?.key !== 'run') {
                 this.character.play('run');
               }
-            } else if (this.cursors?.right.isDown || this.keyD?.isDown) {
+            } else if (this.cursors?.right.isDown || this.keyD?.isDown || this.gpRight) {
               this.character.setVelocityX(moveSpeed);
               this.character.setFlipX(false);
               if (this.character.anims?.currentAnim?.key !== 'run') {
@@ -773,6 +823,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
           // Handle boost expiration
           if (this.speedMultiplier > 1 && this.time.now > this.boostEndTime) {
+            // Play speed ended sound
+            SoundManager.getInstance().playSpeedEnded();
+            
             this.speedMultiplier = 1;
             if (this.character?.anims) {
               this.character.anims.timeScale = 1;
@@ -1051,6 +1104,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private onSnowballHitMonsterA() {
+          // Play snowball hit sound
+          SoundManager.getInstance().playSnowballHit();
           if (!this.slime || !this.slime.active) return;
           if (this.goldenSnowballActive) {
             // Oneshoot: destroy immediately
@@ -1097,6 +1152,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private onSnowballHitMonsterB(mob: any, index: number) {
+          // Play snowball hit sound
+          SoundManager.getInstance().playSnowballHit();
           if (!mob || !mob.active) return;
           if (this.goldenSnowballActive) {
             this.tweens.add({
@@ -1156,6 +1213,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchSnowflake(snowflake: Phaser.GameObjects.Sprite, index: number) {
+          // Play snowflake collection sound
+          SoundManager.getInstance().playSnowflakeCollect();
+          
           // Currency (shop/upgrade) uses upgrade value; score is fixed per flake (10) and doubled by gift
           const currencyPerFlake = this.abilityManager.getCurrentValue('snowflake_value');
           this.snowflakesEarned += currencyPerFlake;
@@ -1173,29 +1233,28 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchGift(gift: Phaser.GameObjects.Sprite, index: number) {
+          // Play bonus gift sound
+          SoundManager.getInstance().playBonusGift();
+          
           const type = (gift as any).giftType as string | undefined;
           if (type === 'gift1') {
             // Double points for 10 seconds
             this.scoreMultiplier = 2;
             this.multiplierEndTime = this.time.now + 10000;
-            if (this.doubleIcon) {
-              this.doubleIcon.setVisible(true);
-              this.doubleIcon.setAlpha(1);
-            }
+            // HUD refresh handled by refreshPowerupHud
             // No points awarded, no +text display
           } else if (type === 'gift2') {
-            // Instant +150 points
-            this.score += 150;
+            // Instant bonus points (doubles if double-points is active)
+            const baseBonus = 150;
+            const bonusAward = baseBonus * (this.scoreMultiplier > 1 ? this.scoreMultiplier : 1);
+            this.score += bonusAward;
             this.scoreText.setText(`Score: ${this.score}`);
-            this.createBonusCatchEffect(gift.x, gift.y, '+150');
+            this.createBonusCatchEffect(gift.x, gift.y, `+${bonusAward}`);
           } else if (type === 'gift3') {
             // Golden snowballs for 10 seconds
             this.goldenSnowballActive = true;
             this.goldenEndTime = this.time.now + 10000;
-            if (this.goldenIcon) {
-              this.goldenIcon.setVisible(true);
-              this.goldenIcon.setAlpha(1);
-            }
+            // HUD refresh handled by refreshPowerupHud
             // No points awarded, no +text display
           } else {
             // Fallback: no points, no display
@@ -1247,6 +1306,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchAntiBoost(jar: Phaser.GameObjects.Sprite, index: number) {
+          // Play freezing sound
+          SoundManager.getInstance().playFreezing();
+          
           // Apply 4-second stun: stop movement and ignore input/dash
           const stunDurationMs = 2000;
           this.isStunned = true;
@@ -1280,6 +1342,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
           // End stun after duration
           this.time.delayedCall(stunDurationMs, () => {
+            // Stop freezing sound when effect ends
+            SoundManager.getInstance().stopFreezing();
+            
             this.isStunned = false;
             // Clear tint and remove ice overlay
             try { (this.character as any).clearTint?.(); } catch {}
@@ -1299,6 +1364,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
        
         private catchVodka(bottle: Phaser.GameObjects.Sprite, index: number) {
+          // Play turbo speed sound
+          SoundManager.getInstance().playTurboSpeed();
+          
           // Speed boost for a short duration with ghost trail
           const boostDurationMs = 2500;
           this.speedMultiplier = 2;
@@ -1315,11 +1383,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.scoreText.setText(`Score: ${this.score}`);
           bottle.destroy();
 
-          // Show vodka HUD icon when boost starts
-          if (this.vodkaIcon) {
-            this.vodkaIcon.setVisible(true);
-            this.vodkaIcon.setAlpha(1);
-          }
+          // HUD refresh handled by refreshPowerupHud
         }
 
         // no ghost trail function
@@ -1376,7 +1440,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           if (this.slime && this.slime.active) {
             const slimeBounds = this.getShrinkBounds(this.slime, 0.85);
             if (this.rectsOverlap(charBounds, slimeBounds)) {
-              this.applyEnemyHit();
+              const dir = this.character.x < this.slime.x ? -1 : 1; // push away from slime
+              this.applyEnemyHit(dir);
               return;
             }
           }
@@ -1387,20 +1452,59 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
               if (!mob || !mob.active) continue;
               const mBounds = this.getShrinkBounds(mob, 0.85);
               if (this.rectsOverlap(charBounds, mBounds)) {
-                this.applyEnemyHit();
+                const dir = this.character.x < mob.x ? -1 : 1; // push away from mob
+                this.applyEnemyHit(dir);
                 return;
               }
             }
           }
         }
 
-        private applyEnemyHit() {
+        private applyEnemyHit(direction: number) {
+          // Play point deduction sound
+          SoundManager.getInstance().playPointDeduction();
+          
           this.lastEnemyHitTime = this.time.now;
-          // Reduce score by 100, not affecting snowflakesEarned (currency)
-          this.score = Math.max(0, this.score - 100);
+          // Reduce score by 50, not affecting snowflakesEarned (currency)
+          this.score = Math.max(0, this.score - 50);
           this.scoreText.setText(`Score: ${this.score}`);
           // Show damage effect above character
-          this.createDamageEffect(this.character.x, this.character.y - this.character.displayHeight, '-100');
+          this.createDamageEffect(this.character.x, this.character.y - this.character.displayHeight, '-50');
+          
+          // Brief red tint feedback
+          try { (this.character as any).setTint?.(0xff5555); } catch {}
+          this.time.delayedCall(120, () => {
+            try { (this.character as any).clearTint?.(); } catch {}
+          });
+
+          // Apply short hit-stun and horizontal knockback
+          const knockbackDurationMs = 250;
+          const knockbackSpeed = 480; // horizontal velocity
+          this.isStunned = true;
+          this.isDashing = false;
+          // ensure animation not running uncontrollably
+          if (this.character?.anims) {
+            this.character.play('idle');
+          }
+          // set knockback velocity away from enemy and clamp inside bounds
+          const dir = Math.sign(direction) || 1;
+          this.character.setVelocityX(knockbackSpeed * dir);
+
+          // Small vertical hop during hit
+          const hopHeight = 18;
+          this.hopOffset = hopHeight;
+          this.tweens.add({
+            targets: this,
+            hopOffset: 0,
+            duration: 220,
+            ease: 'Quad.easeOut'
+          });
+
+          // Stop knockback after duration
+          this.time.delayedCall(knockbackDurationMs, () => {
+            this.character.setVelocityX(0);
+            this.isStunned = false;
+          });
         }
 
         gameOver() {
@@ -1521,8 +1625,16 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
   return (
     <div ref={hostRef} style={{ position: 'fixed', inset: 0 }}>
       {!ready && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, opacity: 0.8, color: '#e7e9ff' }}>
-          Loading…
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            fontWeight: 700,
+            color: '#e7e9ff',
+            fontFamily: 'November, sans-serif',
+            fontSize: 'clamp(18px, 2.4vw, 24px)',
+            textShadow: '0 2px 0 rgba(0,0,0,0.25)'
+          }}>
+            {renderAlternating(`Chargement${'.'.repeat(loadingDots)}`, true)}
+          </div>
         </div>
       )}
     </div>
