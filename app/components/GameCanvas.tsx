@@ -211,7 +211,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         create() {
           // Reset game state
 
-          this.timeLeft = 10;
+          this.timeLeft = 60;
           this.gameActive = true;
           this.hasEnded = false;
 
