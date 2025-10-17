@@ -774,6 +774,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
           // Handle boost expiration
           if (this.speedMultiplier > 1 && this.time.now > this.boostEndTime) {
+            // Play speed ended sound
+            SoundManager.getInstance().playSpeedEnded();
+            
             this.speedMultiplier = 1;
             if (this.character?.anims) {
               this.character.anims.timeScale = 1;
@@ -1303,6 +1306,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
        
         private catchVodka(bottle: Phaser.GameObjects.Sprite, index: number) {
+          // Play turbo speed sound
+          SoundManager.getInstance().playTurboSpeed();
+          
           // Speed boost for a short duration with ghost trail
           const boostDurationMs = 2500;
           this.speedMultiplier = 2;
@@ -1399,6 +1405,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private applyEnemyHit() {
+          // Play point deduction sound
+          SoundManager.getInstance().playPointDeduction();
+          
           this.lastEnemyHitTime = this.time.now;
           // Reduce score by 100, not affecting snowflakesEarned (currency)
           this.score = Math.max(0, this.score - 100);

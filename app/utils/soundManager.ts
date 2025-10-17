@@ -2,6 +2,9 @@ class SoundManager {
   private static instance: SoundManager;
   private buttonClickAudio: HTMLAudioElement | null = null;
   private snowflakeCollectAudio: HTMLAudioElement | null = null;
+  private turboSpeedAudio: HTMLAudioElement | null = null;
+  private speedEndedAudio: HTMLAudioElement | null = null;
+  private pointDeductionAudio: HTMLAudioElement | null = null;
   private soundEnabled: boolean = true;
 
   private constructor() {
@@ -13,6 +16,18 @@ class SoundManager {
       this.snowflakeCollectAudio = new Audio('/sounds/sound-of-collecting-snowflakes.mp3');
       this.snowflakeCollectAudio.preload = 'auto';
       this.snowflakeCollectAudio.volume = 0.6; // Slightly louder for collection sound
+      
+      this.turboSpeedAudio = new Audio('/sounds/sound-turbo-speed.mp3');
+      this.turboSpeedAudio.preload = 'auto';
+      this.turboSpeedAudio.volume = 0.7; // Louder for speed effect
+      
+      this.speedEndedAudio = new Audio('/sounds/sound-speed-has-ended.mp3');
+      this.speedEndedAudio.preload = 'auto';
+      this.speedEndedAudio.volume = 0.6; // Moderate volume for end effect
+      
+      this.pointDeductionAudio = new Audio('/sounds/sound-point-deduction.mp3');
+      this.pointDeductionAudio.preload = 'auto';
+      this.pointDeductionAudio.volume = 0.5; // Moderate volume for point deduction
       
       // Initialize sound state from localStorage
       const soundEnabled = localStorage.getItem('soundEnabled');
@@ -48,6 +63,48 @@ class SoundManager {
       // Reset audio to beginning and play
       this.snowflakeCollectAudio.currentTime = 0;
       this.snowflakeCollectAudio.play().catch(() => {
+        // Ignore errors (user might not have interacted with page yet)
+      });
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+
+  public playTurboSpeed(): void {
+    if (!this.turboSpeedAudio || !this.soundEnabled) return;
+    
+    try {
+      // Reset audio to beginning and play
+      this.turboSpeedAudio.currentTime = 0;
+      this.turboSpeedAudio.play().catch(() => {
+        // Ignore errors (user might not have interacted with page yet)
+      });
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+
+  public playSpeedEnded(): void {
+    if (!this.speedEndedAudio || !this.soundEnabled) return;
+    
+    try {
+      // Reset audio to beginning and play
+      this.speedEndedAudio.currentTime = 0;
+      this.speedEndedAudio.play().catch(() => {
+        // Ignore errors (user might not have interacted with page yet)
+      });
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+
+  public playPointDeduction(): void {
+    if (!this.pointDeductionAudio || !this.soundEnabled) return;
+    
+    try {
+      // Reset audio to beginning and play
+      this.pointDeductionAudio.currentTime = 0;
+      this.pointDeductionAudio.play().catch(() => {
         // Ignore errors (user might not have interacted with page yet)
       });
     } catch (error) {
