@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { renderAlternating } from '../utils/renderAlternating';
 import { SnowflakeManager } from '../utils/snowflake';
 import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
@@ -14,12 +15,20 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
   const gameRef = useRef<any>(null);
   const creatingRef = useRef(false);
   const [ready, setReady] = useState(false);
+  const [loadingDots, setLoadingDots] = useState(1);
   const reportedRef = useRef(false);
   const [abilityManager] = useState(() => AbilityManager.getInstance());
   const onGameEndRef = useRef(onGameEnd);
   
   // Keep the ref updated
   onGameEndRef.current = onGameEnd;
+
+  // Animate dots while loading
+  useEffect(() => {
+    if (ready) return;
+    const id = setInterval(() => setLoadingDots((d) => (d % 3) + 1), 420);
+    return () => clearInterval(id);
+  }, [ready]);
 
   useEffect(() => {
     // Global focus helper and listeners to restore keyboard after overlays
@@ -1625,8 +1634,16 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
   return (
     <div ref={hostRef} style={{ position: 'fixed', inset: 0 }}>
       {!ready && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, opacity: 0.8, color: '#e7e9ff' }}>
-          Loading…
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            fontWeight: 700,
+            color: '#e7e9ff',
+            fontFamily: 'November, sans-serif',
+            fontSize: 'clamp(18px, 2.4vw, 24px)',
+            textShadow: '0 2px 0 rgba(0,0,0,0.25)'
+          }}>
+            {renderAlternating(`Chargement${'.'.repeat(loadingDots)}`, true)}
+          </div>
         </div>
       )}
     </div>

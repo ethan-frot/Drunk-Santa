@@ -321,17 +321,34 @@ export default function Home() {
             ariaLabel="Commencer"
           />
         ) : (
-          <UiImageButton
-            imageUpSrc="/assets/ui/buttons/play-button-up.png"
-            imageDownSrc="/assets/ui/buttons/play-button-down.png"
-            heightPx={130}
-            onClick={() => { 
-              setTimeout(() => submitName(), 150);
-            }}
-            ariaLabel="Jouer"
-            style={{ paddingTop: '150px', marginLeft: '-15px' }}
-            ref={playUiRef}
-          />
+          <>
+            {!isStarting ? (
+              <UiImageButton
+                imageUpSrc="/assets/ui/buttons/play-button-up.png"
+                imageDownSrc="/assets/ui/buttons/play-button-down.png"
+                heightPx={130}
+                onClick={() => { 
+                  setTimeout(() => submitName(), 150);
+                }}
+                ariaLabel="Jouer"
+                style={{ paddingTop: '150px', marginLeft: '-15px' }}
+                ref={playUiRef}
+              />
+            ) : (
+              <div style={{ paddingTop: '170px', marginLeft: '-15px', textAlign: 'center' }}>
+                <div style={{
+                  color: '#e7e9ff',
+                  fontFamily: 'November, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 'clamp(18px, 2.4vw, 24px)',
+                  textShadow: '0 2px 0 rgba(0,0,0,0.25)'
+                }}>
+                  {/* Alternating colored text with animated dots */}
+                  {renderAlternating(`Chargement${'.'.repeat((loadingDots % 3) + 1)}`, true)}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {!showNameOverlay && (
