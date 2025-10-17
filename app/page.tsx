@@ -317,6 +317,7 @@ export default function Home() {
             style={{ paddingTop: '150px', marginLeft: '-15px' }}
             ref={playUiRef}
             gamepadButtons={["A"]}
+            gamepadHintRightPx={15}
           />
         )}
 

@@ -86,6 +86,8 @@ export default function ImageModal({
             disabled={b.disabled}
             ref={idx === 0 ? leftRef : (idx === buttons.length - 1 ? rightRef : undefined) as any}
             // No per-button gamepad bindings inside modal; handled by scoped capture above
+            gamepadHintKey={idx === 0 ? ('B' as any) : (idx === buttons.length - 1 ? ('A' as any) : undefined)}
+            gamepadHintRightPx={40}
           />
         ))}
       </div>

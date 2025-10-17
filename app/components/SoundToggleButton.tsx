@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import UiImageButton from './UiImageButton';
+import React, { useState, useEffect, useRef } from 'react';
+import UiImageButton, { UiImageButtonHandle } from './UiImageButton';
 import SoundManager from '@/app/utils/soundManager';
 import MusicManager from '@/app/utils/musicManager';
+import GamepadManager from '@/app/utils/gamepadManager';
 
 type SoundToggleButtonProps = {
   topPx?: number;
@@ -19,6 +20,7 @@ export default function SoundToggleButton({
   onToggled
 }: SoundToggleButtonProps) {
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const btnRef = useRef<UiImageButtonHandle | null>(null);
 
   useEffect(() => {
     // Initialize sound state from localStorage
@@ -117,8 +119,20 @@ export default function SoundToggleButton({
     try { onToggled?.(newState); } catch {}
   };
 
+  // Allow Start button on the gamepad to toggle sound globally
+  useEffect(() => {
+    const unsubscribe = GamepadManager.getInstance().addListener((btn) => {
+      if (btn === ('Start' as any)) {
+        try { btnRef.current?.triggerPress(150); } catch {}
+        setTimeout(() => { try { handleToggleSound(); } catch {} }, 120);
+      }
+    });
+    return unsubscribe;
+  }, [isSoundEnabled]);
+
   return (
     <UiImageButton
+      ref={btnRef}
       imageUpSrc="/assets/ui/buttons/sound-button-up.png"
       imageDownSrc="/assets/ui/buttons/sound-button-down.png"
       heightPx={70}
