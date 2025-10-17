@@ -23,6 +23,7 @@ export default function DisplayGamePage() {
         MusicManager.getInstance().stop();
     }, []);
     
+    
     const handleGameEnd = (snowflakesEarned: number, totalScore: number) => {
         // Save results
         localStorage.setItem('gameScore', totalScore.toString());

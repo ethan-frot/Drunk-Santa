@@ -61,7 +61,7 @@ export default function HowToPlayPage() {
                 <img src={'/assets/ui/how-to-play/left-key.png'} alt="left-key" width={s(36)} height={s(36)} style={{ objectFit: 'contain' }} />
                 <img src={'/assets/ui/how-to-play/right-key.png'} alt="right-key" width={s(36)} height={s(36)} style={{ objectFit: 'contain' }} />
               </div>
-              <div style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>Se déplacer (Q et D)</div>
+              <div style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>Se deplacer (Q et D)</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <img src={'/assets/ui/how-to-play/dash-key.png'} alt="dash-key" width={s(60)} height={s(36)} style={{ objectFit: 'contain' }} />
                 <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>ou</span>
