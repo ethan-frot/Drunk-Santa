@@ -546,35 +546,53 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private createAfterimageTrail() {
-          const afterimageCount = 5; // Number of afterimages
-          const afterimageDelay = 50; // Delay between each afterimage
-          
+          const afterimageCount = 7; // more pronounced trail
+          const afterimageDelay = 35; // quicker spawn cadence
+
+          // Determine facing direction (right = 1, left = -1)
+          const dirX = this.character.flipX ? -1 : 1;
+          // Try to capture current animation frame index for visual coherence
+          const currentFrameIndex = (() => {
+            try {
+              const f: any = this.character.anims?.currentFrame;
+              const idx = typeof f?.index === 'number' ? f.index : undefined;
+              return typeof idx === 'number' ? idx : undefined;
+            } catch { return undefined; }
+          })();
+
           for (let i = 0; i < afterimageCount; i++) {
             this.time.delayedCall(i * afterimageDelay, () => {
-              // Create afterimage sprite at current character position
+              // Position slightly behind the character along dash direction
+              const offset = 8 * i * -dirX;
               const afterimage = this.add.sprite(
-                this.character.x, 
-                this.character.y, 
+                this.character.x + offset,
+                this.character.y,
                 'character'
               );
-              
-              // Set afterimage properties
-              afterimage.setScale(0.7);
+
+              // Match frame and flip for cohesion
+              try { if (typeof currentFrameIndex === 'number') afterimage.setFrame(currentFrameIndex); } catch {}
+              afterimage.setFlipX(this.character.flipX);
+
+              // Visuals
+              afterimage.setScale(3.5); // match character scale for consistency
               afterimage.setOrigin(0.5, 1);
-              afterimage.setAlpha(0.3 - (i * 0.05)); // Fade out progressively
-              afterimage.setTint(0x00ffff); // Cyan tint for afterimage
-              
-              // Animate the afterimage
+              // Ensure trail renders above background but just behind the player
+              const baseDepth = (typeof this.character.depth === 'number') ? this.character.depth : 6;
+              afterimage.setDepth(Math.max(1, baseDepth - 1));
+              const startAlpha = Math.max(0.15, 0.5 - i * 0.05);
+              afterimage.setAlpha(startAlpha);
+              afterimage.setTint(0x66e0ff); // soft cyan
+
+              // Fade and shrink slightly
               this.tweens.add({
                 targets: afterimage,
                 alpha: 0,
-                scaleX: 0.5,
-                scaleY: 0.5,
-                duration: 400,
-                ease: 'Power2',
-                onComplete: () => {
-                  afterimage.destroy();
-                }
+                scaleX: 3.3,
+                scaleY: 3.3,
+                duration: 280 + i * 20,
+                ease: 'Quadratic.Out',
+                onComplete: () => { afterimage.destroy(); }
               });
             });
           }
