@@ -155,6 +155,7 @@ export default function Home() {
       dogRunFrame: number;
       dogRunFrameCount: number;
       dogRunFrameSpeed: number;
+      isStoppedOnDog: boolean;
 
       constructor() {
         this.x = -50; // Start off-screen left
@@ -175,6 +176,7 @@ export default function Home() {
         this.dogRunFrame = 0; // Frame for running on dog
         this.dogRunFrameCount = 0; // Frame counter for dog running
         this.dogRunFrameSpeed = 0.3; // Faster animation when on dog
+        this.isStoppedOnDog = false; // Track if Santa is stopped on dog
       }
 
       update() {
@@ -207,6 +209,7 @@ export default function Home() {
             // Reset dog running animation
             this.dogRunFrame = 0;
             this.dogRunFrameCount = 0;
+            this.isStoppedOnDog = false; // Reset stop flag
           } else {
             // Four phases: jump onto dog (0-0.15), run on back (0.15-0.50), stop on dog (0.50-0.75), jump off (0.75-1.0)
             if (jumpProgress < 0.15) {
@@ -227,6 +230,7 @@ export default function Home() {
               // Phase 3: Stop on the dog for 0.5 seconds (realistic pause)
               this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
               this.frame = 0; // Standing frame - Santa stops running
+              this.isStoppedOnDog = true; // Mark that Santa is stopped
             } else {
               // Phase 4: Jump off the dog (after stopping)
               const phaseProgress = (jumpProgress - 0.75) / 0.25;
@@ -253,8 +257,10 @@ export default function Home() {
           this.frame = Math.floor(this.frameCount) % 6; // 6 walking frames
         }
         
-        // Move right across screen
-        this.x += this.speed;
+        // Move right across screen (but not when stopped on dog)
+        if (!this.isStoppedOnDog) {
+          this.x += this.speed;
+        }
         
         // Keep character on floor level when not jumping
         if (!this.isJumping) {
@@ -267,6 +273,7 @@ export default function Home() {
           this.y = floorY;
           this.isJumping = false;
           this.jumpStartTime = null;
+          this.isStoppedOnDog = false; // Reset stop flag
         }
       }
 
