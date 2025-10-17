@@ -165,8 +165,8 @@ export default function Home() {
         this.sprintEndAt = null;
         this.isJumping = false;
         this.jumpStartTime = null;
-        this.jumpDuration = 800; // Jump duration in ms
-        this.jumpHeight = 60; // How high he jumps
+        this.jumpDuration = 2000; // 2 seconds total duration for running on dog's back
+        this.jumpHeight = 40; // Lower jump height since he's running on the dog
         this.dogX = 0; // Will be set when canvas resizes
         this.fireplaceX = 0; // Will be set when canvas resizes
       }
@@ -179,15 +179,15 @@ export default function Home() {
         const floorY = screenHeight - 80;
 
         // Update dog and fireplace positions (adjust these based on your GIF background)
-        this.dogX = screenWidth * 0.75; // Adjust this to match where the dog is in your GIF
-        this.fireplaceX = screenWidth * 0.7; // Adjust this to match where the fireplace is in your GIF
+        this.dogX = screenWidth * 0.55; // Moved even more left to match the dog position in your GIF
+        this.fireplaceX = screenWidth * 0.5; // Moved even more left to match the fireplace position in your GIF
 
         // Check if Santa should jump (when he gets close to the dog)
-        if (!this.isJumping && this.x >= this.dogX - 100 && this.x <= this.dogX + 50) {
+        if (!this.isJumping && this.x >= this.dogX - 80 && this.x <= this.dogX + 80) {
           this.startJump();
         }
 
-        // Handle jumping animation
+        // Handle jumping animation (jump onto dog, run on back, jump off)
         if (this.isJumping && this.jumpStartTime) {
           const jumpProgress = (currentTime - this.jumpStartTime) / this.jumpDuration;
           
@@ -198,18 +198,27 @@ export default function Home() {
             this.y = this.originalY;
             this.frame = 0; // Reset to walking frame
           } else {
-            // Calculate jump trajectory (parabolic)
-            const jumpPhase = jumpProgress * Math.PI; // 0 to π
-            const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
-            this.y = this.originalY - jumpOffset;
-            
-            // Update frame based on jump progress (using santa-jump.png frames)
-            if (jumpProgress < 0.3) {
-              this.frame = 6; // Jump start frame (frame 6 in santa-jump.png)
-            } else if (jumpProgress < 0.7) {
-              this.frame = 7; // High jump frame (frame 7 in santa-jump.png)
+            // Three phases: jump onto dog (0-0.15), run on back (0.15-0.85), jump off (0.85-1.0)
+            if (jumpProgress < 0.15) {
+              // Phase 1: Jump onto the dog (very short)
+              const phaseProgress = jumpProgress / 0.15;
+              const jumpPhase = phaseProgress * Math.PI; // 0 to π
+              const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
+              this.y = this.originalY - jumpOffset;
+              this.frame = 6; // Jump start frame
+            } else if (jumpProgress < 0.85) {
+              // Phase 2: Run on the dog's back (very long - 1.4 seconds!)
+              this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
+              // Use walking animation while on the dog's back
+              this.frameCount += this.frameSpeed;
+              this.frame = Math.floor(this.frameCount) % 6; // Walking frames 0-5
             } else {
-              this.frame = 6; // Landing frame (frame 6 in santa-jump.png)
+              // Phase 3: Jump off the dog (very short)
+              const phaseProgress = (jumpProgress - 0.85) / 0.15;
+              const jumpPhase = phaseProgress * Math.PI; // 0 to π
+              const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
+              this.y = this.originalY - jumpOffset;
+              this.frame = 7; // High jump frame for jumping off
             }
           }
         } else {
