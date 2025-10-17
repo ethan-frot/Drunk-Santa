@@ -69,8 +69,29 @@ class MusicManager {
   stop() {
     if (this.audio && this.isPlaying) {
       this.audio.pause();
-      this.audio.currentTime = 0;
       this.isPlaying = false;
+    }
+  }
+
+  // Pause without resetting position
+  pause() {
+    if (this.audio && !this.audio.paused) {
+      this.audio.pause();
+      this.isPlaying = false;
+    }
+  }
+
+  // Resume from current position if available
+  resume() {
+    if (!this.isMusicEnabled()) return;
+    if (!this.audio) {
+      this.audio = new Audio('/sounds/music-menu.mp3');
+      this.audio.loop = true;
+      this.audio.volume = 0.3;
+    }
+    if (this.audio.paused) {
+      this.audio.play().catch(() => {});
+      this.isPlaying = true;
     }
   }
 

@@ -9,12 +9,14 @@ type SoundToggleButtonProps = {
   topPx?: number;
   rightPx?: number;
   zIndex?: number;
+  onToggled?: (enabled: boolean) => void; // optional callback for page-specific behavior
 };
 
 export default function SoundToggleButton({ 
   topPx = 16, 
   rightPx = 16, 
-  zIndex = 5 
+  zIndex = 5,
+  onToggled
 }: SoundToggleButtonProps) {
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
@@ -38,16 +40,81 @@ export default function SoundToggleButton({
     // Update sound manager
     SoundManager.getInstance().setSoundEnabled(newState);
     
-    // Update music manager
+    // Update music manager preference
     MusicManager.getInstance().setMusicEnabled(newState);
-    
-    // If disabling sound, stop music
-    if (!newState) {
-      MusicManager.getInstance().stop();
-    } else {
-      // If enabling sound, resume music if it was enabled
-      MusicManager.getInstance().resumeMusicIfEnabled();
+
+    // Determine if we are currently in-game (only when on the game route)
+    let handledInGame = false;
+    try {
+      const w: any = typeof window !== 'undefined' ? window : {};
+      const game: any = w.__CATCH_GAME_INSTANCE__;
+      const scene: any = game?.scene?.keys?.Game;
+      const path = typeof window !== 'undefined' ? window.location?.pathname || '' : '';
+      const isOnGameRoute = path.includes('/views/game');
+      // Treat these as menu routes explicitly
+      const isMenuRoute = !isOnGameRoute && (
+        path === '/' ||
+        path.startsWith('/views/how-to-play') ||
+        path.startsWith('/views/leaderboard') ||
+        path.startsWith('/views/score') ||
+        path.startsWith('/views/abilities')
+      );
+
+      if (isOnGameRoute && scene) {
+        handledInGame = true;
+        const bgMusic: any = scene?.bgMusic;
+        if (!newState) {
+          // Pause game music if present; also pause menu music to avoid overlap
+          try { MusicManager.getInstance().pause(); } catch {}
+          if (bgMusic && typeof bgMusic.pause === 'function') {
+            bgMusic.pause();
+          }
+        } else {
+          // Enabling in-game: resume/create ONLY the game music, do not resume menu music
+          const soundEnabled = localStorage.getItem('soundEnabled');
+          const musicEnabled = localStorage.getItem('musicEnabled');
+          if (soundEnabled !== 'false' && musicEnabled !== 'false') {
+            if (bgMusic && typeof bgMusic.resume === 'function') {
+              bgMusic.resume();
+            } else if (scene?.sound?.add) {
+              try {
+                scene.bgMusic = scene.sound.add('music', { loop: true, volume: 0.5 });
+                scene.bgMusic.play();
+              } catch {}
+            }
+          }
+        }
+      } else if (isMenuRoute) {
+        // Force menu behavior on menu routes; also make sure any lingering bgMusic is paused
+        const bgMusic: any = scene?.bgMusic;
+        if (!newState) {
+          try { MusicManager.getInstance().pause(); } catch {}
+          if (bgMusic && typeof bgMusic.pause === 'function') {
+            try { bgMusic.pause(); } catch {}
+          }
+        } else {
+          try { MusicManager.getInstance().resume(); } catch {}
+          if (bgMusic && typeof bgMusic.pause === 'function') {
+            try { bgMusic.pause(); } catch {}
+          }
+        }
+        handledInGame = false; // ensure fall-through does not run
+      }
+    } catch {}
+
+    // If not in-game, control only the menu music via MusicManager
+    if (!handledInGame) {
+      try {
+        if (!newState) {
+          MusicManager.getInstance().pause();
+        } else {
+          MusicManager.getInstance().resume();
+        }
+      } catch {}
     }
+
+    // Notify parent/page for context-specific handling (e.g., game music)
+    try { onToggled?.(newState); } catch {}
   };
 
   return (
