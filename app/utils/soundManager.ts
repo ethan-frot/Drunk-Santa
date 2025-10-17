@@ -5,6 +5,9 @@ class SoundManager {
   private turboSpeedAudio: HTMLAudioElement | null = null;
   private speedEndedAudio: HTMLAudioElement | null = null;
   private pointDeductionAudio: HTMLAudioElement | null = null;
+  private freezingAudio: HTMLAudioElement | null = null;
+  private snowballHitAudio: HTMLAudioElement | null = null;
+  private bonusGiftAudio: HTMLAudioElement | null = null;
   private soundEnabled: boolean = true;
 
   private constructor() {
@@ -28,6 +31,18 @@ class SoundManager {
       this.pointDeductionAudio = new Audio('/sounds/sound-point-deduction.mp3');
       this.pointDeductionAudio.preload = 'auto';
       this.pointDeductionAudio.volume = 0.5; // Moderate volume for point deduction
+      
+      this.freezingAudio = new Audio('/sounds/sound-of-freezing.mp3');
+      this.freezingAudio.preload = 'auto';
+      this.freezingAudio.volume = 0.6; // Moderate volume for freezing effect
+      
+      this.snowballHitAudio = new Audio('/sounds/sound-snowball-hit.mp3');
+      this.snowballHitAudio.preload = 'auto';
+      this.snowballHitAudio.volume = 0.6; // Moderate volume for snowball hit
+      
+      this.bonusGiftAudio = new Audio('/sounds/sound-bonus-gift.mp3');
+      this.bonusGiftAudio.preload = 'auto';
+      this.bonusGiftAudio.volume = 0.7; // Louder for bonus gift sound
       
       // Initialize sound state from localStorage
       const soundEnabled = localStorage.getItem('soundEnabled');
@@ -106,6 +121,57 @@ class SoundManager {
       this.pointDeductionAudio.currentTime = 0;
       this.pointDeductionAudio.play().catch(() => {
         // Ignore errors (user might not have interacted with page yet)
+      });
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+
+  public playFreezing(): void {
+    if (!this.freezingAudio || !this.soundEnabled) return;
+    
+    try {
+      // Reset audio to beginning and play
+      this.freezingAudio.currentTime = 0;
+      this.freezingAudio.play().catch(() => {
+        // Ignore errors (user might not have interacted with page yet)
+      });
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+
+  public stopFreezing(): void {
+    if (!this.freezingAudio) return;
+    
+    try {
+      this.freezingAudio.pause();
+      this.freezingAudio.currentTime = 0;
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+
+  public playSnowballHit(): void {
+    if (!this.snowballHitAudio || !this.soundEnabled) return;
+    
+    try {
+      this.snowballHitAudio.currentTime = 0;
+      this.snowballHitAudio.play().catch(() => {
+        // Ignore errors
+      });
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+
+  public playBonusGift(): void {
+    if (!this.bonusGiftAudio || !this.soundEnabled) return;
+    
+    try {
+      this.bonusGiftAudio.currentTime = 0;
+      this.bonusGiftAudio.play().catch(() => {
+        // Ignore errors
       });
     } catch (error) {
       // Ignore errors

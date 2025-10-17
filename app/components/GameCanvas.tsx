@@ -1055,6 +1055,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private onSnowballHitMonsterA() {
+          // Play snowball hit sound
+          SoundManager.getInstance().playSnowballHit();
           if (!this.slime || !this.slime.active) return;
           if (this.goldenSnowballActive) {
             // Oneshoot: destroy immediately
@@ -1101,6 +1103,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private onSnowballHitMonsterB(mob: any, index: number) {
+          // Play snowball hit sound
+          SoundManager.getInstance().playSnowballHit();
           if (!mob || !mob.active) return;
           if (this.goldenSnowballActive) {
             this.tweens.add({
@@ -1180,6 +1184,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchGift(gift: Phaser.GameObjects.Sprite, index: number) {
+          // Play bonus gift sound
+          SoundManager.getInstance().playBonusGift();
+          
           const type = (gift as any).giftType as string | undefined;
           if (type === 'gift1') {
             // Double points for 10 seconds
@@ -1254,6 +1261,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchAntiBoost(jar: Phaser.GameObjects.Sprite, index: number) {
+          // Play freezing sound
+          SoundManager.getInstance().playFreezing();
+          
           // Apply 4-second stun: stop movement and ignore input/dash
           const stunDurationMs = 2000;
           this.isStunned = true;
@@ -1287,6 +1297,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
           // End stun after duration
           this.time.delayedCall(stunDurationMs, () => {
+            // Stop freezing sound when effect ends
+            SoundManager.getInstance().stopFreezing();
+            
             this.isStunned = false;
             // Clear tint and remove ice overlay
             try { (this.character as any).clearTint?.(); } catch {}
