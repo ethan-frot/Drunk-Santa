@@ -258,23 +258,22 @@ export default function Home() {
               // Phase 6: Jump off the dog - start from dog level, jump up, then land down
               const phaseProgress = (jumpProgress - 0.70) / 0.30;
               
-              // Create smooth parabolic trajectory starting from dog level
+              // Smoother parabolic trajectory with gentler landing
               const jumpPhase = phaseProgress * Math.PI; // 0 to π for smooth arc
-              const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
-              // Start from dog level (originalY - jumpHeight) and jump up
+              const jumpOffset = Math.sin(jumpPhase) * (this.jumpHeight * 0.6); // Further reduced height for softer jump
+              // Start from dog level and create smoother arc
               this.y = (this.originalY - this.jumpHeight) - jumpOffset;
               
-              // Use jump animation frames based on jump progress
+              // Use downSprite frames for smooth landing animation
+              // Start with frame 0 and gradually move to frame 1 for smooth transition
               if (phaseProgress < 0.3) {
-                this.frame = 6; // Jump start frame
-              } else if (phaseProgress < 0.7) {
-                this.frame = 7; // High jump frame (at the peak)
+                this.frame = 0; // Start with first frame
               } else {
-                this.frame = 6; // Landing frame
+                this.frame = 1; // Move to second frame for landing
               }
               
-              // Move forward while jumping to jump further
-              this.x += this.speed * 1.5; // Jump 1.5x faster forward
+              // Move forward while jumping to jump further - more to the right for softer landing
+              this.x += this.speed * 1.8; // Increased forward speed for softer, more natural jump
             }
           }
         } else {
@@ -326,11 +325,13 @@ export default function Home() {
         let currentSprite;
         if (this.isJumping && this.jumpStartTime) {
           const jumpProgress = (Date.now() - this.jumpStartTime) / this.jumpDuration;
-          // Use upSprite for first jump phase (10-30%), jumpSprite for last jump (70-100%)
+          // Use upSprite for first jump phase (10-30%), jumpSprite for running (30-70%), downSprite for second jump (70-100%)
           if (jumpProgress >= 0.10 && jumpProgress < 0.30) {
             currentSprite = upSprite;
+          } else if (jumpProgress >= 0.70) {
+            currentSprite = downSprite; // Use downSprite for second jump
           } else {
-            currentSprite = jumpSprite;
+            currentSprite = jumpSprite; // Use jumpSprite for running on dog
           }
         } else {
           currentSprite = playerSprite;
