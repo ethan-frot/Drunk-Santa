@@ -115,12 +115,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             spacing: 0
           });
 
-          // Dash icon assets (use user's images)
-          this.load.image('dash_full', '/assets/abilities/dash/dash-full.png');
-          this.load.image('dash_empty', '/assets/abilities/dash/dash-empty.png');
-          this.load.image('dash1', '/assets/abilities/dash/dash1.png');
-          this.load.image('dash2', '/assets/abilities/dash/dash2.png');
-          this.load.image('dash3', '/assets/abilities/dash/dash3.png');
+          // Dash HUD icon
+          this.load.image('dash_ui', '/assets/ui/game/dash.png');
 
           //music
           this.load.audio('music', '/sounds/game-music.mp3');
@@ -184,12 +180,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private goldenEndTime: number = 0;
         // Power-up HUD (top-right, under dash)
         private powerupHudContainer: any;
-        private doubleIcon: any;
-        private goldenIcon: any;
-        private vodkaIcon: any;
-        private doubleBg: any;
-        private goldenBg: any;
-        private vodkaBg: any;
+        private powerupHudItems: any[] = [];
         // Enemy hit cooldown
         private lastEnemyHitTime: number = 0;
         private enemyHitCooldownMs: number = 800;
@@ -609,90 +600,90 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         private createDashHud() {
           const size = this.dashHudSize; // 96
           const hudX = this.scale.width - (size / 2 + 20);
-          const hudY = 20 + size / 2; // top-right
-          
+          const hudY = 88 + size / 2; // even more top margin
+
           this.dashHudContainer = this.add.container(hudX, hudY).setScrollFactor(0);
-          // Ensure HUD is always on top of everything
           this.dashHudContainer.setDepth(10000);
-          
-          // Single image that we swap based on stage
-          this.dashImage = this.add.image(0, 0, 'dash_full');
+
+          this.dashImage = this.add.image(0, 0, 'dash_ui');
           this.dashImage.setDisplaySize(size, size);
           this.dashImage.setDepth(10001);
           this.dashHudContainer.add(this.dashImage);
 
-          // Initial state
-          // Start hidden until first dash triggers animation
-          if (this.dashImage) this.dashImage.setVisible(false);
+          // Dash icon is always visible; flashes only during cooldown
+          if (this.dashImage) { this.dashImage.setVisible(true); this.dashImage.setAlpha(1); }
         }
 
         private createPowerupHud() {
           const baseX = this.scale.width - (this.dashHudSize / 2 + 20);
-          const baseY = 20 + this.dashHudSize + 20; // below dash icon
+          const baseY = 88 + this.dashHudSize + 56; // even larger margin below dash icon
           this.powerupHudContainer = this.add.container(baseX, baseY).setScrollFactor(0);
           this.powerupHudContainer.setDepth(10000);
+          this.powerupHudItems = [];
+        }
 
-          // Icons start hidden; we reuse textures as icons
-          const iconSize = 64;
-          const vodkaIconSize = 108; // larger vodka icon
-          const bgSize = vodkaIconSize + 18; // normalize all backgrounds to vodka background size
-          const rowGap = 10;
-          // Backgrounds behind each icon
-          this.doubleBg = this.add.image(0, 0, 'bonus_bg');
-          this.doubleBg.setDisplaySize(bgSize, bgSize);
-          this.doubleBg.setVisible(false);
-          this.doubleBg.setDepth(10000);
-          this.powerupHudContainer.add(this.doubleBg);
+        private refreshPowerupHud() {
+          if (!this.powerupHudContainer) return;
+          // Clear existing
+          this.powerupHudItems.forEach((it) => { try { it.bg?.destroy(); it.icon?.destroy(); } catch {} });
+          this.powerupHudItems = [];
 
-          this.doubleIcon = this.add.image(0, 0, 'gift1');
-          this.doubleIcon.setDisplaySize(iconSize, iconSize);
-          this.doubleIcon.setVisible(false);
-          this.doubleIcon.setDepth(10001);
-          this.powerupHudContainer.add(this.doubleIcon);
+          // Determine active bonuses (order: double, golden, vodka)
+          const now = this.time?.now || 0;
+          const active: { key: 'gift1' | 'gift3' | 'vodka'; remaining: number }[] = [];
+          if (this.scoreMultiplier > 1 && this.multiplierEndTime > now) active.push({ key: 'gift1', remaining: this.multiplierEndTime - now });
+          if (this.goldenSnowballActive && this.goldenEndTime > now) active.push({ key: 'gift3', remaining: this.goldenEndTime - now });
+          if (this.boostEndTime > now) active.push({ key: 'vodka', remaining: this.boostEndTime - now });
 
-          this.goldenBg = this.add.image(0, bgSize + rowGap, 'bonus_bg');
-          this.goldenBg.setDisplaySize(bgSize, bgSize);
-          this.goldenBg.setVisible(false);
-          this.goldenBg.setDepth(10000);
-          this.powerupHudContainer.add(this.goldenBg);
+          if (active.length === 0) return;
 
-          this.goldenIcon = this.add.image(0, bgSize + rowGap, 'gift3');
-          this.goldenIcon.setDisplaySize(iconSize, iconSize);
-          this.goldenIcon.setVisible(false);
-          this.goldenIcon.setDepth(10001);
-          this.powerupHudContainer.add(this.goldenIcon);
-
-          // Position vodka below others with adjusted offset for larger size
-          const vodkaY = (bgSize + rowGap) * 2;
-          this.vodkaBg = this.add.image(0, vodkaY, 'bonus_bg');
-          this.vodkaBg.setDisplaySize(bgSize, bgSize);
-          this.vodkaBg.setVisible(false);
-          this.vodkaBg.setDepth(10000);
-          this.powerupHudContainer.add(this.vodkaBg);
-
-          this.vodkaIcon = this.add.image(0, vodkaY, 'vodka');
-          this.vodkaIcon.setDisplaySize(vodkaIconSize, vodkaIconSize);
-          this.vodkaIcon.setVisible(false);
-          this.vodkaIcon.setDepth(10001);
-          this.powerupHudContainer.add(this.vodkaIcon);
+          // Normalized sizing and vertical layout
+          const bgSize = 96; // consistent background size
+          const gap = 22; // even more spacing between stacked bonus icons
+          let y = 0;
+          active.forEach((a) => {
+            const icon = this.add.image(0, y, a.key);
+            // Slightly reduce gift icons so they don't overflow the background edges
+            const iconSize = a.key === 'vodka' ? 72 : 64;
+            icon.setDisplaySize(iconSize, iconSize);
+            icon.setDepth(10001);
+            const bg = this.add.image(0, y, 'bonus_bg');
+            bg.setDisplaySize(bgSize, bgSize);
+            bg.setDepth(10000);
+            this.powerupHudContainer.add(bg);
+            this.powerupHudContainer.add(icon);
+            // Flashing based on remaining
+            const rem = a.remaining;
+            const hz = rem < 500 ? 10 : rem < 1000 ? 6 : rem < 2000 ? 3 : 0;
+            if (hz > 0) {
+              const t = this.time.now / 1000;
+              const alpha = 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t);
+              icon.setAlpha(alpha);
+              bg.setAlpha(alpha);
+            } else {
+              icon.setAlpha(1);
+              bg.setAlpha(1);
+            }
+            this.powerupHudItems.push({ bg, icon });
+            y += bgSize + gap;
+          });
         }
 
         private updateDashHud() {
           if (!this.dashHudContainer) return;
           const remaining = Math.max(0, this.dashCooldown);
-          if (remaining <= 0) {
-            // Cooldown finished: hide icon until next dash
-            if (this.dashImage) this.dashImage.setVisible(false);
-            return;
+          if (this.dashImage) {
+            if (remaining <= 0) {
+              // Ready: visible, no flashing
+              this.dashImage.setVisible(true);
+              this.dashImage.setAlpha(1);
+            } else {
+              // Cooldown: flash
+              const t = this.time.now / 1000;
+              const alpha = 0.5 + 0.5 * Math.sin(2 * Math.PI * 6 * t); // 6Hz flash
+              this.dashImage.setAlpha(alpha);
+            }
           }
-          // Ensure icon is visible while animating cooldown
-          if (this.dashImage && !this.dashImage.visible) this.dashImage.setVisible(true);
-          const ratio = Phaser.Math.Clamp(remaining / this.dashCooldownTotal, 0, 1);
-          // Determine stage from ratio: 0 (empty) .. 4 (full)
-          const stage = 4 - Math.ceil(ratio * 4);
-          const key = stage <= 0 ? 'dash_empty' : stage === 1 ? 'dash1' : stage === 2 ? 'dash2' : stage === 3 ? 'dash3' : 'dash_full';
-          if (this.dashImage) this.dashImage.setTexture(key);
-          // No pulse animation during cooldown
         }
 
         update() {
@@ -738,21 +729,6 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             if (remaining <= 0) {
               this.scoreMultiplier = 1;
               this.multiplierEndTime = 0;
-              if (this.doubleIcon) this.doubleIcon.setVisible(false);
-              if (this.doubleBg) this.doubleBg.setVisible(false);
-            } else {
-              // Flash faster in last 2s
-              if (this.doubleIcon && this.doubleIcon.visible) {
-                const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
-                if (hz > 0) {
-                  const t = this.time.now / 1000;
-                  const alpha = 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t);
-                  this.doubleIcon.setAlpha(alpha);
-                } else {
-                  this.doubleIcon.setAlpha(1);
-                }
-              }
-              if (this.doubleBg) this.doubleBg.setVisible(true).setAlpha(this.doubleIcon?.alpha ?? 1);
             }
           }
           if (this.goldenSnowballActive) {
@@ -760,40 +736,11 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             if (remaining <= 0) {
               this.goldenSnowballActive = false;
               this.goldenEndTime = 0;
-              if (this.goldenIcon) this.goldenIcon.setVisible(false);
-              if (this.goldenBg) this.goldenBg.setVisible(false);
-            } else {
-              if (this.goldenIcon && this.goldenIcon.visible) {
-                const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
-                const t = this.time.now / 1000;
-                const alpha = hz > 0 ? 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t) : 1;
-                this.goldenIcon.setAlpha(alpha);
-              }
-              if (this.goldenBg) this.goldenBg.setVisible(true).setAlpha(this.goldenIcon?.alpha ?? 1);
             }
           }
 
-          // Vodka boost HUD flashing based on boostEndTime
-          if (this.boostEndTime > this.time.now) {
-            if (this.vodkaIcon && !this.vodkaIcon.visible) {
-              this.vodkaIcon.setVisible(true);
-              this.vodkaIcon.setAlpha(1);
-            }
-            const remaining = this.boostEndTime - this.time.now;
-            const hz = remaining < 500 ? 10 : remaining < 1000 ? 6 : remaining < 2000 ? 3 : 0;
-            if (this.vodkaIcon) {
-              const t = this.time.now / 1000;
-              const alpha = hz > 0 ? 0.5 + 0.5 * Math.sin(2 * Math.PI * hz * t) : 1;
-              this.vodkaIcon.setAlpha(alpha);
-            }
-            if (this.vodkaBg) {
-              this.vodkaBg.setVisible(true);
-              this.vodkaBg.setAlpha(this.vodkaIcon?.alpha ?? 1);
-            }
-          } else {
-            if (this.vodkaIcon && this.vodkaIcon.visible) this.vodkaIcon.setVisible(false);
-            if (this.vodkaBg && this.vodkaBg.visible) this.vodkaBg.setVisible(false);
-          }
+          // Refresh stacked Power-up HUD under dash icon
+          this.refreshPowerupHud();
 
            // Handle dash mechanic (disabled while stunned or throwing)
            if (!this.isStunned && !this.isThrowing && this.spaceKey?.isDown && !this.isDashing && this.dashCooldown <= 0) {
@@ -1251,24 +1198,20 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             // Double points for 10 seconds
             this.scoreMultiplier = 2;
             this.multiplierEndTime = this.time.now + 10000;
-            if (this.doubleIcon) {
-              this.doubleIcon.setVisible(true);
-              this.doubleIcon.setAlpha(1);
-            }
+            // HUD refresh handled by refreshPowerupHud
             // No points awarded, no +text display
           } else if (type === 'gift2') {
-            // Instant +150 points
-            this.score += 150;
+            // Instant bonus points (doubles if double-points is active)
+            const baseBonus = 150;
+            const bonusAward = baseBonus * (this.scoreMultiplier > 1 ? this.scoreMultiplier : 1);
+            this.score += bonusAward;
             this.scoreText.setText(`Score: ${this.score}`);
-            this.createBonusCatchEffect(gift.x, gift.y, '+150');
+            this.createBonusCatchEffect(gift.x, gift.y, `+${bonusAward}`);
           } else if (type === 'gift3') {
             // Golden snowballs for 10 seconds
             this.goldenSnowballActive = true;
             this.goldenEndTime = this.time.now + 10000;
-            if (this.goldenIcon) {
-              this.goldenIcon.setVisible(true);
-              this.goldenIcon.setAlpha(1);
-            }
+            // HUD refresh handled by refreshPowerupHud
             // No points awarded, no +text display
           } else {
             // Fallback: no points, no display
@@ -1397,11 +1340,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.scoreText.setText(`Score: ${this.score}`);
           bottle.destroy();
 
-          // Show vodka HUD icon when boost starts
-          if (this.vodkaIcon) {
-            this.vodkaIcon.setVisible(true);
-            this.vodkaIcon.setAlpha(1);
-          }
+          // HUD refresh handled by refreshPowerupHud
         }
 
         // no ghost trail function
