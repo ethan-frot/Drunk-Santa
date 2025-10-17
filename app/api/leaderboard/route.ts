@@ -5,9 +5,6 @@ import { prisma } from '@/prisma/prisma';
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const nameParam = (searchParams.get('name') || '').trim();
-
     // Top 10 leaderboard by bestScore desc, then name asc for stable order
     const topPlayers = await prisma.player.findMany({
       where: {},
@@ -25,19 +22,7 @@ export async function GET(req: Request) {
       bestScore: p.bestScore,
     }));
 
-    let player = null as null | { name: string; bestScore: number; rank: number; inTop: boolean };
-
-    if (nameParam) {
-      const existing = await prisma.player.findUnique({ where: { name: nameParam }, select: { name: true, bestScore: true } });
-      if (existing) {
-        const higherCount = await prisma.player.count({ where: { bestScore: { gt: existing.bestScore } } });
-        const rank = higherCount + 1;
-        const inTop = top.some((t) => t.name === existing.name);
-        player = { name: existing.name, bestScore: existing.bestScore, rank, inTop };
-      }
-    }
-
-    return NextResponse.json({ top, player });
+    return NextResponse.json({ top });
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

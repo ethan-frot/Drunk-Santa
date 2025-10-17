@@ -6,6 +6,7 @@ import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
 import { AntiBoostManager } from '../utils/freeze';
+import SoundManager from '../utils/soundManager';
 
 
 export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void; isPaused?: boolean }) {
@@ -63,8 +64,6 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
             spacing: 0
           });
           this.load.image('background', '/assets/ui/game/game-background.png');
-          // Load snowflake sprite
-          this.load.image('snowflake', '/assets/items/snowflake.png');
           // Load gift sprites (three types)
           this.load.image('cadeau', '/assets/items/gift.png'); // legacy/fallback
           this.load.image('gift1', '/assets/items/gift1.png'); // double points 10s
@@ -307,8 +306,14 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           if (this.bgMusic) {
             this.bgMusic.stop();
           }
-          this.bgMusic = this.sound.add('music', { loop: true, volume: 0.5 });
-          this.bgMusic.play();
+          
+          // Check if sound is enabled before playing music
+          const soundEnabled = localStorage.getItem('soundEnabled');
+          const musicEnabled = localStorage.getItem('musicEnabled');
+          if (soundEnabled !== 'false' && musicEnabled !== 'false') {
+            this.bgMusic = this.sound.add('music', { loop: true, volume: 0.5 });
+            this.bgMusic.play();
+          }
           
           // Initial placement centered at bottom
           this.positionCharacterAtBottomCenter();
@@ -515,7 +520,10 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
           this.dashCooldownTotal = this.abilityManager.getCurrentValue('dash_cooldown');
           this.dashCooldown = this.dashCooldownTotal;
           // play dash sound effect starting 260ms into the clip and louder
-          try { this.sound.play('dash_sfx', { volume: 1, seek: 0.26 }); } catch {}
+          const soundEnabled = localStorage.getItem('soundEnabled');
+          if (soundEnabled !== 'false') {
+            try { this.sound.play('dash_sfx', { volume: 1, seek: 0.26 }); } catch {}
+          }
           
           // Calculate dash distance (quarter of map width)
           const dashDistance = this.scale.width * 0.25;
@@ -807,6 +815,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
           // Handle boost expiration
           if (this.speedMultiplier > 1 && this.time.now > this.boostEndTime) {
+            // Play speed ended sound
+            SoundManager.getInstance().playSpeedEnded();
+            
             this.speedMultiplier = 1;
             if (this.character?.anims) {
               this.character.anims.timeScale = 1;
@@ -1085,6 +1096,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private onSnowballHitMonsterA() {
+          // Play snowball hit sound
+          SoundManager.getInstance().playSnowballHit();
           if (!this.slime || !this.slime.active) return;
           if (this.goldenSnowballActive) {
             // Oneshoot: destroy immediately
@@ -1131,6 +1144,8 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private onSnowballHitMonsterB(mob: any, index: number) {
+          // Play snowball hit sound
+          SoundManager.getInstance().playSnowballHit();
           if (!mob || !mob.active) return;
           if (this.goldenSnowballActive) {
             this.tweens.add({
@@ -1190,6 +1205,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchSnowflake(snowflake: Phaser.GameObjects.Sprite, index: number) {
+          // Play snowflake collection sound
+          SoundManager.getInstance().playSnowflakeCollect();
+          
           // Currency (shop/upgrade) uses upgrade value; score is fixed per flake (10) and doubled by gift
           const currencyPerFlake = this.abilityManager.getCurrentValue('snowflake_value');
           this.snowflakesEarned += currencyPerFlake;
@@ -1207,6 +1225,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchGift(gift: Phaser.GameObjects.Sprite, index: number) {
+          // Play bonus gift sound
+          SoundManager.getInstance().playBonusGift();
+          
           const type = (gift as any).giftType as string | undefined;
           if (type === 'gift1') {
             // Double points for 10 seconds
@@ -1281,6 +1302,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchAntiBoost(jar: Phaser.GameObjects.Sprite, index: number) {
+          // Play freezing sound
+          SoundManager.getInstance().playFreezing();
+          
           // Apply 4-second stun: stop movement and ignore input/dash
           const stunDurationMs = 2000;
           this.isStunned = true;
@@ -1314,6 +1338,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
           // End stun after duration
           this.time.delayedCall(stunDurationMs, () => {
+            // Stop freezing sound when effect ends
+            SoundManager.getInstance().stopFreezing();
+            
             this.isStunned = false;
             // Clear tint and remove ice overlay
             try { (this.character as any).clearTint?.(); } catch {}
@@ -1333,6 +1360,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
 
        
         private catchVodka(bottle: Phaser.GameObjects.Sprite, index: number) {
+          // Play turbo speed sound
+          SoundManager.getInstance().playTurboSpeed();
+          
           // Speed boost for a short duration with ghost trail
           const boostDurationMs = 2500;
           this.speedMultiplier = 2;
@@ -1431,6 +1461,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private applyEnemyHit(direction: number) {
+          // Play point deduction sound
+          SoundManager.getInstance().playPointDeduction();
+          
           this.lastEnemyHitTime = this.time.now;
           // Reduce score by 50, not affecting snowflakesEarned (currency)
           this.score = Math.max(0, this.score - 50);

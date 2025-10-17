@@ -1,4 +1,4 @@
-import * as Phaser from 'phaser';
+import type * as Phaser from 'phaser';
 
 export class SnowflakeManager {
   private scene: Phaser.Scene;
@@ -85,7 +85,9 @@ export class SnowflakeManager {
     const { width, height } = this.scene.scale;
     
     // Random horizontal position
-    const x = Phaser.Math.Between(50, width - 50);
+    const between = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const floatBetween = (min: number, max: number) => Math.random() * (max - min) + min;
+    const x = between(50, width - 50);
     
     // Start above the screen
     const y = -20;
@@ -126,15 +128,15 @@ export class SnowflakeManager {
     body.setVelocityY(this.fallSpeed);
     
     // Add slight horizontal drift
-    const driftSpeed = Phaser.Math.FloatBetween(-20, 20);
+    const driftSpeed = floatBetween(-20, 20);
     body.setVelocityX(driftSpeed);
     
     // Add rotation animation
-    const rotationSpeed = Phaser.Math.FloatBetween(-160, 160);
+    const rotationSpeed = floatBetween(-160, 160);
     this.scene.tweens.add({
       targets: snowflake,
       rotation: snowflake.rotation + (rotationSpeed * Math.PI / 180),
-      duration: Phaser.Math.Between(2000, 4000),
+      duration: between(2000, 4000),
       repeat: -1,
       yoyo: true,
       ease: 'Sine.easeInOut'
@@ -143,8 +145,8 @@ export class SnowflakeManager {
     // Add floating animation
     this.scene.tweens.add({
       targets: snowflake,
-      x: snowflake.x + Phaser.Math.Between(-40, 40),
-      duration: Phaser.Math.Between(1500, 3000),
+      x: snowflake.x + between(-40, 40),
+      duration: between(1500, 3000),
       repeat: -1,
       yoyo: true,
       ease: 'Sine.easeInOut'
