@@ -152,6 +152,9 @@ export default function Home() {
       jumpHeight: number;
       dogX: number;
       fireplaceX: number;
+      dogRunFrame: number;
+      dogRunFrameCount: number;
+      dogRunFrameSpeed: number;
 
       constructor() {
         this.x = -50; // Start off-screen left
@@ -166,9 +169,12 @@ export default function Home() {
         this.isJumping = false;
         this.jumpStartTime = null;
         this.jumpDuration = 2000; // 2 seconds total duration for running on dog's back
-        this.jumpHeight = 40; // Lower jump height since he's running on the dog
+        this.jumpHeight = 80; // Higher jump height for more dramatic effect
         this.dogX = 0; // Will be set when canvas resizes
         this.fireplaceX = 0; // Will be set when canvas resizes
+        this.dogRunFrame = 0; // Frame for running on dog
+        this.dogRunFrameCount = 0; // Frame counter for dog running
+        this.dogRunFrameSpeed = 0.3; // Faster animation when on dog
       }
 
       update() {
@@ -197,6 +203,9 @@ export default function Home() {
             this.jumpStartTime = null;
             this.y = this.originalY;
             this.frame = 0; // Reset to walking frame
+            // Reset dog running animation
+            this.dogRunFrame = 0;
+            this.dogRunFrameCount = 0;
           } else {
             // Three phases: jump onto dog (0-0.15), run on back (0.15-0.85), jump off (0.85-1.0)
             if (jumpProgress < 0.15) {
@@ -209,9 +218,10 @@ export default function Home() {
             } else if (jumpProgress < 0.85) {
               // Phase 2: Run on the dog's back (very long - 1.4 seconds!)
               this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
-              // Use walking animation while on the dog's back
-              this.frameCount += this.frameSpeed;
-              this.frame = Math.floor(this.frameCount) % 6; // Walking frames 0-5
+              // Use special running animation while on the dog's back
+              this.dogRunFrameCount += this.dogRunFrameSpeed;
+              this.dogRunFrame = Math.floor(this.dogRunFrameCount) % 6; // Walking frames 0-5
+              this.frame = this.dogRunFrame; // Use the dog running frame
             } else {
               // Phase 3: Jump off the dog (very short)
               const phaseProgress = (jumpProgress - 0.85) / 0.15;
