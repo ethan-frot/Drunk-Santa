@@ -128,9 +128,12 @@ export default function Home() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Load player sprite
+    // Load player sprites
     const playerSprite = new Image();
     playerSprite.src = '/assets/characters/santa-walk.png';
+    
+    const jumpSprite = new Image();
+    jumpSprite.src = '/assets/characters/santa-jump.png';
     
     // Player class
     class Player {
@@ -142,56 +145,118 @@ export default function Home() {
       speed: number;
       startTime: number;
       sprintEndAt: number | null;
+      isJumping: boolean;
+      jumpStartTime: number | null;
+      jumpDuration: number;
+      originalY: number;
+      jumpHeight: number;
+      dogX: number;
+      fireplaceX: number;
 
       constructor() {
         this.x = -50; // Start off-screen left
         this.y = (canvas?.height || window.innerHeight) - 80; // Floor level
+        this.originalY = this.y;
         this.frame = 0;
         this.frameSpeed = 0.2;
         this.frameCount = 0;
         this.speed = 3;
         this.startTime = Date.now();
         this.sprintEndAt = null;
+        this.isJumping = false;
+        this.jumpStartTime = null;
+        this.jumpDuration = 800; // Jump duration in ms
+        this.jumpHeight = 60; // How high he jumps
+        this.dogX = 0; // Will be set when canvas resizes
+        this.fireplaceX = 0; // Will be set when canvas resizes
       }
 
       update() {
         const currentTime = Date.now();
         const elapsed = currentTime - this.startTime;
-
-        // Sprint logic
-        if (this.sprintEndAt && currentTime < this.sprintEndAt) {
-          this.speed = 6;
-          this.frameSpeed = 0.35;
-        } else {
-          this.speed = 3;
-          this.frameSpeed = 0.2;
-          this.sprintEndAt = null;
-        }
-
-        // Update animation frame
-        this.frameCount += this.frameSpeed;
-        this.frame = Math.floor(this.frameCount) % 6; // 6 frames in the sprite
-        
-        // Move right across screen with trajectory
-        this.x += this.speed;
-        
-        // Calculate trajectory Y position - stay on floor level
         const screenWidth = canvas?.width || window.innerWidth;
         const screenHeight = canvas?.height || window.innerHeight;
+        const floorY = screenHeight - 80;
+
+        // Update dog and fireplace positions (adjust these based on your GIF background)
+        this.dogX = screenWidth * 0.75; // Adjust this to match where the dog is in your GIF
+        this.fireplaceX = screenWidth * 0.7; // Adjust this to match where the fireplace is in your GIF
+
+        // Check if Santa should jump (when he gets close to the dog)
+        if (!this.isJumping && this.x >= this.dogX - 100 && this.x <= this.dogX + 50) {
+          this.startJump();
+        }
+
+        // Handle jumping animation
+        if (this.isJumping && this.jumpStartTime) {
+          const jumpProgress = (currentTime - this.jumpStartTime) / this.jumpDuration;
+          
+          if (jumpProgress >= 1) {
+            // Jump finished
+            this.isJumping = false;
+            this.jumpStartTime = null;
+            this.y = this.originalY;
+            this.frame = 0; // Reset to walking frame
+          } else {
+            // Calculate jump trajectory (parabolic)
+            const jumpPhase = jumpProgress * Math.PI; // 0 to π
+            const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
+            this.y = this.originalY - jumpOffset;
+            
+            // Update frame based on jump progress (using santa-jump.png frames)
+            if (jumpProgress < 0.3) {
+              this.frame = 6; // Jump start frame (frame 6 in santa-jump.png)
+            } else if (jumpProgress < 0.7) {
+              this.frame = 7; // High jump frame (frame 7 in santa-jump.png)
+            } else {
+              this.frame = 6; // Landing frame (frame 6 in santa-jump.png)
+            }
+          }
+        } else {
+          // Normal walking animation
+          // Sprint logic
+          if (this.sprintEndAt && currentTime < this.sprintEndAt) {
+            this.speed = 6;
+            this.frameSpeed = 0.35;
+          } else {
+            this.speed = 3;
+            this.frameSpeed = 0.2;
+            this.sprintEndAt = null;
+          }
+
+          // Update animation frame (only for walking frames 0-5)
+          this.frameCount += this.frameSpeed;
+          this.frame = Math.floor(this.frameCount) % 6; // 6 walking frames
+        }
         
-        // Keep character on floor level (bottom of screen)
-        const floorY = screenHeight - 80; // Floor level
-        this.y = floorY;
+        // Move right across screen
+        this.x += this.speed;
+        
+        // Keep character on floor level when not jumping
+        if (!this.isJumping) {
+          this.y = floorY;
+        }
         
         // Reset when off screen
         if (this.x > screenWidth + 50) {
           this.x = -50;
-          this.y = floorY; // start at floor level
+          this.y = floorY;
+          this.isJumping = false;
+          this.jumpStartTime = null;
         }
       }
 
+      startJump() {
+        this.isJumping = true;
+        this.jumpStartTime = Date.now();
+        // Play jump sound if you want
+        // SoundManager.getInstance().playJumpSound();
+      }
+
       draw() {
-        if (!ctx || !playerSprite.complete) return;
+        // Choose the correct sprite based on state
+        const currentSprite = this.isJumping ? jumpSprite : playerSprite;
+        if (!ctx || !currentSprite.complete) return;
         
         ctx.save();
         ctx.translate(this.x, this.y);
@@ -204,7 +269,7 @@ export default function Home() {
         const sourceY = 0; // Only one row in the sprite
         
         ctx.drawImage(
-          playerSprite,
+          currentSprite,
           sourceX, sourceY, frameWidth, frameHeight,
           -frameWidth/2, -frameHeight/2, frameWidth, frameHeight
         );
@@ -232,10 +297,17 @@ export default function Home() {
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // Start animation when sprite is loaded
-    playerSprite.onload = () => {
-      animate();
+    // Start animation when both sprites are loaded
+    let spritesLoaded = 0;
+    const onSpriteLoad = () => {
+      spritesLoaded++;
+      if (spritesLoaded === 2) {
+        animate();
+      }
     };
+    
+    playerSprite.onload = onSpriteLoad;
+    jumpSprite.onload = onSpriteLoad;
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
