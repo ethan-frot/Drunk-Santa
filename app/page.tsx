@@ -135,6 +135,12 @@ export default function Home() {
     const jumpSprite = new Image();
     jumpSprite.src = '/assets/characters/santa-jump.png';
     
+  const upSprite = new Image();
+  upSprite.src = '/assets/characters/santa_up_sheet.png';
+  
+  const downSprite = new Image();
+  downSprite.src = '/assets/characters/jump_down_sheet.png';
+    
     // Player class
     class Player {
       x: number;
@@ -211,39 +217,46 @@ export default function Home() {
             this.dogRunFrameCount = 0;
             this.isStoppedOnDog = false; // Reset stop flag
           } else {
-            // Four phases: jump onto dog (0-0.15), run on back (0.15-0.40), stop on dog (0.40-0.60), jump off (0.60-1.0)
-            if (jumpProgress < 0.15) {
-              // Phase 1: One clear jump onto the dog - land directly on dog level
-              const phaseProgress = jumpProgress / 0.15;
-              const jumpPhase = phaseProgress * Math.PI; // 0 to π for smooth arc
-              const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
-              // Start from floor level, jump up, and land directly on dog level
-              // Slightly adjust the trajectory for smoother jump
-              this.y = this.originalY - (this.jumpHeight - jumpOffset * 0.8);
+            // Six phases: stop (0-0.05), prepare (0.05-0.15), jump onto dog (0.15-0.30), stop on dog (0.30-0.50), run on back (0.50-0.70), jump off (0.70-1.0)
+            if (jumpProgress < 0.05) {
+              // Phase 1: Stop before jumping on the dog
+              this.y = this.originalY; // Stay at floor level
+              this.frame = 0; // Standing frame - Santa stops running
+              this.isStoppedOnDog = true; // Mark that Santa is stopped
+            } else if (jumpProgress < 0.15) {
+              // Phase 2: Prepare for jump - crouch/anticipate
+              this.y = this.originalY; // Stay at floor level
+              this.frame = 1; // Crouch/preparation frame
+              this.isStoppedOnDog = true; // Mark that Santa is stopped
+            } else if (jumpProgress < 0.30) {
+              // Phase 3: Simple jump up to dog level - no landing animation
+              const phaseProgress = (jumpProgress - 0.15) / 0.15;
               
-              // Use jump animation frames based on jump progress
-              if (phaseProgress < 0.3) {
-                this.frame = 6; // Jump start frame
-              } else if (phaseProgress < 0.7) {
-                this.frame = 7; // High jump frame (at the peak)
-              } else {
-                this.frame = 6; // Landing frame
-              }
-            } else if (jumpProgress < 0.40) {
-              // Phase 2: Run on the dog's back
+              // Simple upward movement - no parabolic arc
+              const jumpOffset = phaseProgress * this.jumpHeight;
+              // Move up from floor level to dog level
+              this.y = this.originalY - jumpOffset;
+              
+              // Move forward during the jump for natural trajectory
+              this.x += this.speed * 1.2; // Move forward while jumping
+              
+              // Use only upSprite for simple upward movement (2 frames)
+              this.frame = Math.floor(phaseProgress * 2); // 0, 1
+            } else if (jumpProgress < 0.50) {
+              // Phase 4: Stop on the dog for 1 second (realistic pause)
+              this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
+              this.frame = 0; // Standing frame - Santa stops running
+              this.isStoppedOnDog = true; // Mark that Santa is stopped
+            } else if (jumpProgress < 0.70) {
+              // Phase 5: Run on the dog's back
               this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
               // Use special running animation while on the dog's back
               this.dogRunFrameCount += this.dogRunFrameSpeed;
               this.dogRunFrame = Math.floor(this.dogRunFrameCount) % 6; // Walking frames 0-5
               this.frame = this.dogRunFrame; // Use the dog running frame
-            } else if (jumpProgress < 0.60) {
-              // Phase 3: Stop on the dog for 0.4 seconds (realistic pause)
-              this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
-              this.frame = 0; // Standing frame - Santa stops running
-              this.isStoppedOnDog = true; // Mark that Santa is stopped
             } else {
-              // Phase 4: Jump off the dog - start from dog level, jump up, then land down
-              const phaseProgress = (jumpProgress - 0.60) / 0.40;
+              // Phase 6: Jump off the dog - start from dog level, jump up, then land down
+              const phaseProgress = (jumpProgress - 0.70) / 0.30;
               
               // Create smooth parabolic trajectory starting from dog level
               const jumpPhase = phaseProgress * Math.PI; // 0 to π for smooth arc
@@ -266,29 +279,29 @@ export default function Home() {
           }
         } else {
           // Normal walking animation
-          // Sprint logic
-          if (this.sprintEndAt && currentTime < this.sprintEndAt) {
-            this.speed = 6;
-            this.frameSpeed = 0.35;
-          } else {
-            this.speed = 3;
-            this.frameSpeed = 0.2;
-            this.sprintEndAt = null;
-          }
+        // Sprint logic
+        if (this.sprintEndAt && currentTime < this.sprintEndAt) {
+          this.speed = 6;
+          this.frameSpeed = 0.35;
+        } else {
+          this.speed = 3;
+          this.frameSpeed = 0.2;
+          this.sprintEndAt = null;
+        }
 
           // Update animation frame (only for walking frames 0-5)
-          this.frameCount += this.frameSpeed;
+        this.frameCount += this.frameSpeed;
           this.frame = Math.floor(this.frameCount) % 6; // 6 walking frames
         }
         
         // Move right across screen (but not when stopped on dog)
         if (!this.isStoppedOnDog) {
-          this.x += this.speed;
+        this.x += this.speed;
         }
         
         // Keep character on floor level when not jumping
         if (!this.isJumping) {
-          this.y = floorY;
+        this.y = floorY;
         }
         
         // Reset when off screen
@@ -310,7 +323,19 @@ export default function Home() {
 
       draw() {
         // Choose the correct sprite based on state
-        const currentSprite = this.isJumping ? jumpSprite : playerSprite;
+        let currentSprite;
+        if (this.isJumping && this.jumpStartTime) {
+          const jumpProgress = (Date.now() - this.jumpStartTime) / this.jumpDuration;
+          // Use upSprite for first jump phase (10-30%), jumpSprite for last jump (70-100%)
+          if (jumpProgress >= 0.10 && jumpProgress < 0.30) {
+            currentSprite = upSprite;
+          } else {
+            currentSprite = jumpSprite;
+          }
+        } else {
+          currentSprite = playerSprite;
+        }
+        
         if (!ctx || !currentSprite.complete) return;
         
         ctx.save();
@@ -352,17 +377,19 @@ export default function Home() {
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // Start animation when both sprites are loaded
+    // Start animation when all sprites are loaded
     let spritesLoaded = 0;
     const onSpriteLoad = () => {
       spritesLoaded++;
-      if (spritesLoaded === 2) {
-        animate();
+      if (spritesLoaded === 3) {
+      animate();
       }
     };
     
     playerSprite.onload = onSpriteLoad;
     jumpSprite.onload = onSpriteLoad;
+    upSprite.onload = onSpriteLoad;
+    downSprite.onload = onSpriteLoad;
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
@@ -473,7 +500,7 @@ export default function Home() {
 
       </div>
 
-        {showNameOverlay && (
+      {showNameOverlay && (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 3, paddingTop: '80px', pointerEvents: 'none' }}>
           <HomeButton onClick={() => setShowNameOverlay(false)} delayMs={150} />
           <div style={{ position: 'relative', width: '280px', maxWidth: '70vw', aspectRatio: '5 / 2', pointerEvents: 'auto' }}>
@@ -554,6 +581,6 @@ export default function Home() {
 
         {/* Sound toggle button */}
         <SoundToggleButton />
-      </main>
-    );
-  }
+    </main>
+  );
+}
