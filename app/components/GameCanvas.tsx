@@ -6,6 +6,7 @@ import { GiftManager } from '../utils/gift';
 import { AbilityManager } from '../utils/abilities';
 import { VodkaManager } from '../utils/vodka';
 import { AntiBoostManager } from '../utils/freeze';
+import SoundManager from '../utils/soundManager';
 
 
 export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?: (snowflakesEarned: number, totalScore: number) => void; isPaused?: boolean }) {
@@ -200,7 +201,7 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         create() {
           // Reset game state
 
-          this.timeLeft = 10;
+          this.timeLeft = 60;
           this.gameActive = true;
           this.hasEnded = false;
 
@@ -1156,6 +1157,9 @@ export default function GameCanvas({ onGameEnd, isPaused = false }: { onGameEnd?
         }
 
         private catchSnowflake(snowflake: Phaser.GameObjects.Sprite, index: number) {
+          // Play snowflake collection sound
+          SoundManager.getInstance().playSnowflakeCollect();
+          
           // Currency (shop/upgrade) uses upgrade value; score is fixed per flake (10) and doubled by gift
           const currencyPerFlake = this.abilityManager.getCurrentValue('snowflake_value');
           this.snowflakesEarned += currencyPerFlake;
