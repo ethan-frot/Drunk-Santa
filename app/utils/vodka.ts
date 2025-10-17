@@ -1,4 +1,4 @@
-import * as Phaser from 'phaser';
+import type * as Phaser from 'phaser';
 
 export class VodkaManager {
   private scene: Phaser.Scene;
@@ -27,7 +27,8 @@ export class VodkaManager {
   }
 
   public setBonusSizeProgress(progress: number) {
-    this.bonusSizeProgress = Phaser.Math.Clamp(progress, 0, 1);
+    const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+    this.bonusSizeProgress = clamp(progress, 0, 1);
   }
 
   public cleanup() {
@@ -51,8 +52,9 @@ export class VodkaManager {
 
   private spawnBottle() {
     const { width } = this.scene.scale;
-
-    const x = Phaser.Math.Between(50, width - 50);
+    const between = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const floatBetween = (min: number, max: number) => Math.random() * (max - min) + min;
+    const x = between(50, width - 50);
     const y = -40;
 
     const bottle = this.scene.add.sprite(x, y, 'vodka');
@@ -75,13 +77,13 @@ export class VodkaManager {
       body.setOffset(offsetX, offsetY);
     } catch {}
     body.setVelocityY(this.fallSpeed);
-    body.setVelocityX(Phaser.Math.FloatBetween(-12, 12));
+    body.setVelocityX(floatBetween(-12, 12));
 
     // Gentle swing
     this.scene.tweens.add({
       targets: bottle,
-      angle: Phaser.Math.Between(-6, 6),
-      duration: Phaser.Math.Between(1200, 2200),
+      angle: between(-6, 6),
+      duration: between(1200, 2200),
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
@@ -90,7 +92,7 @@ export class VodkaManager {
     this.bottles.push(bottle);
 
     // Randomize next spawn between 4–10s
-    this.spawnDelay = Phaser.Math.Between(4000, 10000);
+    this.spawnDelay = between(4000, 10000);
     if (this.spawnTimer) {
       this.spawnTimer.destroy();
       this.startSpawning();

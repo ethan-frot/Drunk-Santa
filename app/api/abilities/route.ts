@@ -10,7 +10,7 @@ const ABILITIES = {
     cost: [10, 25, 50],
     maxStages: 3,
   },
-  gift_size: {
+  bonus_size: {
     cost: [15, 35, 70],
     maxStages: 3,
   },
@@ -92,8 +92,8 @@ export async function POST(req: Request) {
       });
 
       // Current stage (0 if none yet)
-      const existingAbility = await (tx as any).playerAbility.findUnique({
-        where: { playerId_abilityId: { playerId: player.id, abilityId: id } },
+      const existingAbility = await (tx as any).playerAbility.findFirst({
+        where: { playerId: player.id, abilityId: id },
         select: { id: true, currentStage: true },
       });
 
