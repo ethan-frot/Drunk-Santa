@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AbilityUpgradeView } from './AbilityUpgradeView';
 import SoundManager from '../../utils/soundManager';
+import MusicManager from '../../utils/musicManager';
 
 // Route page component without custom props to satisfy Next.js types
 export default function Page() {
@@ -22,6 +23,8 @@ export default function Page() {
 
   const handleContinue = () => {
     SoundManager.getInstance().playButtonClick();
+    // Stop menu music before starting the game to avoid overlap
+    try { MusicManager.getInstance().stop(); } catch {}
     router.push('/views/game');
   };
 
