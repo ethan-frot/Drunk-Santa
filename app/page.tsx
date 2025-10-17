@@ -188,8 +188,9 @@ export default function Home() {
         this.dogX = screenWidth * 0.55; // Moved even more left to match the dog position in your GIF
         this.fireplaceX = screenWidth * 0.5; // Moved even more left to match the fireplace position in your GIF
 
-        // Check if Santa should jump (when he gets close to the dog)
-        if (!this.isJumping && this.x >= this.dogX - 80 && this.x <= this.dogX + 80) {
+        // Check if Santa should jump (when he gets close to the dog) with ~0.5s delay
+        const halfSecondOffset = this.speed * 30; // ~30 frames at 60fps
+        if (!this.isJumping && this.x >= (this.dogX - 80 + halfSecondOffset) && this.x <= (this.dogX + 80 + halfSecondOffset)) {
           this.startJump();
         }
 
@@ -207,7 +208,7 @@ export default function Home() {
             this.dogRunFrame = 0;
             this.dogRunFrameCount = 0;
           } else {
-            // Three phases: jump onto dog (0-0.15), run on back (0.15-0.85), jump off (0.85-1.0)
+            // Four phases: jump onto dog (0-0.15), run on back (0.15-0.50), stop on dog (0.50-0.75), jump off (0.75-1.0)
             if (jumpProgress < 0.15) {
               // Phase 1: Jump onto the dog (very short)
               const phaseProgress = jumpProgress / 0.15;
@@ -215,16 +216,20 @@ export default function Home() {
               const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
               this.y = this.originalY - jumpOffset;
               this.frame = 6; // Jump start frame
-            } else if (jumpProgress < 0.85) {
-              // Phase 2: Run on the dog's back (very long - 1.4 seconds!)
+            } else if (jumpProgress < 0.50) {
+              // Phase 2: Run on the dog's back
               this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
               // Use special running animation while on the dog's back
               this.dogRunFrameCount += this.dogRunFrameSpeed;
               this.dogRunFrame = Math.floor(this.dogRunFrameCount) % 6; // Walking frames 0-5
               this.frame = this.dogRunFrame; // Use the dog running frame
+            } else if (jumpProgress < 0.75) {
+              // Phase 3: Stop on the dog for 0.5 seconds (realistic pause)
+              this.y = this.originalY - this.jumpHeight; // Stay at dog's back level
+              this.frame = 0; // Standing frame - Santa stops running
             } else {
-              // Phase 3: Jump off the dog (very short)
-              const phaseProgress = (jumpProgress - 0.85) / 0.15;
+              // Phase 4: Jump off the dog (after stopping)
+              const phaseProgress = (jumpProgress - 0.75) / 0.25;
               const jumpPhase = phaseProgress * Math.PI; // 0 to π
               const jumpOffset = Math.sin(jumpPhase) * this.jumpHeight;
               this.y = this.originalY - jumpOffset;
