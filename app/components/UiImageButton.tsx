@@ -1,8 +1,9 @@
 'use client';
 
-import React, { CSSProperties, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { CSSProperties, useMemo, useRef, useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import SoundManager from '@/app/utils/soundManager';
 import MusicManager from '@/app/utils/musicManager';
+import GamepadManager, { GamepadLogicalButton } from '@/app/utils/gamepadManager';
 
 type UiImageButtonProps = {
   imageUpSrc: string;
@@ -18,6 +19,9 @@ type UiImageButtonProps = {
   disabled?: boolean; // externally controlled disabled state
   cooldownAfterClickMs?: number; // additional cooldown after click where button stays disabled
   disableAnimationsWhenDisabled?: boolean; // when disabled, suppress hover/press animations
+  gamepadButtons?: GamepadLogicalButton[]; // optional list of gamepad buttons that activate this UI button
+  gamepadHintRightPx?: number; // optional override for icon horizontal position from right
+  gamepadHintKey?: GamepadLogicalButton; // optional: show hint without binding inputs
 };
 
 export type UiImageButtonHandle = {
@@ -36,15 +40,21 @@ function UiImageButtonInner({
   delayMs = 50,
   style,
   disabled = false,
-  cooldownAfterClickMs = 0,
+  cooldownAfterClickMs = 250,
   disableAnimationsWhenDisabled = true,
+  gamepadButtons,
+  gamepadHintRightPx,
+  gamepadHintKey,
 }: UiImageButtonProps, ref: React.Ref<UiImageButtonHandle>) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const rootRef = useRef<HTMLButtonElement | null>(null);
   const labelRef = useRef<HTMLSpanElement | null>(null);
   const animRef = useRef<HTMLDivElement | null>(null); // layer used for scale animations to avoid clobbering parent transforms
+  const hintImgRef = useRef<HTMLImageElement | null>(null);
   const [isWaiting, setIsWaiting] = useState(false);
   const [cooldownUntilTs, setCooldownUntilTs] = useState<number>(0);
+  const [isGamepadConnected, setIsGamepadConnected] = useState<boolean>(false);
+  // no sprite hints anymore
 
   const rootStyle: CSSProperties = useMemo(() => ({
     background: 'transparent',
@@ -104,6 +114,8 @@ function UiImageButtonInner({
     if (label && labelEl) labelEl.style.transform = 'translateY(-6px)';
     const img = imgRef.current;
     if (img) img.src = imageUpSrc;
+    const hint = hintImgRef.current;
+    if (hint) hint.style.transform = 'translateY(-50%)';
   };
 
   const handleMouseDown = () => {
@@ -114,6 +126,8 @@ function UiImageButtonInner({
     if (layer) layer.style.transform = 'scale(0.98)';
     if (img) img.src = imageDownSrc;
     if (label && labelEl) labelEl.style.transform = 'translate(-12px, 6px)';
+    const hint = hintImgRef.current;
+    if (hint) hint.style.transform = 'translate(calc(-18px), calc(-50% + 10px))';
     if (onPressDown) onPressDown();
   };
 
@@ -125,18 +139,24 @@ function UiImageButtonInner({
     if (layer) layer.style.transform = 'scale(1.05)';
     if (img) img.src = imageUpSrc;
     if (label && labelEl) labelEl.style.transform = 'translateY(-6px)';
+    const hint = hintImgRef.current;
+    if (hint) hint.style.transform = 'translateY(-50%)';
   };
 
   const handleTouchStart = () => {
     if (isDisabled && disableAnimationsWhenDisabled) return;
     const img = imgRef.current;
     if (img) img.src = imageDownSrc;
+    const hint = hintImgRef.current;
+    if (hint) hint.style.transform = 'translate(calc(-18px), calc(-50% + 10px))';
     if (onPressDown) onPressDown();
   };
 
   const handleTouchEnd = () => {
     const img = imgRef.current;
     if (img) img.src = imageUpSrc;
+    const hint = hintImgRef.current;
+    if (hint) hint.style.transform = 'translateY(-50%)';
   };
 
   const handleClick = () => {
@@ -170,16 +190,69 @@ function UiImageButtonInner({
       const layer = animRef.current;
       const img = imgRef.current;
       const labelEl = labelRef.current;
+      const hint = hintImgRef.current;
       if (layer) layer.style.transform = 'scale(0.98)';
       if (img) img.src = imageDownSrc;
       if (label && labelEl) labelEl.style.transform = 'translate(-12px, 6px)';
+      if (hint) hint.style.transform = 'translate(calc(-18px), calc(-50% + 10px))';
       setTimeout(() => {
         if (layer) layer.style.transform = 'scale(1.05)';
         if (img) img.src = imageUpSrc;
         if (label && labelEl) labelEl.style.transform = 'translateY(-6px)';
+        if (hint) hint.style.transform = 'translateY(-50%)';
       }, Math.max(60, durationMs));
     }
   }), [imageDownSrc, imageUpSrc, label]);
+
+  // Gamepad integration: trigger the same animation and click when mapped buttons are pressed
+  useEffect(() => {
+    if (!gamepadButtons || gamepadButtons.length === 0) return;
+    const set = new Set(gamepadButtons);
+    const unsubscribe = GamepadManager.getInstance().addListener((btn) => {
+      if (!set.has(btn)) return;
+      if (isDisabled) return;
+      // Animate press and trigger click
+      try {
+        const layer = animRef.current;
+        const img = imgRef.current;
+        const labelEl = labelRef.current;
+        const hint = hintImgRef.current;
+        if (layer) layer.style.transform = 'scale(0.98)';
+        if (img) img.src = imageDownSrc;
+        if (label && labelEl) labelEl.style.transform = 'translate(-12px, 6px)';
+        if (hint) hint.style.transform = 'translate(calc(-12px), calc(-50% + 6px))';
+        setTimeout(() => {
+          if (layer) layer.style.transform = 'scale(1.05)';
+          if (img) img.src = imageUpSrc;
+          if (label && labelEl) labelEl.style.transform = 'translateY(-6px)';
+          if (hint) hint.style.transform = 'translateY(-50%)';
+        }, 150);
+      } catch {}
+      handleClick();
+    });
+    return unsubscribe;
+  }, [gamepadButtons, isDisabled, imageDownSrc, imageUpSrc, label, delayMs, cooldownAfterClickMs, onClick]);
+
+  // Gamepad connection state for hint display
+  useEffect(() => {
+    const unsub = GamepadManager.getInstance().addConnectionListener((connected) => {
+      setIsGamepadConnected(connected);
+    });
+    return unsub;
+  }, []);
+
+  const hintSrc = useMemo(() => {
+    if (!isGamepadConnected) return '';
+    const key = gamepadHintKey || (gamepadButtons && gamepadButtons.length > 0 ? gamepadButtons[0] : undefined);
+    if (!key) return '';
+    switch (key) {
+      case 'A': return '/assets/ui/buttons/gamepad/a-buttons.png';
+      case 'B': return '/assets/ui/buttons/gamepad/b-buttons.png';
+      case 'X': return '/assets/ui/buttons/gamepad/x-button.png';
+      case 'Y': return '/assets/ui/buttons/gamepad/y-buttons.png';
+      default: return '';
+    }
+  }, [isGamepadConnected, gamepadButtons, gamepadHintKey]);
 
   return (
     <button
@@ -209,11 +282,31 @@ function UiImageButtonInner({
             ...(isDisabled ? { filter: 'grayscale(15%)', opacity: 0.75 } : {})
           }}
         />
-        {label && (
+        {(label || (hintSrc && isGamepadConnected)) && (
           <span ref={labelRef} style={{
             ...labelBaseStyle,
-            ...(labelStyle || {})
-          }}>{label}</span>
+            ...(labelStyle || {}),
+            position: 'absolute'
+          }}>
+            <span>{label}</span>
+          </span>
+        )}
+        {(hintSrc && isGamepadConnected) && (
+          <img
+            ref={hintImgRef}
+            src={hintSrc}
+            alt="gamepad-hint"
+            style={{
+              position: 'absolute',
+              right: typeof gamepadHintRightPx === 'number' ? `${gamepadHintRightPx}px` : '30px',
+              top: '45%',
+              transform: 'translateY(-50%)',
+              height: 26,
+              width: 'auto',
+              pointerEvents: 'none',
+              userSelect: 'none'
+            }}
+          />
         )}
       </div>
     </button>

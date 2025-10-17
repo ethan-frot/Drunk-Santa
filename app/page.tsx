@@ -319,21 +319,24 @@ export default function Home() {
               setTimeout(() => setShowNameOverlay(true), 150);
             }}
             ariaLabel="Commencer"
+            gamepadButtons={["A"]}
           />
         ) : (
           <>
             {!isStarting ? (
               <UiImageButton
-                imageUpSrc="/assets/ui/buttons/play-button-up.png"
-                imageDownSrc="/assets/ui/buttons/play-button-down.png"
-                heightPx={130}
-                onClick={() => { 
-                  setTimeout(() => submitName(), 150);
-                }}
-                ariaLabel="Jouer"
-                style={{ paddingTop: '150px', marginLeft: '-15px' }}
-                ref={playUiRef}
-              />
+            imageUpSrc="/assets/ui/buttons/play-button-up.png"
+            imageDownSrc="/assets/ui/buttons/play-button-down.png"
+            heightPx={130}
+            onClick={() => { 
+              setTimeout(() => submitName(), 150);
+            }}
+            ariaLabel="Jouer"
+            style={{ paddingTop: '150px', marginLeft: '-15px' }}
+            ref={playUiRef}
+            gamepadButtons={["A"]}
+            gamepadHintRightPx={15}
+          />
             ) : (
               <div style={{ paddingTop: '170px', marginLeft: '-15px', textAlign: 'center' }}>
                 <div style={{
@@ -361,6 +364,7 @@ export default function Home() {
               heightPx={160}
               onClick={() => router.push('/views/how-to-play')}
               ariaLabel="Comment jouer"
+              gamepadButtons={["B"]}
             />
 
             {/* Third green button below the white one */}
@@ -371,6 +375,7 @@ export default function Home() {
               heightPx={110}
               onClick={() => router.push('/views/leaderboard')}
               ariaLabel="Classement"
+              gamepadButtons={["Y"]}
             />
           </>
         )}

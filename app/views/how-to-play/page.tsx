@@ -63,13 +63,19 @@ export default function HowToPlayPage() {
               </div>
               <div style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>Se deplacer (Q et D)</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <img src={'/assets/ui/how-to-play/dash-key.png'} alt="dash-key" width={s(90)} height={s(36)} style={{ objectFit: 'contain' }} />
-                <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>Dash</span>
+                <img src={'/assets/ui/how-to-play/dash-key.png'} alt="dash-key" width={s(60)} height={s(36)} style={{ objectFit: 'contain' }} />
+                <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>ou</span>
+                <img src={'/assets/ui/buttons/gamepad/b-buttons.png'} alt="gamepad B" width={s(40)} height={s(40)} style={{ objectFit: 'contain' }} />
+                <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}> pour Dash</span>
               </div>
             </div>
             {/* Right mouse with 2-line caption below, no physical divider between sections */}
-            <div style={{ display: 'grid', gridTemplateRows: 'auto auto', alignItems: 'center', justifyItems: 'center', gap: 4 }}>
-              <img src={'/assets/ui/how-to-play/left-click.png'} alt="left-click" width={s(40)} height={s(40)} style={{ objectFit: 'contain' }} />
+            <div style={{ display: 'grid', gridTemplateRows: 'auto auto auto', alignItems: 'center', justifyItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <img src={'/assets/ui/how-to-play/left-click.png'} alt="left-click" width={s(40)} height={s(40)} style={{ objectFit: 'contain' }} />
+                <span style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16) }}>ou</span>
+                <img src={'/assets/ui/buttons/gamepad/a-buttons.png'} alt="gamepad A" width={s(40)} height={s(40)} style={{ objectFit: 'contain' }} />
+              </div>
               <div style={{ color: '#e7e9ff', fontFamily: 'November, sans-serif', fontSize: s(16), lineHeight: 1.15, textAlign: 'center' }}>
                 Lancer une<br />
                 boule de neige
